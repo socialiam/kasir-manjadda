@@ -116,7 +116,7 @@ const KUNCI_SIMPAN = 'kasirToko.v1';
    benar-benar yang terbaru: angkanya terlihat di layar Pengaturan paling bawah.
    Kalau angka di layar tidak sama dengan yang disebutkan, berarti browser masih
    memakai simpanan lama dan perlu dimuat ulang dengan Ctrl+Shift+R. */
-const VERSI_APLIKASI = '24 September 2026 - pembaruan 15 (perataan tabel)';
+const VERSI_APLIKASI = '24 September 2026 - pembaruan 16 (PIN bawaan 123456)';
 
 /** Isi awal saat aplikasi pertama kali dibuka. Semua bisa diubah dari dalam aplikasi. */
 function dataAwal() {
@@ -132,6 +132,10 @@ function dataAwal() {
       alamat: 'Jln. Jend Sudirman, Pasar Pelita Kubu', telepon: '0813-7189-7171',
       catatanStruk: 'Terima kasih sudah berbelanja', tema: 'terang',
       urutBarang: 'nama-az', jamBuka: '08.00 - 21.00', katalogOtomatis: true,
+      /* PIN bawaan 123456, supaya kasir tidak pernah terbuka tanpa penjaga
+         sejak menit pertama. Angka ini yang paling mudah ditebak di dunia,
+         jadi Pengaturan terus mendesak penggantiannya selama masih bawaan. */
+      pinPemilik: acakPin('123456'), pinBawaan: true, pinUntuk: 'pemilik',
       /* Spanduk berjalan di katalog. Isinya kalimat, bukan foto: foto milik
          orang lain tidak boleh dipakai, dan kalimat promo lebih menggerakkan
          pembeli daripada gambar barang biasa. */
@@ -458,11 +462,13 @@ let gagalPin = 0;
 function mintaPin(p) {
   bukaModal({
     judul: 'Masuk sebagai ' + p.nama,
-    isi: `<p class="lemah">Akun pemilik dijaga PIN. Masukkan empat angka.</p>
+    isi: `<p class="lemah">Kasir dijaga PIN. Masukkan PIN, lalu tekan Enter.</p>
       <input id="isian-pin" class="input input-besar" type="password" inputmode="numeric"
-             maxlength="4" autocomplete="off" placeholder="••••"
+             maxlength="6" autocomplete="off" placeholder="••••••"
              style="letter-spacing:.5em;text-align:center;font-size:26px;margin-top:14px">
-      <p id="pesan-pin" class="kecil" style="color:var(--bahaya);margin-top:10px;min-height:18px"></p>`,
+      <p id="pesan-pin" class="kecil" style="color:var(--bahaya);margin-top:10px;min-height:18px"></p>
+      ${db.toko.pinBawaan ? `<p class="lemah kecil" style="margin-top:4px">
+        PIN masih bawaan pabrik: <b>123456</b>. Gantilah lewat Pengaturan.</p>` : ''}`,
     aksi: [
       { label: 'Batal', kelas: 'tombol-netral', saatKlik: tutupModal },
       { label: 'Masuk', kelas: 'tombol-utama', saatKlik: cobaPin }
@@ -489,7 +495,9 @@ function mintaPin(p) {
 }
 
 function masukSebagai(p) {
-  if (p.peran === 'pemilik' && db.toko.pinPemilik) { mintaPin(p); return; }
+  const perluPin = db.toko.pinPemilik &&
+    (db.toko.pinUntuk === 'semua' || p.peran === 'pemilik');
+  if (perluPin) { mintaPin(p); return; }
   lanjutkanMasuk(p);
 }
 
@@ -1668,24 +1676,37 @@ function gambarPenyimpanan() {
 }
 
 function gambarPin() {
-  $('#info-pin').innerHTML = db.toko.pinPemilik
-    ? 'PIN <b>sudah terpasang</b>. Isi dua kolom di atas untuk menggantinya.'
-    : 'PIN <b>belum terpasang</b>. Siapa pun bisa masuk sebagai Pemilik.';
+  $('#set-pin-untuk').value = db.toko.pinUntuk || 'pemilik';
+  $('#info-pin').innerHTML = !db.toko.pinPemilik
+    ? 'PIN <b>belum terpasang</b>. Siapa pun bisa masuk.'
+    : (db.toko.pinBawaan
+      ? `<span class="lencana lencana-bahaya">Masih bawaan</span>
+         PIN sekarang <b>123456</b> — angka yang paling mudah ditebak di dunia.
+         Gantilah sebelum kasir dipakai berjualan sungguhan.`
+      : 'PIN <b>sudah diganti sendiri</b>. Isi dua kolom di atas bila ingin menggantinya lagi.');
   $('#btn-hapus-pin').classList.toggle('tersembunyi', !db.toko.pinPemilik);
 }
 
 function simpanPin() {
   const pin = $('#set-pin').value.replace(/\D/g, '');
   const ulang = $('#set-pin-ulang').value.replace(/\D/g, '');
-  if (pin.length !== 4) { pesan('PIN harus empat angka.', 'peringatan'); $('#set-pin').focus(); return; }
+  if (pin.length < 4 || pin.length > 6) {
+    pesan('PIN harus empat sampai enam angka.', 'peringatan'); $('#set-pin').focus(); return;
+  }
   if (pin !== ulang) { pesan('Dua isian PIN belum sama.', 'peringatan'); $('#set-pin-ulang').focus(); return; }
+  if (['123456', '1234', '000000', '0000', '111111', '1111'].includes(pin)) {
+    pesan('Pilih angka yang tidak mudah ditebak, bukan 123456 atau 0000.', 'peringatan', 6000);
+    $('#set-pin').focus();
+    return;
+  }
   db.toko.pinPemilik = acakPin(pin);
-  catat('sistem', 'Memasang atau mengganti PIN pemilik');
+  db.toko.pinBawaan = false;
+  catat('sistem', 'Mengganti PIN dengan angka pilihan sendiri');
   simpanData();
   $('#set-pin').value = '';
   $('#set-pin-ulang').value = '';
   gambarPin();
-  pesan('PIN dipasang. Catat baik-baik, tidak ada cara lain membukanya.', 'sukses', 6000);
+  pesan('PIN diganti. Catat baik-baik, tidak ada cara lain membukanya.', 'sukses', 7000);
 }
 
 async function hapusPin() {
@@ -1695,6 +1716,7 @@ async function hapusPin() {
     'Ya, hapus PIN');
   if (!ya) return;
   db.toko.pinPemilik = '';
+  db.toko.pinBawaan = false;
   catat('sistem', 'Menghapus PIN pemilik');
   simpanData();
   gambarPin();
@@ -2429,6 +2451,14 @@ function pasangPendengar() {
   };
   $('#btn-simpan-pin').onclick = simpanPin;
   $('#btn-hapus-pin').onclick = hapusPin;
+  $('#set-pin-untuk').addEventListener('change', e => {
+    db.toko.pinUntuk = e.target.value;
+    catat('sistem', `PIN kini diminta untuk ${e.target.value === 'semua' ? 'semua petugas' : 'pemilik saja'}`);
+    simpanData();
+    pesan(e.target.value === 'semua'
+      ? 'Sekarang semua petugas harus mengetik PIN.'
+      : 'Sekarang hanya akun Pemilik yang diminta PIN.', 'sukses', 4000);
+  });
   $$('#set-pin, #set-pin-ulang').forEach(el => {
     el.addEventListener('input', () => { el.value = el.value.replace(/\D/g, ''); });
     el.addEventListener('keydown', e => { if (e.key === 'Enter') simpanPin(); });

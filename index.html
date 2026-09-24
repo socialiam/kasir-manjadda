@@ -446,18 +446,23 @@
       </div>
 
       <div class="kartu">
-        <h3>PIN Pemilik</h3>
-        <p class="lemah">Empat angka yang diminta saat masuk sebagai Pemilik, supaya karyawan
-          tidak bisa membuka laporan untung, Buku Catatan, dan Pengaturan.</p>
+        <h3>PIN Masuk Kasir</h3>
+        <p class="lemah">Angka yang diminta saat membuka kasir, supaya laporan untung,
+          Buku Catatan, dan Pengaturan tidak terbuka untuk sembarang orang.</p>
         <p class="lemah kecil"><b>Ingat baik-baik:</b> kalau PIN lupa, satu-satunya jalan masuk
           kembali adalah memulihkan cadangan atau menghapus semua data.</p>
         <div class="form-grid">
-          <label>PIN baru <span class="lemah kecil">(4 angka)</span>
-            <input id="set-pin" class="input" type="password" inputmode="numeric" maxlength="4"
-                   autocomplete="off" placeholder="••••"></label>
+          <label>PIN baru <span class="lemah kecil">(4 sampai 6 angka)</span>
+            <input id="set-pin" class="input" type="password" inputmode="numeric" maxlength="6"
+                   autocomplete="off" placeholder="••••••"></label>
           <label>Ulangi PIN
-            <input id="set-pin-ulang" class="input" type="password" inputmode="numeric" maxlength="4"
-                   autocomplete="off" placeholder="••••"></label>
+            <input id="set-pin-ulang" class="input" type="password" inputmode="numeric" maxlength="6"
+                   autocomplete="off" placeholder="••••••"></label>
+          <label class="lebar-penuh">PIN diminta untuk
+            <select id="set-pin-untuk" class="input">
+              <option value="pemilik">Pemilik saja &mdash; karyawan masuk tanpa PIN</option>
+              <option value="semua">Semua petugas &mdash; siapa pun harus mengetik PIN</option>
+            </select></label>
         </div>
         <div id="info-pin" class="lemah kecil" style="margin-bottom:12px"></div>
         <div class="baris-alat">
