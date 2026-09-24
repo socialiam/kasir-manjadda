@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Gambar latar sampul katalog: rak toko pecah belah, digambar sendiri.
+  Garis putih tipis di atas latar bening, supaya warna sampul tetap
+  terlihat menembus dan tulisan di atasnya tetap terbaca.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 500" preserveAspectRatio="xMidYMid slice">
+  <g fill="none" stroke="#ffffff" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"
+     opacity="0.19">
+
+    <!-- papan rak -->
+    <path d="M40 200h1120M40 350h1120M40 480h1120"/>
+    <path d="M110 200v150M1090 200v150M110 350v130M1090 350v130"/>
+
+    <!-- ===== rak atas ===== -->
+    <!-- tumpukan piring -->
+    <ellipse cx="215" cy="150" rx="70" ry="15"/>
+    <ellipse cx="215" cy="172" rx="80" ry="16"/>
+    <ellipse cx="215" cy="196" rx="90" ry="17"/>
+
+    <!-- teko -->
+    <path d="M370 120h95v45a26 26 0 0 1-26 26h-43a26 26 0 0 1-26-26z"/>
+    <path d="M465 138h26l19 30"/>
+    <path d="M370 140c-22 9-22 38 0 47"/>
+    <path d="M395 120v-16h45v16"/>
+
+    <!-- dua cangkir -->
+    <path d="M575 145h60v30a20 20 0 0 1-20 20h-20a20 20 0 0 1-20-20z"/>
+    <path d="M635 155h16a13 13 0 0 1 0 26h-16"/>
+    <path d="M675 155h52v26a18 18 0 0 1-18 18h-16a18 18 0 0 1-18-18z"/>
+
+    <!-- mangkuk besar -->
+    <path d="M800 148h140c0 36-31 52-70 52s-70-16-70-52z"/>
+    <path d="M788 148h164"/>
+
+    <!-- toples -->
+    <rect x="1000" y="120" width="86" height="80" rx="14"/>
+    <rect x="992" y="103" width="102" height="20" rx="8"/>
+
+    <!-- ===== rak tengah ===== -->
+    <!-- panci bertutup -->
+    <rect x="160" y="272" width="130" height="78" rx="10"/>
+    <path d="M144 296h16M290 296h16"/>
+    <path d="M152 262h146M225 262v-16"/>
+
+    <!-- wajan -->
+    <path d="M390 288h150c0 40-33 62-75 62s-75-22-75-62z"/>
+    <path d="M540 288h72"/>
+
+    <!-- gelas berderet -->
+    <path d="M660 268h44l-6 82h-32z"/>
+    <path d="M716 268h44l-6 82h-32z"/>
+    <path d="M772 268h44l-6 82h-32z"/>
+
+    <!-- ember -->
+    <path d="M880 272h120l-14 78H894z"/>
+    <path d="M896 272c0-34 88-34 88 0"/>
+
+    <!-- galon -->
+    <rect x="1030" y="276" width="70" height="74" rx="12"/>
+    <path d="M1048 276v-24h34v24"/>
+    <path d="M1044 252h42"/>
+
+    <!-- ===== rak bawah ===== -->
+    <!-- lemari plastik bersusun -->
+    <rect x="150" y="372" width="150" height="108" rx="10"/>
+    <path d="M150 408h150M150 444h150"/>
+    <path d="M212 390h26M212 426h26M212 462h26"/>
+
+    <!-- baskom lebar -->
+    <path d="M370 398h190l-28 82H398z"/>
+    <path d="M356 398h218"/>
+
+    <!-- rak piring kawat -->
+    <path d="M640 396h180v84H640z"/>
+    <path d="M685 396v84M730 396v84M775 396v84"/>
+
+    <!-- sapu -->
+    <path d="M905 366v66"/>
+    <path d="M875 432h60l14 48h-88z"/>
+    <path d="M893 444v36M905 444v36M917 444v36"/>
+
+    <!-- tumpukan mangkuk kecil -->
+    <ellipse cx="1050" cy="404" rx="52" ry="12"/>
+    <ellipse cx="1050" cy="430" rx="58" ry="13"/>
+    <ellipse cx="1050" cy="458" rx="64" ry="14"/>
+  </g>
+</svg>

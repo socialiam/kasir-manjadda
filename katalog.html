@@ -55,8 +55,18 @@ body{ padding:0; background:var(--bg); }
 
 /* ---------- sampul ---------- */
 .sampul{
-  background:linear-gradient(150deg,#4f46e5,#7c3aed 55%,#9333ea);
-  color:#fff; padding:30px 20px 34px; text-align:center; position:relative; overflow:hidden;
+  /* Tiga lapis: ilustrasi rak toko di atas, selaput gelap tipis di tengah,
+     warna toko di bawah. Selaput itu yang menjaga tulisan tetap terbaca
+     berapa pun terangnya gambar. */
+  background-image:
+    url('hero.svg'),
+    linear-gradient(180deg, rgba(15,23,42,.10), rgba(15,23,42,.26)),
+    linear-gradient(150deg,#4f46e5,#7c3aed 55%,#9333ea);
+  background-position:center center, center, center;
+  background-size:cover, cover, cover;
+  background-repeat:no-repeat, no-repeat, no-repeat;
+  color:#fff; padding:34px 20px 38px; text-align:center; position:relative; overflow:hidden;
+  text-shadow:0 1px 3px rgba(15,23,42,.35);
 }
 .sampul::after{
   content:''; position:absolute; right:-70px; top:-70px; width:240px; height:240px;
@@ -81,33 +91,37 @@ body{ padding:0; background:var(--bg); }
    Tiga aturan yang membuatnya tidak mengganggu: paling banyak empat helai,
    berhenti begitu disentuh, dan tidak pernah memuat keterangan penting yang
    hanya ada di situ. Yang penting tetap ada di sampul dan kaki halaman. */
-.spanduk{ padding:16px 16px 0; position:relative; }
-/* Jendela pembatas: tanpa ini ketiga helai berjejer keluar layar dan
-   halaman bisa digeser ke samping. */
-.jendela-spanduk{ overflow:hidden; border-radius:var(--lengkung); }
-.rel-spanduk{ display:flex; transition:transform .45s cubic-bezier(.2,.7,.3,1); }
-.helai{ flex:0 0 100%; }
-.helai{
-  min-width:100%; border-radius:var(--lengkung); padding:20px 22px; color:#fff;
-  position:relative; overflow:hidden; box-shadow:var(--bayang-2);
+.spanduk{ padding:16px 16px 0; }
+
+/* Papan pengumuman berjalan. Isinya digandakan pas dua kali, lalu jalurnya
+   digeser tepat setengah panjangnya, sehingga sambungannya tidak terlihat
+   dan tulisan mengalir terus tanpa putus. */
+.papan-jalan{
+  background:linear-gradient(135deg,#7c3aed,#a21caf);
+  border-radius:var(--lengkung); overflow:hidden; padding:14px 0;
+  box-shadow:var(--bayang-2); position:relative;
 }
-.helai::after{
-  content:''; position:absolute; right:-40px; top:-40px; width:150px; height:150px;
-  border-radius:50%; background:rgba(255,255,255,.12);
+.papan-jalan::before, .papan-jalan::after{
+  content:''; position:absolute; top:0; bottom:0; width:38px; z-index:2; pointer-events:none;
 }
-.helai b{ display:block; font-size:17px; font-weight:800; letter-spacing:-.01em; position:relative; }
-.helai span{ display:block; font-size:13px; opacity:.93; margin-top:4px; line-height:1.5; position:relative; }
-.helai.ungu{ background:linear-gradient(135deg,#7c3aed,#a21caf); }
-.helai.hijau{ background:linear-gradient(135deg,#16a34a,#059669); }
-.helai.jingga{ background:linear-gradient(135deg,#ea580c,#f59e0b); }
-.helai.biru{ background:linear-gradient(135deg,#4f46e5,#2563eb); }
-.helai.merah{ background:linear-gradient(135deg,#e11d48,#be123c); }
-.titik-spanduk{ display:flex; gap:6px; justify-content:center; margin-top:10px; }
-.titik-spanduk button{
-  width:7px; height:7px; border-radius:99px; border:none; padding:0; cursor:pointer;
-  background:var(--garis); transition:.2s;
+.papan-jalan::before{ left:0; background:linear-gradient(90deg,#7c3aed,rgba(124,58,237,0)); }
+.papan-jalan::after{ right:0; background:linear-gradient(270deg,#a21caf,rgba(162,28,175,0)); }
+
+.jalur{ display:inline-flex; white-space:nowrap; will-change:transform; }
+.papan-jalan:hover .jalur{ animation-play-state:paused; }
+.ruas{ display:inline-flex; align-items:center; flex:none; }
+.butir{ color:#fff; font-size:14.5px; padding:0 26px; }
+.butir b{ font-weight:800; }
+.titik-pisah{ color:#fff; opacity:.55; font-size:14.5px; }
+
+@keyframes merayap{ from{ transform:translateX(0); } to{ transform:translateX(-50%); } }
+
+/* Yang menyetel perangkatnya anti-animasi tetap bisa membaca semuanya
+   dengan menggeser sendiri, tanpa ada yang bergerak. */
+@media (prefers-reduced-motion: reduce){
+  .jalur{ animation:none !important; }
+  .papan-jalan{ overflow-x:auto; }
 }
-.titik-spanduk button.aktif{ width:20px; background:var(--utama); }
 
 /* ---------- pencarian dan kategori ---------- */
 .alat-toko{
@@ -266,10 +280,9 @@ body{ padding:0; background:var(--bg); }
   </div>
 
   <div class="spanduk tersembunyi" id="k-spanduk">
-    <div class="jendela-spanduk">
-      <div class="rel-spanduk" id="k-rel-spanduk"></div>
+    <div class="papan-jalan">
+      <div class="jalur" id="k-jalur"></div>
     </div>
-    <div class="titik-spanduk" id="k-titik"></div>
   </div>
 
   <div class="alat-toko tersembunyi" id="k-alat">
@@ -530,64 +543,54 @@ function kirimPesanan() {
   $('#modal-aksi').innerHTML = '';
 }
 
-/* ---------- spanduk berjalan ---------- */
+/* ---------- papan pengumuman berjalan ---------- */
 
-let helaiSekarang = 0;
-let jamSpanduk = null;
+const LAJU_SPANDUK = 62;   // piksel per detik, kecepatan yang masih enak dibaca
+let daftarPromo = [];
+let janjiUkurUlang = null;
 
 function gambarSpanduk(daftar) {
-  if (!Array.isArray(daftar) || !daftar.length) return;
-  const helai = daftar.slice(0, 4);   // lebih dari empat tidak akan terbaca orang
-
-  $('#k-rel-spanduk').innerHTML = helai.map(h =>
-    `<div class="helai ${aman(h.warna || 'biru')}">
-      <b>${aman(h.judul || '')}</b><span>${aman(h.teks || '')}</span>
-    </div>`).join('');
-  $('#k-titik').innerHTML = helai.length > 1
-    ? helai.map((h, urut) => `<button data-helai="${urut}" aria-label="Spanduk ${urut + 1}"></button>`).join('')
-    : '';
+  daftarPromo = (Array.isArray(daftar) ? daftar : []).filter(p => p && p.judul);
+  if (!daftarPromo.length) return;
   $('#k-spanduk').classList.remove('tersembunyi');
-  keHelai(0);
-  if (helai.length > 1) mulaiJalan(helai.length);
-
-  $('#k-titik').addEventListener('click', e => {
-    const t = e.target.closest('[data-helai]');
-    if (!t) return;
-    keHelai(Number(t.dataset.helai));
-    mulaiJalan(helai.length);        // sentuhan pembeli menunda jalannya
-  });
-
-  /* geser dengan jari */
-  let mulaiX = null;
-  const rel = $('#k-rel-spanduk');
-  rel.addEventListener('touchstart', e => { mulaiX = e.touches[0].clientX; hentikanJalan(); }, { passive: true });
-  rel.addEventListener('touchend', e => {
-    if (mulaiX === null) return;
-    const geser = e.changedTouches[0].clientX - mulaiX;
-    if (Math.abs(geser) > 40) keHelai(helaiSekarang + (geser < 0 ? 1 : -1), helai.length);
-    mulaiX = null;
-    mulaiJalan(helai.length);
-  }, { passive: true });
-  rel.addEventListener('mouseenter', hentikanJalan);
-  rel.addEventListener('mouseleave', () => mulaiJalan(helai.length));
+  susunJalur();
 }
 
-function keHelai(nomor, jumlah) {
-  const semua = $$('#k-rel-spanduk .helai').length || 1;
-  const batas = jumlah || semua;
-  helaiSekarang = (nomor + batas) % batas;
-  $('#k-rel-spanduk').style.transform = 'translateX(-' + (helaiSekarang * 100) + '%)';
-  $$('#k-titik button').forEach((t, urut) => t.classList.toggle('aktif', urut === helaiSekarang));
+function satuRuas() {
+  return daftarPromo.map(p =>
+    `<span class="butir"><b>${aman(p.judul)}</b> ${aman(p.teks || '')}</span>`
+  ).join('<span class="titik-pisah">&#9679;</span>');
 }
 
-function hentikanJalan() { clearInterval(jamSpanduk); }
+/* Isi digandakan secukupnya sampai separuh jalur lebih panjang daripada
+   papannya, lalu digandakan sekali lagi. Dengan begitu geseran sebesar
+   setengah panjang jalur mengembalikan tampilan ke keadaan semula, dan
+   sambungannya tidak pernah terlihat. */
+function susunJalur() {
+  const jalur = $('#k-jalur');
+  if (!jalur || !daftarPromo.length) return;
+  const papan = jalur.parentElement;
 
-function mulaiJalan(jumlah) {
-  hentikanJalan();
-  // Yang menyetel HP-nya anti-animasi tidak dijalankan sama sekali.
-  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-  jamSpanduk = setInterval(() => keHelai(helaiSekarang + 1, jumlah), 6000);
+  jalur.style.animation = 'none';
+  jalur.innerHTML = `<span class="ruas">${satuRuas()}</span>`;
+  const lebarSatu = jalur.firstElementChild.getBoundingClientRect().width || 600;
+  const lebarPapan = papan.getBoundingClientRect().width || 360;
+
+  const salinanSeparuh = Math.max(1, Math.ceil(lebarPapan / lebarSatu));
+  jalur.innerHTML = Array.from({ length: salinanSeparuh * 2 }, (v, urut) =>
+    `<span class="ruas"${urut ? ' aria-hidden="true"' : ''}>${satuRuas()}</span>`).join('');
+
+  const lebarSeparuh = salinanSeparuh * lebarSatu;
+  const detik = Math.max(14, Math.round(lebarSeparuh / LAJU_SPANDUK));
+  jalur.style.animation = `merayap ${detik}s linear infinite`;
 }
+
+/* Lebar papan berubah saat layar diputar atau jendela diubah ukurannya,
+   jadi jalurnya disusun ulang, ditunda sebentar supaya tidak berkali-kali. */
+window.addEventListener('resize', () => {
+  clearTimeout(janjiUkurUlang);
+  janjiUkurUlang = setTimeout(susunJalur, 250);
+});
 
 /* ---------- memuat katalog ---------- */
 

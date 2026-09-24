@@ -23,6 +23,7 @@ const INTI = [
   'ikon-barang.js',
   'manifest.json',
   'manifest-katalog.json',
+  'hero.svg',
   'ikon-192.png',
   'ikon-512.png',
   'ikon-maskable.png'
