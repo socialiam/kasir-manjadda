@@ -340,7 +340,23 @@ label .input, label select{ margin-top:6px; font-weight:500; color:var(--teks); 
 .kartu-barang:disabled{ opacity:.45; cursor:not-allowed; transform:none; box-shadow:none; }
 .kartu-barang .nama{ font-weight:700; font-size:14.5px; line-height:1.3; }
 .kartu-barang .harga{ color:var(--sukses); font-weight:800; font-variant-numeric:tabular-nums; }
+.kartu-barang .harga-grosir{
+  font-size:11.5px; font-weight:700; color:var(--ungu);
+  background:var(--sorot); border-radius:6px; padding:1px 6px; align-self:flex-start;
+}
 .kartu-barang .stok{ font-size:11.5px; color:var(--lemah); font-weight:600; }
+
+/* pilihan satuan atau borongan saat menjual */
+.pilih-cara{ display:grid; grid-template-columns:1fr 1fr; gap:11px; margin-top:6px; }
+.pilih-cara button{
+  border:1px solid var(--garis); background:var(--kartu); color:var(--teks);
+  border-radius:var(--lengkung-kecil); padding:16px 12px; cursor:pointer; font-family:inherit;
+  display:flex; flex-direction:column; gap:3px; text-align:center; transition:.15s;
+}
+.pilih-cara button:hover{ border-color:var(--utama); background:var(--sorot); transform:translateY(-2px); }
+.pilih-cara b{ font-size:15px; }
+.pilih-cara .harga-cara{ font-size:21px; font-weight:800; color:var(--sukses); letter-spacing:-.02em; }
+@media (max-width:480px){ .pilih-cara{ grid-template-columns:1fr; } }
 .kartu-barang .stok.menipis{ color:var(--peringatan); }
 .kartu-barang .stok.habis{ color:var(--bahaya); }
 

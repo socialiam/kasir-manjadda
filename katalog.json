@@ -1,63 +1,87 @@
 {
   "barang": [
     {
+      "grosirSatuan": "",
+      "satuan": "pcs",
+      "grosirJumlah": 0,
       "hargaJual": 65000,
-      "satuan": "pcs",
-      "tersedia": true,
       "gambar": "",
-      "nama": "Kuali besar"
+      "tersedia": true,
+      "nama": "Kuali besar",
+      "grosirHarga": 0
     },
     {
+      "grosirSatuan": "",
+      "satuan": "pcs",
+      "grosirJumlah": 0,
       "hargaJual": 145000,
-      "satuan": "pcs",
-      "tersedia": true,
       "gambar": "",
-      "nama": "Kompor 2 tungku"
+      "tersedia": true,
+      "nama": "Kompor 2 tungku",
+      "grosirHarga": 0
     },
     {
+      "grosirSatuan": "",
+      "satuan": "pcs",
+      "grosirJumlah": 0,
       "hargaJual": 18000,
-      "satuan": "pcs",
-      "tersedia": true,
       "gambar": "",
-      "nama": "Baskom besar"
+      "tersedia": true,
+      "nama": "Baskom besar",
+      "grosirHarga": 0
     },
     {
+      "grosirSatuan": "lusin",
+      "satuan": "pcs",
+      "grosirJumlah": 12,
       "hargaJual": 8000,
-      "satuan": "pcs",
-      "tersedia": true,
       "gambar": "",
-      "nama": "Baskom kecil"
+      "tersedia": true,
+      "nama": "Baskom kecil",
+      "grosirHarga": 85000
     },
     {
+      "grosirSatuan": "lusin",
+      "satuan": "pcs",
+      "grosirJumlah": 12,
       "hargaJual": 1500,
-      "satuan": "pcs",
-      "tersedia": true,
       "gambar": "",
-      "nama": "Sendok makan plastik"
+      "tersedia": true,
+      "nama": "Sendok makan plastik",
+      "grosirHarga": 15000
     },
     {
+      "grosirSatuan": "kodi",
+      "satuan": "pcs",
+      "grosirJumlah": 20,
       "hargaJual": 1000,
-      "satuan": "pcs",
-      "tersedia": true,
       "gambar": "",
-      "nama": "Sabut cuci piring"
+      "tersedia": true,
+      "nama": "Sabut cuci piring",
+      "grosirHarga": 17000
     },
     {
+      "grosirSatuan": "",
+      "satuan": "pcs",
+      "grosirJumlah": 0,
       "hargaJual": 5000,
-      "satuan": "pcs",
-      "tersedia": true,
       "gambar": "",
-      "nama": "Sikat gosok lantai"
+      "tersedia": true,
+      "nama": "Sikat gosok lantai",
+      "grosirHarga": 0
     },
     {
-      "hargaJual": 6000,
+      "grosirSatuan": "",
       "satuan": "pcs",
-      "tersedia": false,
+      "grosirJumlah": 0,
+      "hargaJual": 6000,
       "gambar": "",
-      "nama": "Sapu lidi"
+      "tersedia": false,
+      "nama": "Sapu lidi",
+      "grosirHarga": 0
     }
   ],
-  "waktu": "2026-09-24T16:24:46.5303700+07:00",
+  "waktu": "2026-09-24T16:40:59.6653910+07:00",
   "toko": {
     "alamat": "",
     "jenis": "Toko Pecah Belah",

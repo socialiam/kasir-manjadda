@@ -6,6 +6,19 @@
 <title>Katalog Toko</title>
 <meta name="description" content="Daftar barang dan harga terbaru. Pesan langsung lewat WhatsApp.">
 <meta name="theme-color" content="#4f46e5">
+
+<!-- Kartu pratinjau saat tautan ini dibagikan di WhatsApp atau Facebook -->
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Toko Manjadda Wajada Kubu">
+<meta property="og:title" content="Katalog Toko Manjadda Wajada Kubu">
+<meta property="og:description" content="Toko Pecah Belah. Lihat barang dan harga terbaru, lalu pesan langsung lewat WhatsApp.">
+<meta property="og:image" content="ikon-512.png">
+<meta property="og:locale" content="id_ID">
+<meta name="twitter:card" content="summary">
+
+<link rel="manifest" href="manifest-katalog.json">
+<link rel="icon" href="ikon-192.png">
+<link rel="apple-touch-icon" href="ikon-192.png">
 <link rel="stylesheet" href="style.css">
 <style>
 /* ============================================================
@@ -120,6 +133,9 @@ body{ padding:0; background:var(--bg); }
   letter-spacing:-.02em; margin-top:5px; }
 [data-tema="gelap"] .isi-barang .harga{ color:#a5b4fc; }
 .isi-barang .satuan{ font-size:11.5px; color:var(--lemah); font-weight:600; }
+.harga-borong{ margin-top:6px; font-size:12px; font-weight:700; color:var(--ungu);
+  background:var(--sorot); border-radius:8px; padding:4px 8px; line-height:1.35; }
+.harga-borong small{ display:block; font-weight:600; color:var(--lemah); font-size:10.5px; }
 .barang.habis .panggung, .barang.habis .isi-barang{ opacity:.55; }
 
 .aksi-barang{ padding:0 13px 13px; }
@@ -181,6 +197,14 @@ body{ padding:0; background:var(--bg); }
 
 .muat{ text-align:center; padding:54px 20px; color:var(--lemah); }
 
+/* kerangka abu yang berdenyut selagi katalog dimuat */
+.rangka{
+  height:238px; border-radius:var(--lengkung); border:1px solid var(--garis);
+  background:linear-gradient(100deg, var(--kartu) 30%, var(--sorot) 50%, var(--kartu) 70%);
+  background-size:280% 100%; animation:denyut 1.4s ease-in-out infinite;
+}
+@keyframes denyut{ from{ background-position:180% 0 } to{ background-position:-60% 0 } }
+
 @media (max-width:560px){
   .rak{ grid-template-columns:repeat(2,1fr); gap:11px; padding:12px; }
   .alat-toko{ padding:12px 12px 6px; }
@@ -224,8 +248,13 @@ body{ padding:0; background:var(--bg); }
     </select>
   </div>
 
+  <!-- kerangka abu selagi katalog dimuat, supaya tidak terasa kosong menunggu -->
+  <div id="k-kerangka" class="rak">
+    <div class="rangka"></div><div class="rangka"></div><div class="rangka"></div>
+    <div class="rangka"></div><div class="rangka"></div><div class="rangka"></div>
+  </div>
   <div id="k-rak" class="rak"></div>
-  <div id="k-pesan-kosong" class="muat">Memuat katalog...</div>
+  <div id="k-pesan-kosong" class="muat tersembunyi"></div>
 
   <div class="kaki-toko">
     <h3 id="k-kaki-nama">Toko</h3>
@@ -318,6 +347,9 @@ function gambarRak() {
         <span class="nama">${aman(b.nama)}</span>
         <span class="harga">${rupiah(b.hargaJual)}</span>
         <span class="satuan">per ${aman(b.satuan || 'pcs')} &middot; ${aman(kategoriBarang(b))}</span>
+        ${b.grosirJumlah > 1 && b.grosirHarga > 0
+          ? `<span class="harga-borong">${rupiah(b.grosirHarga)} per ${aman(b.grosirSatuan)}
+              <small>isi ${angka(b.grosirJumlah)}</small></span>` : ''}
       </div>
       <div class="aksi-barang">
         ${!b.tersedia
@@ -504,11 +536,14 @@ fetch('katalog.json?t=' + Date.now())
     $('#k-kategori').innerHTML = ['Semua', ...adaKategori].map((k, urut) =>
       `<button class="kategori ${urut === 0 ? 'aktif' : ''}" data-kategori="${aman(k)}">${aman(k)}</button>`).join('');
 
+    $('#k-kerangka').classList.add('tersembunyi');
     $('#k-alat').classList.remove('tersembunyi');
     $('#k-baris-jumlah').classList.remove('tersembunyi');
     gambarRak();
   })
   .catch(() => {
+    $('#k-kerangka').classList.add('tersembunyi');
+    $('#k-pesan-kosong').classList.remove('tersembunyi');
     $('#k-pesan-kosong').innerHTML = `<b>Katalog belum diterbitkan.</b><br>
       <span class="kecil">Pemilik toko dapat menerbitkannya lewat menu Pengaturan di aplikasi kasir.</span>`;
   });
@@ -534,6 +569,11 @@ $('#k-buka-pesanan').onclick = bukaPesanan;
 $('#modal-tutup').onclick = tutupModal;
 $('#latar-modal').addEventListener('click', e => { if (e.target.id === 'latar-modal') tutupModal(); });
 document.addEventListener('keydown', e => { if (e.key === 'Escape') tutupModal(); });
+
+/* ---------- penyimpan luring: halaman tetap terbuka walau sinyal hilang ---------- */
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
+}
 </script>
 </body>
 </html>

@@ -4,6 +4,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Kasir Toko Manjadda Wajada Kubu</title>
+<meta name="theme-color" content="#4f46e5">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="ikon-192.png">
+<link rel="apple-touch-icon" href="ikon-192.png">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -418,5 +422,11 @@
 
 <script src="ikon-barang.js"></script>
 <script src="app.js"></script>
+<script>
+/* Penyimpan luring: kasir tetap bisa dibuka walau internet mati. */
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
+}
+</script>
 </body>
 </html>
