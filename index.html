@@ -39,6 +39,20 @@
 
   <main class="isi">
 
+    <!-- ====== LAYAR KUNCI ====== -->
+    <section id="layar-kunci" class="layar">
+      <div class="kunci-kotak">
+        <div class="logo" id="kunci-logo">TM</div>
+        <h1 id="kunci-nama">Toko Man Jadda Wajada Kubu</h1>
+        <p class="lemah" id="kunci-jenis"></p>
+        <p class="lemah kecil" style="margin-top:14px">Masukkan PIN untuk membuka kasir</p>
+        <div class="titik-pin" id="titik-pin"></div>
+        <p id="kunci-pesan" class="kecil pesan-kunci"></p>
+        <div class="papan-angka" id="papan-angka"></div>
+        <p class="lemah kecil" id="kunci-catatan" style="margin-top:18px"></p>
+      </div>
+    </section>
+
     <!-- ====== LAYAR MASUK ====== -->
     <section id="layar-masuk" class="layar aktif">
       <div class="masuk-kotak">
@@ -460,8 +474,8 @@
                    autocomplete="off" placeholder="••••••"></label>
           <label class="lebar-penuh">PIN diminta untuk
             <select id="set-pin-untuk" class="input">
-              <option value="pemilik">Pemilik saja &mdash; karyawan masuk tanpa PIN</option>
-              <option value="semua">Semua petugas &mdash; siapa pun harus mengetik PIN</option>
+              <option value="semua">Saat kasir dibuka &mdash; PIN diminta di pintu depan</option>
+              <option value="pemilik">Hanya akun Pemilik &mdash; karyawan masuk tanpa PIN</option>
             </select></label>
         </div>
         <div id="info-pin" class="lemah kecil" style="margin-bottom:12px"></div>

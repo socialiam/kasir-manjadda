@@ -252,6 +252,45 @@ label .input, label select{ margin-top:6px; font-weight:500; color:var(--teks); 
 .petugas-teks b{ font-weight:700; }
 .panah{ color:var(--lemah); font-size:20px; flex:none; }
 
+/* ---------- layar kunci ----------
+   Wajah pertama aplikasi kasir. Papan angka di layar dipasang karena mesin
+   kasir sering berupa layar sentuh tanpa papan ketik; yang memakai papan
+   ketik tetap bisa mengetik angka, Backspace, dan Enter seperti biasa. */
+.kunci-kotak{
+  max-width:400px; margin:6vh auto 0; text-align:center;
+  background:var(--kartu); border:1px solid var(--garis);
+  border-radius:26px; box-shadow:var(--bayang-3); padding:34px 26px 30px;
+  position:relative; overflow:hidden;
+}
+.kunci-kotak::before{
+  content:''; position:absolute; inset:0 0 auto 0; height:5px;
+  background:linear-gradient(90deg, var(--utama), #8b5cf6, var(--sukses));
+}
+.kunci-kotak h1{ font-size:22px; line-height:1.25; margin-top:4px; }
+
+.titik-pin{ display:flex; gap:12px; justify-content:center; margin:14px 0 4px; min-height:18px; }
+.titik-pin i{
+  width:14px; height:14px; border-radius:50%; border:2px solid var(--garis);
+  transition:.18s; display:block;
+}
+.titik-pin i.isi{ background:var(--utama); border-color:var(--utama); transform:scale(1.1); }
+.pesan-kunci{ min-height:20px; color:var(--bahaya); font-weight:700; }
+.kunci-kotak.salah{ animation:goyang .4s; }
+@keyframes goyang{
+  20%{ transform:translateX(-9px) } 40%{ transform:translateX(9px) }
+  60%{ transform:translateX(-5px) } 80%{ transform:translateX(5px) }
+}
+
+.papan-angka{ display:grid; grid-template-columns:repeat(3,1fr); gap:11px; margin-top:12px; }
+.papan-angka button{
+  border:1px solid var(--garis); background:var(--kartu); color:var(--teks);
+  border-radius:16px; padding:16px 0; font-size:22px; font-weight:700;
+  font-family:inherit; cursor:pointer; transition:.12s;
+}
+.papan-angka button:hover{ background:var(--sorot); border-color:var(--utama); }
+.papan-angka button:active{ transform:scale(.96); background:var(--utama); color:#fff; }
+.papan-angka button.kecil-teks{ font-size:14px; font-weight:800; color:var(--lemah); }
+
 /* ---------- beranda ---------- */
 .ringkas-grid{
   display:grid; grid-template-columns:repeat(auto-fit, minmax(190px,1fr));

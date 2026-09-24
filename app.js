@@ -116,7 +116,7 @@ const KUNCI_SIMPAN = 'kasirToko.v1';
    benar-benar yang terbaru: angkanya terlihat di layar Pengaturan paling bawah.
    Kalau angka di layar tidak sama dengan yang disebutkan, berarti browser masih
    memakai simpanan lama dan perlu dimuat ulang dengan Ctrl+Shift+R. */
-const VERSI_APLIKASI = '24 September 2026 - pembaruan 16 (PIN bawaan 123456)';
+const VERSI_APLIKASI = '24 September 2026 - pembaruan 17 (kunci di pintu depan)';
 
 /** Isi awal saat aplikasi pertama kali dibuka. Semua bisa diubah dari dalam aplikasi. */
 function dataAwal() {
@@ -135,7 +135,7 @@ function dataAwal() {
       /* PIN bawaan 123456, supaya kasir tidak pernah terbuka tanpa penjaga
          sejak menit pertama. Angka ini yang paling mudah ditebak di dunia,
          jadi Pengaturan terus mendesak penggantiannya selama masih bawaan. */
-      pinPemilik: acakPin('123456'), pinBawaan: true, pinUntuk: 'pemilik',
+      pinPemilik: acakPin('123456'), pinBawaan: true, pinUntuk: 'semua',
       /* Spanduk berjalan di katalog. Isinya kalimat, bukan foto: foto milik
          orang lain tidak boleh dipakai, dan kalimat promo lebih menggerakkan
          pembeli daripada gambar barang biasa. */
@@ -409,7 +409,8 @@ function gantiLayar(idLayar) {
     idLayar = 'layar-beranda';
   }
   $$('.layar').forEach(l => l.classList.toggle('aktif', l.id === idLayar));
-  $('#bilah-atas').classList.toggle('tersembunyi', idLayar === 'layar-masuk');
+  $('#bilah-atas').classList.toggle('tersembunyi',
+    idLayar === 'layar-masuk' || idLayar === 'layar-kunci');
   window.scrollTo(0, 0);
   saatTampil[idLayar]?.();
 }
@@ -459,6 +460,76 @@ function acakPin(pin) {
 
 let gagalPin = 0;
 
+/* ----- layar kunci di pintu depan -----
+   Dipasang bila PIN diminta untuk semua petugas. Hanya halaman kasir yang
+   dijaga; katalog dan layar pelanggan sengaja dibiarkan terbuka, karena
+   keduanya memang dibuat untuk dilihat pembeli. */
+
+let ketikanPin = '';
+
+function pintuDikunci() {
+  return !!db.toko.pinPemilik && (db.toko.pinUntuk || 'semua') === 'semua';
+}
+
+function gambarLayarKunci() {
+  $('#kunci-logo').textContent = inisial(db.toko.nama || 'Toko');
+  $('#kunci-nama').textContent = db.toko.nama || 'Kasir Toko';
+  $('#kunci-jenis').textContent = db.toko.jenis || '';
+  $('#kunci-catatan').innerHTML = db.toko.pinBawaan
+    ? 'PIN masih bawaan pabrik: <b>123456</b>'
+    : 'Halaman katalog untuk pembeli tidak memerlukan PIN.';
+
+  $('#papan-angka').innerHTML =
+    [1, 2, 3, 4, 5, 6, 7, 8, 9].map(n => `<button data-angka="${n}">${n}</button>`).join('') +
+    '<button class="kecil-teks" data-pin-hapus>HAPUS</button>' +
+    '<button data-angka="0">0</button>' +
+    '<button class="kecil-teks" data-pin-buka>BUKA</button>';
+
+  ketikanPin = '';
+  gambarTitikPin();
+}
+
+function gambarTitikPin() {
+  $('#titik-pin').innerHTML = Array.from({ length: 6 },
+    (v, i) => `<i class="${i < ketikanPin.length ? 'isi' : ''}"></i>`).join('');
+}
+
+function ketikPin(angka) {
+  if (ketikanPin.length >= 6) return;
+  ketikanPin += angka;
+  $('#kunci-pesan').textContent = '';
+  gambarTitikPin();
+  // Dicoba sendiri mulai empat angka, supaya PIN pendek tidak perlu menekan BUKA.
+  if (ketikanPin.length >= 4 && acakPin(ketikanPin) === db.toko.pinPemilik) bukaKunci();
+  else if (ketikanPin.length === 6) cobaBukaKunci();
+}
+
+function cobaBukaKunci() {
+  if (ketikanPin.length >= 4 && acakPin(ketikanPin) === db.toko.pinPemilik) { bukaKunci(); return; }
+  gagalPin += 1;
+  ketikanPin = '';
+  gambarTitikPin();
+  $('#kunci-pesan').textContent = gagalPin >= 3 ? `PIN salah ${gagalPin} kali.` : 'PIN salah. Coba lagi.';
+  const kotak = $('.kunci-kotak');
+  kotak.classList.remove('salah');
+  void kotak.offsetWidth;          // memaksa gambar ulang supaya goyangnya terulang
+  kotak.classList.add('salah');
+}
+
+function bukaKunci() {
+  gagalPin = 0;
+  ketikanPin = '';
+  $('#kunci-pesan').textContent = '';
+  gambarLayarMasuk();
+  gantiLayar('layar-masuk');
+}
+
+function kunciKasir() {
+  petugasSekarang = null;
+  gambarLayarKunci();
+  gantiLayar('layar-kunci');
+}
+
 function mintaPin(p) {
   bukaModal({
     judul: 'Masuk sebagai ' + p.nama,
@@ -495,8 +566,8 @@ function mintaPin(p) {
 }
 
 function masukSebagai(p) {
-  const perluPin = db.toko.pinPemilik &&
-    (db.toko.pinUntuk === 'semua' || p.peran === 'pemilik');
+  // Kalau pintu depan sudah dikunci PIN, tidak perlu bertanya dua kali.
+  const perluPin = db.toko.pinPemilik && db.toko.pinUntuk === 'pemilik' && p.peran === 'pemilik';
   if (perluPin) { mintaPin(p); return; }
   lanjutkanMasuk(p);
 }
@@ -2252,10 +2323,30 @@ function pasangPendengar() {
       if (!ya) return;
       kosongkanKeranjang();
     }
+    // Kalau pintu depan berkunci, keluar berarti mengunci kembali kasirnya,
+    // jadi yang meneruskan giliran harus mengetik PIN lagi.
+    if (pintuDikunci()) { kunciKasir(); return; }
     petugasSekarang = null;
     gambarLayarMasuk();
     gantiLayar('layar-masuk');
   };
+
+  /* --- layar kunci --- */
+  $('#papan-angka').addEventListener('click', e => {
+    const t = e.target.closest('button');
+    if (!t) return;
+    if (t.dataset.angka !== undefined) ketikPin(t.dataset.angka);
+    else if (t.dataset.pinHapus !== undefined) {
+      ketikanPin = ketikanPin.slice(0, -1);
+      gambarTitikPin();
+    } else if (t.dataset.pinBuka !== undefined) cobaBukaKunci();
+  });
+  document.addEventListener('keydown', e => {
+    if (!$('#layar-kunci').classList.contains('aktif')) return;
+    if (/^[0-9]$/.test(e.key)) { ketikPin(e.key); e.preventDefault(); }
+    else if (e.key === 'Backspace') { ketikanPin = ketikanPin.slice(0, -1); gambarTitikPin(); e.preventDefault(); }
+    else if (e.key === 'Enter') { cobaBukaKunci(); e.preventDefault(); }
+  });
 
   /* --- kotak isian uang: titik ribuan otomatis --- */
   document.addEventListener('input', e => {
@@ -2456,8 +2547,8 @@ function pasangPendengar() {
     catat('sistem', `PIN kini diminta untuk ${e.target.value === 'semua' ? 'semua petugas' : 'pemilik saja'}`);
     simpanData();
     pesan(e.target.value === 'semua'
-      ? 'Sekarang semua petugas harus mengetik PIN.'
-      : 'Sekarang hanya akun Pemilik yang diminta PIN.', 'sukses', 4000);
+      ? 'PIN kini diminta begitu kasir dibuka.'
+      : 'PIN kini hanya diminta saat memilih akun Pemilik.', 'sukses', 4500);
   });
   $$('#set-pin, #set-pin-ulang').forEach(el => {
     el.addEventListener('input', () => { el.value = el.value.replace(/\D/g, ''); });
@@ -2542,7 +2633,12 @@ function mulai() {
   terapkanHakAkses();   // menu pemilik tersembunyi selama belum ada yang masuk
   pasangPendengar();
   setRentang('hari-ini');
-  gantiLayar('layar-masuk');
+  if (pintuDikunci()) {
+    gambarLayarKunci();
+    gantiLayar('layar-kunci');
+  } else {
+    gantiLayar('layar-masuk');
+  }
   if (perluPanduanAwal) setTimeout(panduanAwal, 350);
 }
 
