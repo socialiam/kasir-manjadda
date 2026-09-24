@@ -116,7 +116,7 @@ const KUNCI_SIMPAN = 'kasirToko.v1';
    benar-benar yang terbaru: angkanya terlihat di layar Pengaturan paling bawah.
    Kalau angka di layar tidak sama dengan yang disebutkan, berarti browser masih
    memakai simpanan lama dan perlu dimuat ulang dengan Ctrl+Shift+R. */
-const VERSI_APLIKASI = '24 September 2026 - pembaruan 19 (papan iklan layar pelanggan)';
+const VERSI_APLIKASI = '24 September 2026 - pembaruan 20 (ganti PIN dengan PIN lama)';
 
 /** Isi awal saat aplikasi pertama kali dibuka. Semua bisa diubah dari dalam aplikasi. */
 function dataAwal() {
@@ -2012,52 +2012,106 @@ function gambarPenyimpanan() {
     (bulanArsip ? ` &middot; ${angka(bulanArsip)} bulan sudah diringkas` : '');
 }
 
+const PIN_MUDAH_DITEBAK = ['123456', '1234', '000000', '0000', '111111', '1111',
+  '123123', '654321', '4321', '121212'];
+
 function gambarPin() {
-  $('#set-pin-untuk').value = db.toko.pinUntuk || 'pemilik';
-  $('#info-pin').innerHTML = !db.toko.pinPemilik
-    ? 'PIN <b>belum terpasang</b>. Siapa pun bisa masuk.'
+  const ada = !!db.toko.pinPemilik;
+  $('#set-pin-untuk').value = db.toko.pinUntuk || 'semua';
+  $('#info-pin').innerHTML = !ada
+    ? 'PIN <b>belum terpasang</b>. Siapa pun bisa membuka kasir.'
     : (db.toko.pinBawaan
       ? `<span class="lencana lencana-bahaya">Masih bawaan</span>
          PIN sekarang <b>123456</b> — angka yang paling mudah ditebak di dunia.
          Gantilah sebelum kasir dipakai berjualan sungguhan.`
-      : 'PIN <b>sudah diganti sendiri</b>. Isi dua kolom di atas bila ingin menggantinya lagi.');
-  $('#btn-hapus-pin').classList.toggle('tersembunyi', !db.toko.pinPemilik);
+      : 'PIN <b>sudah diganti sendiri</b>. Untuk menggantinya lagi, isi PIN sekarang lebih dulu.');
+
+  $('#bungkus-pin-lama').classList.toggle('tersembunyi', !ada);
+  $('#btn-hapus-pin').classList.toggle('tersembunyi', !ada);
+  $('#btn-lupa-pin').classList.toggle('tersembunyi', !ada);
+  $('#btn-simpan-pin').textContent = ada ? 'Ganti PIN' : 'Pasang PIN';
+}
+
+/** Memastikan yang mengganti PIN memang tahu PIN yang sekarang. Tanpa ini,
+    siapa pun yang menemukan kasir terbuka bisa mengunci pemiliknya di luar. */
+function pinLamaBenar() {
+  if (!db.toko.pinPemilik) return true;
+  const lama = $('#set-pin-lama').value.replace(/\D/g, '');
+  if (!lama) { pesan('Isi PIN sekarang lebih dulu.', 'peringatan'); $('#set-pin-lama').focus(); return false; }
+  if (acakPin(lama) !== db.toko.pinPemilik) {
+    pesan('PIN sekarang salah.', 'bahaya');
+    $('#set-pin-lama').value = '';
+    $('#set-pin-lama').focus();
+    return false;
+  }
+  return true;
+}
+
+function bersihkanIsianPin() {
+  ['#set-pin-lama', '#set-pin', '#set-pin-ulang'].forEach(s => { $(s).value = ''; });
 }
 
 function simpanPin() {
+  if (!pinLamaBenar()) return;
   const pin = $('#set-pin').value.replace(/\D/g, '');
   const ulang = $('#set-pin-ulang').value.replace(/\D/g, '');
   if (pin.length < 4 || pin.length > 6) {
-    pesan('PIN harus empat sampai enam angka.', 'peringatan'); $('#set-pin').focus(); return;
+    pesan('PIN baru harus empat sampai enam angka.', 'peringatan'); $('#set-pin').focus(); return;
   }
-  if (pin !== ulang) { pesan('Dua isian PIN belum sama.', 'peringatan'); $('#set-pin-ulang').focus(); return; }
-  if (['123456', '1234', '000000', '0000', '111111', '1111'].includes(pin)) {
+  if (pin !== ulang) { pesan('Dua isian PIN baru belum sama.', 'peringatan'); $('#set-pin-ulang').focus(); return; }
+  if (PIN_MUDAH_DITEBAK.includes(pin)) {
     pesan('Pilih angka yang tidak mudah ditebak, bukan 123456 atau 0000.', 'peringatan', 6000);
     $('#set-pin').focus();
     return;
   }
+  if (acakPin(pin) === db.toko.pinPemilik) {
+    pesan('PIN baru sama dengan yang sekarang.', 'peringatan');
+    return;
+  }
+
+  const menggantiLama = !!db.toko.pinPemilik;
   db.toko.pinPemilik = acakPin(pin);
   db.toko.pinBawaan = false;
-  catat('sistem', 'Mengganti PIN dengan angka pilihan sendiri');
+  catat('sistem', menggantiLama ? 'Mengganti PIN masuk kasir' : 'Memasang PIN masuk kasir');
   simpanData();
-  $('#set-pin').value = '';
-  $('#set-pin-ulang').value = '';
+  bersihkanIsianPin();
   gambarPin();
-  pesan('PIN diganti. Catat baik-baik, tidak ada cara lain membukanya.', 'sukses', 7000);
+  pesan(`PIN ${menggantiLama ? 'diganti' : 'dipasang'}. Catat baik-baik, tidak ada cara mudah membukanya.`,
+    'sukses', 7000);
 }
 
 async function hapusPin() {
   if (!db.toko.pinPemilik) return;
+  if (!pinLamaBenar()) return;
   const ya = await konfirmasi('Hapus PIN',
-    'Setelah dihapus, siapa pun yang memegang perangkat ini bisa masuk sebagai Pemilik dan melihat laporan untung.',
+    'Setelah dihapus, siapa pun yang memegang perangkat ini bisa membuka kasir dan melihat laporan untung.',
     'Ya, hapus PIN');
   if (!ya) return;
   db.toko.pinPemilik = '';
   db.toko.pinBawaan = false;
-  catat('sistem', 'Menghapus PIN pemilik');
+  catat('sistem', 'Menghapus PIN masuk kasir');
   simpanData();
+  bersihkanIsianPin();
   gambarPin();
   pesan('PIN dihapus.', 'sukses');
+}
+
+function petunjukLupaPin() {
+  bukaModal({
+    judul: 'Lupa PIN',
+    isi: `<p>PIN tidak bisa dilihat dari dalam aplikasi, tetapi <b>data toko tidak ikut hilang
+        karenanya.</b> Ada dua jalan keluar:</p>
+      <p style="margin-top:14px"><b>1. Pulihkan cadangan lama.</b><br>
+        <span class="lemah">Pengaturan &rarr; Pulihkan dari Cadangan, pilih berkas yang dibuat
+        sebelum PIN itu dipasang. Penjualan setelah tanggal cadangan itu akan hilang.</span></p>
+      <p style="margin-top:12px"><b>2. Minta bantuan yang memasang aplikasi ini.</b><br>
+        <span class="lemah">PIN dapat dihapus lewat alat pengembang browser tanpa menghilangkan
+        satu pun data penjualan. Caranya tersimpan di berkas
+        <b>Cara Reset PIN Kasir.txt</b> di Desktop.</span></p>
+      <p class="lemah kecil" style="margin-top:14px">Karena jalan kedua itu ada, PIN ini memang
+        pagar ketertiban, bukan brankas.</p>`,
+    aksi: [{ label: 'Mengerti', kelas: 'tombol-utama', saatKlik: tutupModal }]
+  });
 }
 
 function gambarPengaturan() {
@@ -2835,7 +2889,8 @@ function pasangPendengar() {
       ? 'PIN kini diminta begitu kasir dibuka.'
       : 'PIN kini hanya diminta saat memilih akun Pemilik.', 'sukses', 4500);
   });
-  $$('#set-pin, #set-pin-ulang').forEach(el => {
+  $('#btn-lupa-pin').onclick = petunjukLupaPin;
+  $$('#set-pin-lama, #set-pin, #set-pin-ulang').forEach(el => {
     el.addEventListener('input', () => { el.value = el.value.replace(/\D/g, ''); });
     el.addEventListener('keydown', e => { if (e.key === 'Enter') simpanPin(); });
   });

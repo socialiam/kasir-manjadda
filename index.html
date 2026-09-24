@@ -512,6 +512,10 @@
         <p class="lemah kecil"><b>Ingat baik-baik:</b> kalau PIN lupa, satu-satunya jalan masuk
           kembali adalah memulihkan cadangan atau menghapus semua data.</p>
         <div class="form-grid">
+          <label class="lebar-penuh tersembunyi" id="bungkus-pin-lama">PIN sekarang
+            <span class="lemah kecil">(wajib diisi untuk mengganti atau menghapus)</span>
+            <input id="set-pin-lama" class="input" type="password" inputmode="numeric" maxlength="6"
+                   autocomplete="off" placeholder="••••••"></label>
           <label>PIN baru <span class="lemah kecil">(4 sampai 6 angka)</span>
             <input id="set-pin" class="input" type="password" inputmode="numeric" maxlength="6"
                    autocomplete="off" placeholder="••••••"></label>
@@ -528,6 +532,7 @@
         <div class="baris-alat">
           <button id="btn-simpan-pin" class="tombol tombol-utama">Pasang PIN</button>
           <button id="btn-hapus-pin" class="tombol tombol-netral">Hapus PIN</button>
+          <button id="btn-lupa-pin" class="tombol tombol-netral kecil tersembunyi">Lupa PIN?</button>
         </div>
       </div>
 
