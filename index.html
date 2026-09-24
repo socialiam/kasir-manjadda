@@ -45,11 +45,13 @@
         <div class="logo" id="kunci-logo">TM</div>
         <h1 id="kunci-nama">Toko Man Jadda Wajada Kubu</h1>
         <p class="lemah" id="kunci-jenis"></p>
-        <p class="lemah kecil" style="margin-top:14px">Masukkan PIN untuk membuka kasir</p>
+        <p class="lemah kecil" style="margin-top:14px">Masukkan PIN Anda</p>
         <div class="titik-pin" id="titik-pin"></div>
         <p id="kunci-pesan" class="kecil pesan-kunci"></p>
         <div class="papan-angka" id="papan-angka"></div>
-        <p class="lemah kecil" id="kunci-catatan" style="margin-top:18px"></p>
+        <p class="lemah kecil" id="kunci-catatan" style="margin-top:16px"></p>
+        <button id="btn-batal-pin" class="tombol tombol-netral kecil" style="margin-top:14px">
+          &larr; Pilih petugas lain</button>
       </div>
     </section>
 
@@ -507,33 +509,15 @@
       </div>
 
       <div class="kartu">
-        <h3>PIN Masuk Kasir</h3>
-        <p class="lemah">Angka yang diminta saat membuka kasir, supaya laporan untung,
-          Buku Catatan, dan Pengaturan tidak terbuka untuk sembarang orang.</p>
-        <p class="lemah kecil"><b>Ingat baik-baik:</b> kalau PIN lupa, satu-satunya jalan masuk
-          kembali adalah memulihkan cadangan atau menghapus semua data.</p>
-        <div class="form-grid">
-          <label class="lebar-penuh tersembunyi" id="bungkus-pin-lama">PIN sekarang
-            <span class="lemah kecil">(wajib diisi untuk mengganti atau menghapus)</span>
-            <input id="set-pin-lama" class="input" type="password" inputmode="numeric" maxlength="6"
-                   autocomplete="off" placeholder="••••••"></label>
-          <label>PIN baru <span class="lemah kecil">(4 sampai 6 angka)</span>
-            <input id="set-pin" class="input" type="password" inputmode="numeric" maxlength="6"
-                   autocomplete="off" placeholder="••••••"></label>
-          <label>Ulangi PIN
-            <input id="set-pin-ulang" class="input" type="password" inputmode="numeric" maxlength="6"
-                   autocomplete="off" placeholder="••••••"></label>
-          <label class="lebar-penuh">PIN diminta untuk
-            <select id="set-pin-untuk" class="input">
-              <option value="semua">Saat kasir dibuka &mdash; PIN diminta di pintu depan</option>
-              <option value="pemilik">Hanya akun Pemilik &mdash; karyawan masuk tanpa PIN</option>
-            </select></label>
-        </div>
-        <div id="info-pin" class="lemah kecil" style="margin-bottom:12px"></div>
+        <h3>PIN Petugas</h3>
+        <p class="lemah">Tiap orang punya PIN sendiri, dan pemilik yang memberikannya.
+          Karena angkanya berbeda-beda, karyawan tidak bisa masuk memakai nama pemilik
+          untuk melihat laporan untung atau membuka Pengaturan.</p>
+        <p class="lemah kecil"><b>Ingat baik-baik:</b> kalau PIN pemilik lupa, jalan masuk kembali
+          hanya lewat pemulihan cadangan, atau bantuan yang memasang aplikasi ini.</p>
+        <div id="ringkas-pin" class="lemah kecil" style="margin:12px 0"></div>
         <div class="baris-alat">
-          <button id="btn-simpan-pin" class="tombol tombol-utama">Pasang PIN</button>
-          <button id="btn-hapus-pin" class="tombol tombol-netral">Hapus PIN</button>
-          <button id="btn-lupa-pin" class="tombol tombol-netral kecil tersembunyi">Lupa PIN?</button>
+          <button id="btn-lupa-pin" class="tombol tombol-netral kecil">Lupa PIN?</button>
         </div>
       </div>
 
