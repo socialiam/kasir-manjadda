@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Katalog Toko</title>
+<link rel="stylesheet" href="style.css">
+<style>
+/* Halaman ini dibuka pelanggan dari HP mereka. Hanya bisa dilihat:
+   tidak ada tombol jual, tidak ada harga beli, tidak ada laporan. */
+.kop-katalog{
+  text-align:center; padding:30px 18px 24px; margin:0 -16px 20px;
+  background:linear-gradient(150deg, var(--utama), #8b5cf6); color:#fff;
+  border-radius:0 0 28px 28px;
+}
+.kop-katalog .lambang{
+  width:66px; height:66px; margin:0 auto 12px; border-radius:20px; display:grid; place-items:center;
+  background:rgba(255,255,255,.2); font-size:24px; font-weight:800;
+}
+.kop-katalog h1{ font-size:25px; letter-spacing:-.02em; }
+.kop-katalog p{ opacity:.9; font-size:14px; margin-top:2px; }
+.kop-katalog .waktu{ font-size:12px; opacity:.75; margin-top:10px; }
+
+.alat-katalog{ display:flex; gap:10px; flex-wrap:wrap; margin-bottom:16px; }
+.alat-katalog .input{ flex:1; min-width:190px; }
+
+.grid-katalog{ display:grid; grid-template-columns:repeat(auto-fill, minmax(160px,1fr)); gap:12px; }
+.kartu-katalog{
+  background:var(--kartu); border:1px solid var(--garis); border-radius:var(--lengkung);
+  padding:14px; box-shadow:var(--bayang-2); display:flex; flex-direction:column; gap:5px;
+}
+.kartu-katalog .ikon-barang{ width:52px; height:52px; margin-bottom:4px; }
+.kartu-katalog .nama{ font-weight:700; font-size:15px; line-height:1.3; flex:1; }
+.kartu-katalog .harga{ font-size:19px; font-weight:800; color:var(--sukses); letter-spacing:-.01em; }
+.kartu-katalog .satuan{ font-size:12px; color:var(--lemah); font-weight:600; }
+.kartu-katalog.habis{ opacity:.6; }
+
+.wa{
+  position:sticky; bottom:16px; margin-top:22px; display:block; text-align:center;
+  background:linear-gradient(135deg,#16a34a,#059669); color:#fff; text-decoration:none;
+  padding:15px; border-radius:var(--lengkung); font-weight:800; box-shadow:var(--bayang-3);
+}
+.catatan-kaki{ text-align:center; color:var(--lemah); font-size:12.5px; margin:22px 0 10px; line-height:1.7; }
+</style>
+</head>
+<body>
+
+<div class="aplikasi">
+  <div class="kop-katalog">
+    <div class="lambang" id="k-lambang">T</div>
+    <h1 id="k-nama">Katalog</h1>
+    <p id="k-jenis"></p>
+    <p id="k-kontak" style="font-size:13px;margin-top:4px"></p>
+    <div class="waktu" id="k-waktu"></div>
+  </div>
+
+  <div id="k-alat" class="alat-katalog tersembunyi">
+    <input id="k-cari" class="input" type="search" placeholder="Cari barang..." autocomplete="off">
+    <select id="k-urut" class="input" style="flex:none;min-width:175px">
+      <option value="nama">Urut: Nama A &rarr; Z</option>
+      <option value="murah">Urut: Harga termurah</option>
+      <option value="mahal">Urut: Harga termahal</option>
+    </select>
+  </div>
+
+  <div id="k-jumlah" class="lemah kecil" style="margin-bottom:12px"></div>
+  <div id="k-grid" class="grid-katalog"></div>
+  <div id="k-kosong" class="kosong"></div>
+
+  <a id="k-wa" class="wa tersembunyi" target="_blank" rel="noopener">Pesan lewat WhatsApp</a>
+
+  <p class="catatan-kaki">
+    Harga dapat berubah sewaktu-waktu. Ketersediaan terakhir diperbarui pada waktu di atas.<br>
+    Untuk memastikan, silakan hubungi toko.
+  </p>
+</div>
+
+<script src="ikon-barang.js"></script>
+<script>
+'use strict';
+const angka = new Intl.NumberFormat('id-ID');
+const rupiah = n => 'Rp ' + angka.format(Math.round(Number(n) || 0));
+const aman = t => String(t ?? '').replace(/[&<>"']/g, c =>
+  ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const $ = s => document.querySelector(s);
+
+function inisial(nama) {
+  const kata = String(nama || '?').trim().split(/\s+/);
+  return ((kata[0]?.[0] || '') + (kata[1]?.[0] || '')).toUpperCase() || '?';
+}
+
+let katalog = null;
+
+function gambar() {
+  if (!katalog) return;
+  const cari = $('#k-cari').value.trim().toLowerCase();
+  const urut = $('#k-urut').value;
+  let daftar = (katalog.barang || []).filter(b => !cari ||
+    b.nama.toLowerCase().includes(cari) || (b.kode || '').toLowerCase().includes(cari));
+
+  const abjad = (a, b) => a.nama.localeCompare(b.nama, 'id');
+  if (urut === 'murah') daftar.sort((a, b) => (a.hargaJual - b.hargaJual) || abjad(a, b));
+  else if (urut === 'mahal') daftar.sort((a, b) => (b.hargaJual - a.hargaJual) || abjad(a, b));
+  else daftar.sort(abjad);
+
+  $('#k-jumlah').textContent = daftar.length
+    ? `Menampilkan ${angka.format(daftar.length)} dari ${angka.format(katalog.barang.length)} barang`
+    : '';
+  $('#k-grid').innerHTML = daftar.map(b => `
+    <div class="kartu-katalog ${b.tersedia ? '' : 'habis'}">
+      ${ikonBarang(b)}
+      <span class="nama">${aman(b.nama)}</span>
+      <span class="harga">${rupiah(b.hargaJual)}</span>
+      <span class="satuan">per ${aman(b.satuan || 'pcs')}</span>
+      <span class="lencana ${b.tersedia ? 'lencana-baik' : 'lencana-bahaya'}" style="margin-top:6px;align-self:flex-start">
+        ${b.tersedia ? 'Tersedia' : 'Habis'}</span>
+    </div>`).join('');
+  $('#k-kosong').textContent = daftar.length ? '' : 'Barang tidak ditemukan.';
+  $('#k-kosong').classList.toggle('tersembunyi', daftar.length > 0);
+}
+
+function nomorWa(telepon) {
+  const angkaSaja = String(telepon || '').replace(/\D/g, '');
+  if (!angkaSaja) return '';
+  if (angkaSaja.startsWith('62')) return angkaSaja;
+  if (angkaSaja.startsWith('0')) return '62' + angkaSaja.slice(1);
+  return angkaSaja;
+}
+
+fetch('katalog.json?t=' + Date.now())
+  .then(j => { if (!j.ok) throw new Error('belum ada'); return j.json(); })
+  .then(data => {
+    katalog = data;
+    const toko = data.toko || {};
+    document.title = 'Katalog ' + (toko.nama || 'Toko');
+    $('#k-lambang').textContent = inisial(toko.nama);
+    $('#k-nama').textContent = toko.nama || 'Katalog';
+    $('#k-jenis').textContent = toko.jenis || '';
+    $('#k-kontak').textContent = [toko.alamat, toko.telepon].filter(Boolean).join(' · ');
+    $('#k-waktu').textContent = 'Diperbarui ' + new Date(data.waktu).toLocaleString('id-ID',
+      { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+
+    const wa = nomorWa(toko.telepon);
+    if (wa) {
+      const tautan = $('#k-wa');
+      tautan.href = 'https://wa.me/' + wa + '?text=' +
+        encodeURIComponent('Halo ' + (toko.nama || '') + ', saya mau tanya barang di katalog.');
+      tautan.classList.remove('tersembunyi');
+    }
+    $('#k-alat').classList.remove('tersembunyi');
+    gambar();
+  })
+  .catch(() => {
+    $('#k-kosong').innerHTML = 'Katalog belum diterbitkan oleh toko.<br>' +
+      '<span class="kecil">Pemilik dapat menerbitkannya lewat Pengaturan di aplikasi kasir.</span>';
+  });
+
+$('#k-cari').addEventListener('input', gambar);
+$('#k-urut').addEventListener('change', gambar);
+</script>
+</body>
+</html>

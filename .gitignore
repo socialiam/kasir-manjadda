@@ -1,0 +1,9 @@
+# Berkas yang dibuat sendiri oleh Windows, bukan bagian dari aplikasi
+Thumbs.db
+desktop.ini
+.DS_Store
+*.log
+
+# Catatan penting:
+# katalog.json SENGAJA tidak diabaikan. Berkas itulah yang membuat halaman
+# katalog pelanggan terisi saat aplikasi dipasang di GitHub Pages.
