@@ -82,7 +82,11 @@ body{ padding:0; background:var(--bg); }
    berhenti begitu disentuh, dan tidak pernah memuat keterangan penting yang
    hanya ada di situ. Yang penting tetap ada di sampul dan kaki halaman. */
 .spanduk{ padding:16px 16px 0; position:relative; }
+/* Jendela pembatas: tanpa ini ketiga helai berjejer keluar layar dan
+   halaman bisa digeser ke samping. */
+.jendela-spanduk{ overflow:hidden; border-radius:var(--lengkung); }
 .rel-spanduk{ display:flex; transition:transform .45s cubic-bezier(.2,.7,.3,1); }
+.helai{ flex:0 0 100%; }
 .helai{
   min-width:100%; border-radius:var(--lengkung); padding:20px 22px; color:#fff;
   position:relative; overflow:hidden; box-shadow:var(--bayang-2);
@@ -262,7 +266,9 @@ body{ padding:0; background:var(--bg); }
   </div>
 
   <div class="spanduk tersembunyi" id="k-spanduk">
-    <div class="rel-spanduk" id="k-rel-spanduk"></div>
+    <div class="jendela-spanduk">
+      <div class="rel-spanduk" id="k-rel-spanduk"></div>
+    </div>
     <div class="titik-spanduk" id="k-titik"></div>
   </div>
 
