@@ -1,4 +1,4 @@
-﻿/* ============================================================
+/* ============================================================
    KASIR TOKO - seluruh logika aplikasi
    JavaScript murni, tanpa kerangka kerja apa pun.
 
@@ -116,7 +116,7 @@ const KUNCI_SIMPAN = 'kasirToko.v1';
    benar-benar yang terbaru: angkanya terlihat di layar Pengaturan paling bawah.
    Kalau angka di layar tidak sama dengan yang disebutkan, berarti browser masih
    memakai simpanan lama dan perlu dimuat ulang dengan Ctrl+Shift+R. */
-const VERSI_APLIKASI = '24 September 2026 - pembaruan 10 (barang toko terisi)';
+const VERSI_APLIKASI = '24 September 2026 - pembaruan 11 (pintu tampilan pelanggan)';
 
 /** Isi awal saat aplikasi pertama kali dibuka. Semua bisa diubah dari dalam aplikasi. */
 function dataAwal() {
@@ -1647,6 +1647,73 @@ async function kosongkanDaftarBarang() {
 
 const alamatKatalog = () => new URL('katalog.html', location.href).href;
 
+/** Satu pintu dari kasir menuju dua tampilan yang dilihat pembeli.
+    Arah sebaliknya sengaja tidak ada: alamat katalog dibagikan ke umum,
+    jadi tautan menuju kasir di sana sama saja dengan mengundang orang
+    luar menyentuh laporan dan pengaturan toko. */
+function pintuTampilanPelanggan() {
+  bukaModal({
+    judul: 'Tampilan untuk Pelanggan',
+    isi: `<div class="pilih-tampilan">
+        <button data-tampilan="layar">
+          <span class="ikon-pilih">
+            <svg viewBox="0 0 24 24"><rect x="2.5" y="4" width="19" height="12.5" rx="2"/><path d="M8.5 20.5h7M12 16.5v4"/></svg>
+          </span>
+          <b>Layar Pelanggan</b>
+          <small>Monitor kedua yang menghadap pembeli di meja kasir. Isinya mengikuti
+            keranjang seketika: barang, total, dan kembalian.</small>
+        </button>
+        <button data-tampilan="katalog">
+          <span class="ikon-pilih">
+            <svg viewBox="0 0 24 24"><rect x="6" y="2.5" width="12" height="19" rx="2.5"/><path d="M10.5 18.5h3"/></svg>
+          </span>
+          <b>Katalog Pelanggan</b>
+          <small>Etalase yang dibuka pembeli dari HP mereka: barang, harga, dan
+            pesan lewat WhatsApp.</small>
+        </button>
+      </div>
+      <div class="alamat-bagikan">
+        <span class="lemah kecil">Alamat katalog untuk dibagikan ke pembeli</span>
+        <div class="baris-alamat">
+          <input id="alamat-bagikan" class="input" type="text" readonly value="${aman(alamatKatalog())}">
+          <button class="tombol tombol-netral kecil" id="btn-salin-bagikan">Salin</button>
+        </div>
+      </div>`,
+    aksi: [{ label: 'Tutup', kelas: 'tombol-netral', saatKlik: tutupModal }]
+  });
+
+  $$('#modal-isi [data-tampilan]').forEach(t => t.onclick = () => {
+    if (t.dataset.tampilan === 'layar') {
+      bukaLayarPelanggan();
+    } else {
+      window.open(alamatKatalog(), '_blank', 'noopener');
+    }
+    tutupModal();
+  });
+
+  const salin = $('#btn-salin-bagikan');
+  if (salin) salin.onclick = async () => {
+    try {
+      await navigator.clipboard.writeText(alamatKatalog());
+      pesan('Alamat katalog disalin. Tinggal tempel di WhatsApp.', 'sukses', 4000);
+    } catch (e) {
+      $('#alamat-bagikan').select();
+      pesan('Alamat sudah ditandai, tekan Ctrl+C untuk menyalin.', 'info', 4000);
+    }
+  };
+}
+
+function bukaLayarPelanggan() {
+  const jendela = window.open('pelanggan.html', 'layarPelanggan',
+    'width=1100,height=760,menubar=no,toolbar=no');
+  if (!jendela) {
+    pesan('Browser menghalangi jendela baru. Izinkan pop-up untuk alamat ini.', 'peringatan', 6000);
+    return;
+  }
+  siarkanKePelanggan();
+  pesan('Geser jendela itu ke monitor kedua, lalu tekan F11 agar penuh layar.', 'info', 6000);
+}
+
 function gambarKatalogPengaturan() {
   $('#set-kode-terbit').value = db.toko.kodeTerbit || '';
   $('#set-katalog-otomatis').checked = db.toko.katalogOtomatis !== false;
@@ -1999,13 +2066,8 @@ function pasangPendengar() {
   });
 
   /* --- layar pelanggan --- */
-  $('#btn-layar-pelanggan').onclick = () => {
-    const jendela = window.open('pelanggan.html', 'layarPelanggan',
-      'width=1100,height=760,menubar=no,toolbar=no');
-    if (!jendela) { pesan('Browser menghalangi jendela baru. Izinkan pop-up untuk alamat ini.', 'peringatan', 6000); return; }
-    siarkanKePelanggan();
-    pesan('Geser jendela itu ke monitor kedua, lalu tekan F11 agar penuh layar.', 'info', 6000);
-  };
+  $('#btn-layar-pelanggan').onclick = bukaLayarPelanggan;
+  $('#btn-tampilan-pelanggan').onclick = pintuTampilanPelanggan;
   $('#btn-cadangan').onclick = unduhCadangan;
   $('#btn-pulihkan').onclick = () => $('#berkas-pulih').click();
   $('#berkas-pulih').onchange = e => {
