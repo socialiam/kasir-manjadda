@@ -27,9 +27,11 @@
     </div>
     <div class="bilah-kanan">
       <span id="bilah-tanggal" class="bilah-kecil"></span>
-      <button id="btn-tampilan-pelanggan" class="tombol-ikon" title="Tampilan untuk pelanggan"
-              aria-label="Tampilan untuk pelanggan">
+      <button id="btn-tampilan-pelanggan" class="tombol tombol-tampilan kecil"
+              title="Buka layar pembeli atau katalog online">
         <svg viewBox="0 0 24 24"><rect x="2.5" y="4" width="19" height="12.5" rx="2"/><path d="M8.5 20.5h7M12 16.5v4"/></svg>
+        <span class="hanya-besar">Tampilan Pelanggan</span>
+        <i id="titik-layar" class="titik-hidup tersembunyi" title="Layar pelanggan sedang terbuka"></i>
       </button>
       <button id="btn-ganti-petugas" class="tombol tombol-netral kecil">Ganti Petugas</button>
     </div>
@@ -75,6 +77,10 @@
         <button class="menu-btn merah" data-buka="layar-tutup-kasir">
           <span class="menu-ikon"><svg viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="2.5"/><path d="M8 7h8"/><path d="M8.5 12h.01M12 12h.01M15.5 12h.01M8.5 16h.01M12 16h.01M15.5 16h.01"/></svg></span>
           <span class="menu-teks"><b>TUTUP KASIR</b><small>Hitung uang laci, cari selisih</small></span>
+        </button>
+        <button class="menu-btn toska" id="menu-tampilan-pelanggan">
+          <span class="menu-ikon"><svg viewBox="0 0 24 24"><rect x="2.5" y="4" width="19" height="12.5" rx="2"/><path d="M8.5 20.5h7M12 16.5v4"/></svg></span>
+          <span class="menu-teks"><b>TAMPILAN PELANGGAN</b><small>Layar pembeli &amp; katalog online</small></span>
         </button>
         <button class="menu-btn coklat" data-buka="layar-catatan" data-peran="pemilik">
           <span class="menu-ikon"><svg viewBox="0 0 24 24"><path d="M5 4.5A2.5 2.5 0 0 1 7.5 2H19v20H7.5A2.5 2.5 0 0 1 5 19.5z"/><path d="M5 17.5h14"/><path d="M9 7h6"/></svg></span>

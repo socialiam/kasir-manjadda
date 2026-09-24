@@ -116,7 +116,7 @@ const KUNCI_SIMPAN = 'kasirToko.v1';
    benar-benar yang terbaru: angkanya terlihat di layar Pengaturan paling bawah.
    Kalau angka di layar tidak sama dengan yang disebutkan, berarti browser masih
    memakai simpanan lama dan perlu dimuat ulang dengan Ctrl+Shift+R. */
-const VERSI_APLIKASI = '24 September 2026 - pembaruan 13 (kerangka: arsip, PIN, cadangan)';
+const VERSI_APLIKASI = '24 September 2026 - pembaruan 14 (tampilan pelanggan lebih terlihat)';
 
 /** Isi awal saat aplikasi pertama kali dibuka. Semua bisa diubah dari dalam aplikasi. */
 function dataAwal() {
@@ -2051,14 +2051,36 @@ function formPromo(urut = null) {
   });
 }
 
+/* Jendela layar pelanggan disimpan, supaya kasir tahu kapan ia sedang
+   menyala: titik hijau berdenyut di tombol bilah atas. */
+let jendelaPelanggan = null;
+let jamPantauLayar = null;
+
+function pantauLayarPelanggan() {
+  const titik = $('#titik-layar');
+  if (!titik) return;
+  const hidup = !!(jendelaPelanggan && !jendelaPelanggan.closed);
+  titik.classList.toggle('tersembunyi', !hidup);
+  if (!hidup) { clearInterval(jamPantauLayar); jamPantauLayar = null; }
+}
+
 function bukaLayarPelanggan() {
-  const jendela = window.open('pelanggan.html', 'layarPelanggan',
+  if (jendelaPelanggan && !jendelaPelanggan.closed) {
+    jendelaPelanggan.focus();
+    siarkanKePelanggan();
+    pesan('Layar pelanggan sudah terbuka, dimunculkan lagi ke depan.', 'info', 4000);
+    return;
+  }
+  jendelaPelanggan = window.open('pelanggan.html', 'layarPelanggan',
     'width=1100,height=760,menubar=no,toolbar=no');
-  if (!jendela) {
+  if (!jendelaPelanggan) {
     pesan('Browser menghalangi jendela baru. Izinkan pop-up untuk alamat ini.', 'peringatan', 6000);
     return;
   }
   siarkanKePelanggan();
+  pantauLayarPelanggan();
+  clearInterval(jamPantauLayar);
+  jamPantauLayar = setInterval(pantauLayarPelanggan, 3000);
   pesan('Geser jendela itu ke monitor kedua, lalu tekan F11 agar penuh layar.', 'info', 6000);
 }
 
@@ -2454,6 +2476,7 @@ function pasangPendengar() {
   /* --- layar pelanggan --- */
   $('#btn-layar-pelanggan').onclick = bukaLayarPelanggan;
   $('#btn-tampilan-pelanggan').onclick = pintuTampilanPelanggan;
+  $('#menu-tampilan-pelanggan').onclick = pintuTampilanPelanggan;
   $('#btn-cadangan').onclick = unduhCadangan;
   $('#btn-pulihkan').onclick = () => $('#berkas-pulih').click();
   $('#berkas-pulih').onchange = e => {
