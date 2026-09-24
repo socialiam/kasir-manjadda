@@ -89,32 +89,52 @@
       <div class="judul-layar">
         <button class="tombol tombol-netral kecil" data-beranda>&larr; Beranda</button>
         <h2>&#128722; Jual Barang</h2>
+        <button id="btn-tertahan" class="tombol tombol-netral kecil tersembunyi"
+                title="Lanjutkan keranjang yang tadi ditahan">
+          &#9208; Ditahan <span id="jumlah-tertahan" class="lencana lencana-peringatan">0</span>
+        </button>
         <button id="btn-layar-pelanggan" class="tombol tombol-netral kecil"
                 title="Buka layar yang menghadap pembeli">&#128421; Layar Pelanggan</button>
       </div>
 
       <div class="jual-tata">
-        <div class="kartu">
-          <input id="cari-barang-jual" class="input input-besar" type="search"
-                 placeholder="Ketik nama atau kode barang, lalu tekan Enter" autocomplete="off">
+        <div class="kartu panel-pilih">
+          <div class="cari-jual">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+            <input id="cari-barang-jual" type="search"
+                   placeholder="Ketik nama atau pindai barcode, lalu Enter" autocomplete="off">
+            <kbd class="kunci hanya-besar">F2</kbd>
+          </div>
+          <div id="kategori-jual" class="chip-geser"></div>
           <div id="grid-barang-jual" class="grid-barang"></div>
         </div>
 
-        <div class="kartu kolom-kanan">
-          <h3>Keranjang</h3>
-          <div class="tabel-bungkus">
-            <table class="tabel" id="tabel-keranjang">
-              <thead><tr><th>Barang</th><th class="kanan">Harga</th><th class="tengah">Jumlah</th><th class="kanan">Total</th><th></th></tr></thead>
-              <tbody></tbody>
-            </table>
+        <aside class="kartu kolom-kanan panel-keranjang" id="panel-keranjang">
+          <div class="kepala-keranjang">
+            <h3>Keranjang <span id="jumlah-keranjang" class="lencana lencana-baik">0</span></h3>
+            <div class="aksi-kepala">
+              <button id="btn-tahan" class="tombol-ikon" title="Tahan dulu, layani pembeli berikutnya">&#9208;</button>
+              <button id="btn-kosongkan" class="tombol-ikon" title="Kosongkan keranjang">&#128465;</button>
+              <button id="btn-tutup-keranjang" class="tombol-ikon hanya-hp" title="Tutup">&times;</button>
+            </div>
           </div>
-          <div id="keranjang-kosong" class="kosong">Keranjang masih kosong.<br>Klik barang di sebelah kiri untuk menambah.</div>
+
+          <div id="daftar-keranjang" class="daftar-keranjang"></div>
+          <div id="keranjang-kosong" class="kosong">
+            Keranjang masih kosong.<br>Pilih barang di sebelah untuk menambah.
+          </div>
 
           <div class="hitung">
             <div class="baris"><span>Subtotal</span><b id="teks-subtotal">Rp 0</b></div>
             <div class="baris">
-              <label for="diskon">Diskon (Rp)</label>
-              <input id="diskon" class="input input-uang uang" type="text" inputmode="numeric" placeholder="0">
+              <label for="diskon">Diskon</label>
+              <span class="diskon-kelompok">
+                <span class="saklar-diskon">
+                  <button type="button" data-diskon="rp" class="aktif">Rp</button>
+                  <button type="button" data-diskon="persen">%</button>
+                </span>
+                <input id="diskon" class="input input-uang uang" type="text" inputmode="numeric" placeholder="0">
+              </span>
             </div>
             <div class="baris besar"><span>TOTAL</span><b id="teks-total">Rp 0</b></div>
             <div class="baris">
@@ -123,12 +143,20 @@
             </div>
             <div id="tombol-cepat" class="tombol-cepat"></div>
             <div class="baris kembalian"><span>KEMBALIAN</span><b id="teks-kembalian">Rp 0</b></div>
-            <div class="aksi-bawah">
-              <button id="btn-kosongkan" class="tombol tombol-netral">Kosongkan</button>
-              <button id="btn-selesai" class="tombol tombol-sukses">SELESAI &amp; CETAK</button>
-            </div>
+            <button id="btn-selesai" class="tombol tombol-sukses lebar besar-sekali">
+              SELESAI &amp; CETAK <kbd class="kunci terang hanya-besar">F9</kbd>
+            </button>
           </div>
+        </aside>
+      </div>
+
+      <!-- bilah ringkas yang muncul di HP saat keranjang terisi -->
+      <div id="bilah-keranjang" class="bilah-keranjang">
+        <div class="ringkas-keranjang">
+          <small id="bilah-jumlah">0 barang</small>
+          <b id="bilah-total">Rp 0</b>
         </div>
+        <button id="btn-buka-keranjang" class="tombol tombol-sukses">Lihat &amp; Bayar</button>
       </div>
     </section>
 

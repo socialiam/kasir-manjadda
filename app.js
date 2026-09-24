@@ -116,7 +116,7 @@ const KUNCI_SIMPAN = 'kasirToko.v1';
    benar-benar yang terbaru: angkanya terlihat di layar Pengaturan paling bawah.
    Kalau angka di layar tidak sama dengan yang disebutkan, berarti browser masih
    memakai simpanan lama dan perlu dimuat ulang dengan Ctrl+Shift+R. */
-const VERSI_APLIKASI = '24 September 2026 - pembaruan 7 (luring, ikon aplikasi, harga lusinan)';
+const VERSI_APLIKASI = '24 September 2026 - pembaruan 8 (kasir dirombak)';
 
 /** Isi awal saat aplikasi pertama kali dibuka. Semua bisa diubah dari dalam aplikasi. */
 function dataAwal() {
@@ -145,6 +145,7 @@ function dataAwal() {
     ],
     transaksi: [],
     barangMasuk: [],
+    tertahan: [],     // keranjang yang ditahan sementara
     catatan: [],      // buku catatan: siapa mengubah apa, kapan
     tutupKasir: [],   // setoran akhir giliran
     nomorTerakhir: 0,
@@ -157,7 +158,7 @@ function lengkapi(data) {
   const awal = dataAwal();
   const hasil = Object.assign({}, awal, data);
   hasil.toko = Object.assign({}, awal.toko, data.toko || {});
-  ['petugas', 'barang', 'transaksi', 'barangMasuk', 'catatan', 'tutupKasir'].forEach(k => {
+  ['petugas', 'barang', 'transaksi', 'barangMasuk', 'catatan', 'tutupKasir', 'tertahan'].forEach(k => {
     if (!Array.isArray(hasil[k])) hasil[k] = [];
   });
   // Peran disimpan sebagai dua nilai tetap. Data lama memakai tulisan bebas,
@@ -252,7 +253,7 @@ function catat(jenis, teks) {
 const saatTampil = {
   'layar-beranda': () => gambarBeranda(),
   'layar-jual': () => {
-    gambarPilihanBarang(); gambarKeranjang();
+    gambarKategoriJual(); gambarPilihanBarang(); gambarKeranjang(); gambarTertahan();
     setTimeout(() => $('#cari-barang-jual').focus(), 80);
   },
   'layar-barang': () => gambarTabelBarang(),
@@ -420,9 +421,21 @@ function stokTersedia(barang) {
   return barang.stok - diKeranjang;
 }
 
+let kategoriJual = 'Semua';
+
+/** Baris kategori di layar jual, disusun dari barang yang benar-benar ada. */
+function gambarKategoriJual() {
+  const ada = [...new Set(db.barang.map(kategoriBarang))].sort();
+  if (!ada.includes(kategoriJual)) kategoriJual = 'Semua';
+  $('#kategori-jual').innerHTML = ['Semua', ...ada].map(k =>
+    `<button class="chip ${k === kategoriJual ? 'aktif' : ''}" data-kategori-jual="${aman(k)}">${aman(k)}</button>`).join('');
+  $('#kategori-jual').classList.toggle('tersembunyi', ada.length < 2);
+}
+
 function gambarPilihanBarang() {
   const cari = $('#cari-barang-jual').value.trim().toLowerCase();
   const daftar = db.barang
+    .filter(b => kategoriJual === 'Semua' || kategoriBarang(b) === kategoriJual)
     .filter(b => !cari || b.nama.toLowerCase().includes(cari) || (b.kode || '').toLowerCase().includes(cari))
     .sort((a, b) => a.nama.localeCompare(b.nama, 'id'));
 
@@ -485,17 +498,24 @@ function tambahKeKeranjang(idBarang, jumlah = 1, cara = null) {
   }
 
   const adaDiKeranjang = keranjang.find(i => i.idBarang === idBarang && (i.pengali || 1) === pengali);
-  if (adaDiKeranjang) adaDiKeranjang.jumlah += jumlah;
-  else keranjang.push({
-    idBarang, kode: barang.kode, nama: barang.nama,
-    satuan: grosir ? barang.grosirSatuan : barang.satuan,
-    pengali,
-    hargaJual: grosir ? barang.grosirHarga : barang.hargaJual,
-    hargaBeli: barang.hargaBeli * pengali,
-    jumlah
-  });
+  if (adaDiKeranjang) {
+    adaDiKeranjang.jumlah += jumlah;
+    barisTerakhirDitambah = keranjang.indexOf(adaDiKeranjang);
+  } else {
+    keranjang.push({
+      idBarang, kode: barang.kode, nama: barang.nama,
+      satuan: grosir ? barang.grosirSatuan : barang.satuan,
+      pengali,
+      hargaJual: grosir ? barang.grosirHarga : barang.hargaJual,
+      hargaBeli: barang.hargaBeli * pengali,
+      jumlah
+    });
+    barisTerakhirDitambah = keranjang.length - 1;
+  }
   gambarKeranjang();
   gambarPilihanBarang();
+  const daftar = $('#daftar-keranjang');
+  if (daftar) daftar.scrollTop = daftar.scrollHeight;
 }
 
 function ubahJumlah(indeks, jumlahBaru) {
@@ -519,36 +539,59 @@ function ubahJumlah(indeks, jumlahBaru) {
   gambarPilihanBarang();
 }
 
-function gambarKeranjang() {
-  const tbody = $('#tabel-keranjang tbody');
-  tbody.innerHTML = keranjang.map((item, i) => `
-    <tr>
-      <td><b>${aman(item.nama)}</b><br><span class="lemah kecil">${aman(item.kode || '')}</span></td>
-      <td class="kanan">${angka(item.hargaJual)}</td>
-      <td>
-        <div class="sel-jumlah">
-          <button data-kurang="${i}" title="Kurangi">&minus;</button>
-          <input type="text" inputmode="numeric" value="${item.jumlah}" data-jumlah="${i}">
-          <button data-tambah-satu="${i}" title="Tambah">+</button>
-        </div>
-      </td>
-      <td class="kanan"><b>${angka(item.hargaJual * item.jumlah)}</b></td>
-      <td class="tengah"><button class="tombol-ikon" data-hapus="${i}" title="Hapus">&times;</button></td>
-    </tr>`).join('');
+let barisTerakhirDitambah = -1;   // untuk sorotan sekejap pada barang yang baru masuk
 
+function gambarKeranjang() {
+  $('#daftar-keranjang').innerHTML = keranjang.map((item, i) => {
+    const barang = cariBarang(item.idBarang);
+    const borongan = (item.pengali || 1) > 1;
+    return `<div class="baris-keranjang ${i === barisTerakhirDitambah ? 'baru' : ''}">
+      ${ikonBarang(barang || { nama: item.nama })}
+      <div class="rincian">
+        <b>${aman(item.nama)}</b>
+        <small>${angka(item.hargaJual)} per ${aman(item.satuan || 'pcs')}
+          ${borongan ? `<span class="lencana-borong">isi ${angka(item.pengali)}</span>` : ''}</small>
+      </div>
+      <div class="kanan-baris">
+        <span class="jumlah-rp">${angka(item.hargaJual * item.jumlah)}</span>
+        <div class="sel-jumlah">
+          <button data-kurang="${i}" aria-label="Kurangi">&minus;</button>
+          <input type="text" inputmode="numeric" value="${item.jumlah}" data-jumlah="${i}" aria-label="Jumlah">
+          <button data-tambah-satu="${i}" aria-label="Tambah">+</button>
+          <button class="tombol-ikon" data-hapus="${i}" aria-label="Hapus">&times;</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+  barisTerakhirDitambah = -1;
+
+  const jumlahBarang = keranjang.reduce((j, i) => j + i.jumlah, 0);
   $('#keranjang-kosong').classList.toggle('tersembunyi', keranjang.length > 0);
-  $('#tabel-keranjang').classList.toggle('tersembunyi', keranjang.length === 0);
+  $('#jumlah-keranjang').textContent = angka(jumlahBarang);
+  $('#jumlah-keranjang').classList.toggle('tersembunyi', keranjang.length === 0);
+  $('#bilah-jumlah').textContent = angka(jumlahBarang) + ' barang';
+  $('#bilah-keranjang').classList.toggle('tampil', keranjang.length > 0);
+  if (!keranjang.length) document.body.classList.remove('keranjang-terbuka');
   hitungTotal();
 }
 
+let modeDiskon = 'rp';   // 'rp' atau 'persen'
+
 function hitungTotal() {
   const subtotal = keranjang.reduce((j, i) => j + i.hargaJual * i.jumlah, 0);
-  let diskon = nilaiAngka($('#diskon'));
-  // Diskon tidak boleh melebihi belanjaan. Isian hanya ditulis ulang bila ada
-  // belanjaan, supaya angka yang sedang diketik tidak tiba-tiba terhapus.
-  if (diskon > subtotal) {
-    diskon = subtotal;
-    if (subtotal > 0) isiUang($('#diskon'), diskon);
+  let diskon;
+  if (modeDiskon === 'persen') {
+    let persen = nilaiAngka($('#diskon'));
+    if (persen > 100) { persen = 100; $('#diskon').value = '100'; }
+    diskon = Math.round(subtotal * persen / 100);
+  } else {
+    diskon = nilaiAngka($('#diskon'));
+    // Diskon rupiah tidak boleh melebihi belanjaan. Isian hanya ditulis ulang
+    // bila ada belanjaan, supaya angka yang sedang diketik tidak terhapus.
+    if (diskon > subtotal) {
+      diskon = subtotal;
+      if (subtotal > 0) isiUang($('#diskon'), diskon);
+    }
   }
   const total = subtotal - diskon;
   const bayar = nilaiAngka($('#bayar'));
@@ -556,6 +599,7 @@ function hitungTotal() {
 
   $('#teks-subtotal').textContent = rupiah(subtotal);
   $('#teks-total').textContent = rupiah(total);
+  $('#bilah-total').textContent = rupiah(total);
   $('#teks-kembalian').textContent = (bayar === 0 && total > 0) ? 'Rp 0' : rupiah(kembalian);
   $('#teks-kembalian').style.color = kembalian < 0 ? 'var(--bahaya)' : '';
   siarkanKePelanggan();
@@ -568,6 +612,75 @@ function kosongkanKeranjang() {
   $('#bayar').value = '';
   gambarKeranjang();
   gambarPilihanBarang();
+}
+
+/* ----- menahan transaksi -----
+   Pembeli lupa bawa uang, atau perlu mengambil barang lain dulu. Keranjangnya
+   ditahan, kasir melayani pembeli berikutnya, lalu dilanjutkan kembali. */
+
+function gambarTertahan() {
+  const jumlah = (db.tertahan || []).length;
+  $('#btn-tertahan').classList.toggle('tersembunyi', jumlah === 0);
+  $('#jumlah-tertahan').textContent = angka(jumlah);
+}
+
+function tahanTransaksi() {
+  if (!keranjang.length) { pesan('Keranjang masih kosong.', 'peringatan'); return; }
+  db.tertahan = db.tertahan || [];
+  db.tertahan.push({
+    id: idBaru(), waktu: new Date().toISOString(),
+    petugas: petugasSekarang?.nama || '-',
+    item: keranjang.map(i => ({ ...i })),
+    diskon: $('#diskon').value, modeDiskon
+  });
+  simpanData();
+  kosongkanKeranjang();
+  gambarTertahan();
+  pesan('Keranjang ditahan. Lanjutkan lewat tombol Ditahan di atas.', 'sukses', 4500);
+}
+
+function daftarTertahan() {
+  const daftar = db.tertahan || [];
+  if (!daftar.length) { pesan('Tidak ada keranjang yang ditahan.', 'info'); return; }
+  bukaModal({
+    judul: 'Keranjang Ditahan',
+    isi: daftar.map(t => {
+      const total = t.item.reduce((j, i) => j + i.hargaJual * i.jumlah, 0);
+      return `<div class="baris-daftar">
+        <span><b>${rupiah(total)}</b> &middot; ${angka(t.item.reduce((j, i) => j + i.jumlah, 0))} barang
+          <br><span class="lemah kecil">${waktuSingkat(t.waktu)} &middot; ${aman(t.petugas)}
+          &middot; ${aman(t.item.slice(0, 3).map(i => i.nama).join(', '))}${t.item.length > 3 ? ', ...' : ''}</span></span>
+        <span style="white-space:nowrap">
+          <button class="tombol tombol-utama kecil" data-lanjut="${t.id}">Lanjutkan</button>
+          <button class="tombol-ikon" data-buang-tahan="${t.id}" title="Buang">&times;</button>
+        </span>
+      </div>`;
+    }).join(''),
+    aksi: [{ label: 'Tutup', kelas: 'tombol-netral', saatKlik: tutupModal }]
+  });
+}
+
+async function lanjutkanTertahan(id) {
+  const simpanan = (db.tertahan || []).find(t => t.id === id);
+  if (!simpanan) return;
+  if (keranjang.length) {
+    const ya = await konfirmasi('Keranjang sedang terisi',
+      'Keranjang yang sekarang akan ditahan dulu, lalu yang dipilih dilanjutkan. Teruskan?',
+      'Ya, tukar', false);
+    if (!ya) return;
+    tahanTransaksi();
+  }
+  keranjang = simpanan.item.map(i => ({ ...i }));
+  modeDiskon = simpanan.modeDiskon || 'rp';
+  $$('.saklar-diskon button').forEach(b => b.classList.toggle('aktif', b.dataset.diskon === modeDiskon));
+  $('#diskon').value = simpanan.diskon || '';
+  db.tertahan = db.tertahan.filter(t => t.id !== id);
+  simpanData();
+  gambarTertahan();
+  gambarKeranjang();
+  gambarPilihanBarang();
+  tutupModal();
+  pesan('Keranjang dilanjutkan.', 'sukses');
 }
 
 function nomorTransaksiBaru() {
@@ -1683,14 +1796,14 @@ function pasangPendengar() {
     if (tombol) tambahKeKeranjang(tombol.dataset.tambah);
   });
 
-  $('#tabel-keranjang').addEventListener('click', e => {
+  $('#daftar-keranjang').addEventListener('click', e => {
     const t = e.target.closest('button');
     if (!t) return;
     if (t.dataset.hapus !== undefined) ubahJumlah(+t.dataset.hapus, 0);
     else if (t.dataset.kurang !== undefined) ubahJumlah(+t.dataset.kurang, keranjang[+t.dataset.kurang].jumlah - 1);
     else if (t.dataset.tambahSatu !== undefined) ubahJumlah(+t.dataset.tambahSatu, keranjang[+t.dataset.tambahSatu].jumlah + 1);
   });
-  $('#tabel-keranjang').addEventListener('change', e => {
+  $('#daftar-keranjang').addEventListener('change', e => {
     if (e.target.dataset.jumlah === undefined) return;
     ubahJumlah(+e.target.dataset.jumlah, parseInt(String(e.target.value).replace(/\D/g, ''), 10) || 0);
   });
@@ -1713,6 +1826,50 @@ function pasangPendengar() {
     else if (nilai === 'hapus') kotak.value = '';
     else isiUang(kotak, nilaiAngka(kotak) + Number(nilai));
     hitungTotal();
+  });
+
+  /* --- kategori, penahanan, dan lembar keranjang di HP --- */
+  $('#kategori-jual').addEventListener('click', e => {
+    const t = e.target.closest('[data-kategori-jual]');
+    if (!t) return;
+    kategoriJual = t.dataset.kategoriJual;
+    $$('#kategori-jual .chip').forEach(x => x.classList.toggle('aktif', x === t));
+    gambarPilihanBarang();
+  });
+
+  $('#btn-tahan').onclick = tahanTransaksi;
+  $('#btn-tertahan').onclick = daftarTertahan;
+  $('#modal-isi').addEventListener('click', e => {
+    const lanjut = e.target.closest('[data-lanjut]');
+    const buang = e.target.closest('[data-buang-tahan]');
+    if (lanjut) lanjutkanTertahan(lanjut.dataset.lanjut);
+    if (buang) {
+      db.tertahan = (db.tertahan || []).filter(t => t.id !== buang.dataset.buangTahan);
+      simpanData(); gambarTertahan(); tutupModal();
+      pesan('Keranjang tertahan dibuang.', 'info');
+    }
+  });
+
+  $('#btn-buka-keranjang').onclick = () => document.body.classList.add('keranjang-terbuka');
+  $('#btn-tutup-keranjang').onclick = () => document.body.classList.remove('keranjang-terbuka');
+
+  /* --- diskon rupiah atau persen --- */
+  $$('.saklar-diskon button').forEach(t => t.onclick = () => {
+    modeDiskon = t.dataset.diskon;
+    $$('.saklar-diskon button').forEach(x => x.classList.toggle('aktif', x === t));
+    $('#diskon').value = '';
+    $('#diskon').classList.toggle('uang', modeDiskon === 'rp');
+    $('#diskon').placeholder = modeDiskon === 'rp' ? '0' : '0 %';
+    hitungTotal();
+  });
+
+  /* --- pintasan papan ketik, supaya kasir tidak perlu tetikus --- */
+  document.addEventListener('keydown', e => {
+    if (!$('#layar-jual').classList.contains('aktif')) return;
+    if (!$('#latar-modal').classList.contains('tersembunyi')) return;
+    if (e.key === 'F2') { e.preventDefault(); $('#cari-barang-jual').focus(); $('#cari-barang-jual').select(); }
+    if (e.key === 'F4') { e.preventDefault(); $('#bayar').focus(); $('#bayar').select(); }
+    if (e.key === 'F9') { e.preventDefault(); selesaikanTransaksi(); }
   });
 
   $('#btn-selesai').onclick = selesaikanTransaksi;

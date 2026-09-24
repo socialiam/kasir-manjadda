@@ -314,9 +314,96 @@ label .input, label select{ margin-top:6px; font-weight:500; color:var(--teks); 
 
 #catatan-beranda .kartu{ border-left:4px solid var(--peringatan); }
 
-/* ---------- layar jual ---------- */
-.jual-tata{ display:grid; grid-template-columns:1.3fr 1fr; gap:18px; align-items:start; }
-.kolom-kanan{ position:sticky; top:78px; }
+/* ============================================================
+   LAYAR JUAL
+   Dua panel: memilih barang di kiri, keranjang dan pembayaran di kanan.
+   Di layar HP, panel kanan berubah jadi lembar yang naik dari bawah,
+   supaya jari kasir tidak perlu menggulir bolak-balik saat melayani.
+   ============================================================ */
+.jual-tata{ display:grid; grid-template-columns:1.32fr 1fr; gap:18px; align-items:start; }
+.kolom-kanan{ position:sticky; top:78px; max-height:calc(100vh - 96px); display:flex; flex-direction:column; }
+.panel-pilih{ padding:16px; }
+
+/* kotak cari besar dengan ikon dan petunjuk tombol */
+.cari-jual{ position:relative; display:flex; align-items:center; }
+.cari-jual svg{
+  position:absolute; left:15px; width:20px; height:20px;
+  stroke:var(--lemah); fill:none; stroke-width:2; stroke-linecap:round;
+}
+.cari-jual input{
+  width:100%; padding:14px 60px 14px 45px; font-size:16.5px; font-family:inherit;
+  border:1px solid var(--garis); border-radius:var(--lengkung-kecil);
+  background:var(--kartu); color:var(--teks); font-weight:600;
+}
+.cari-jual input:focus{ outline:none; border-color:var(--utama); box-shadow:var(--cincin); }
+.cari-jual .kunci{ position:absolute; right:12px; }
+
+.kunci{
+  font-family:inherit; font-size:10.5px; font-weight:800; letter-spacing:.04em;
+  border:1px solid var(--garis); border-bottom-width:2px; border-radius:6px;
+  padding:2px 6px; color:var(--lemah); background:var(--kartu-2);
+}
+.kunci.terang{ border-color:rgba(255,255,255,.45); color:#fff; background:rgba(255,255,255,.15); }
+
+.chip-geser{ display:flex; gap:7px; overflow-x:auto; padding:13px 2px 3px; scrollbar-width:none; }
+.chip-geser::-webkit-scrollbar{ display:none; }
+.chip-geser .chip{ flex:none; padding:7px 13px; font-size:12.5px; }
+
+/* ---------- kepala keranjang ---------- */
+.kepala-keranjang{
+  display:flex; justify-content:space-between; align-items:center; gap:10px;
+  padding-bottom:12px; border-bottom:1px solid var(--garis); flex:none;
+}
+.kepala-keranjang h3{ margin:0; display:flex; align-items:center; gap:8px; }
+.aksi-kepala{ display:flex; gap:2px; }
+.hanya-hp{ display:none; }
+
+/* ---------- baris keranjang ---------- */
+.daftar-keranjang{ overflow-y:auto; flex:1; min-height:0; margin:0 -4px; padding:4px; }
+.baris-keranjang{
+  display:grid; grid-template-columns:auto 1fr auto; gap:11px; align-items:center;
+  padding:11px 4px; border-bottom:1px solid var(--garis);
+}
+.baris-keranjang:last-child{ border-bottom:none; }
+.baris-keranjang .ikon-barang{ width:34px; height:34px; }
+.baris-keranjang .rincian{ min-width:0; line-height:1.35; }
+.baris-keranjang .rincian b{ font-size:14.5px; font-weight:700; display:block;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.baris-keranjang .rincian small{ color:var(--lemah); font-size:12px; font-weight:600; }
+.baris-keranjang .kanan-baris{ text-align:right; display:flex; flex-direction:column; gap:6px; align-items:flex-end; }
+.baris-keranjang .jumlah-rp{ font-weight:800; font-variant-numeric:tabular-nums; font-size:14.5px; }
+.baris-keranjang.baru{ animation:sorot-baris 1s ease; }
+@keyframes sorot-baris{ from{ background:var(--sorot); } to{ background:transparent; } }
+.lencana-borong{
+  font-size:10px; font-weight:800; color:var(--ungu); background:var(--sorot);
+  border-radius:5px; padding:1px 5px; margin-left:4px;
+}
+
+/* ---------- diskon rupiah atau persen ---------- */
+.diskon-kelompok{ display:flex; align-items:center; gap:8px; }
+.saklar-diskon{ display:flex; border:1px solid var(--garis); border-radius:9px; overflow:hidden; }
+.saklar-diskon button{
+  border:none; background:var(--kartu); color:var(--lemah); cursor:pointer;
+  padding:7px 11px; font-size:12.5px; font-weight:800; font-family:inherit;
+}
+.saklar-diskon button.aktif{ background:var(--utama); color:#fff; }
+.diskon-kelompok .input{ max-width:120px; }
+
+.tombol.besar-sekali{ font-size:17px; padding:16px; min-height:56px; letter-spacing:.02em;
+  display:flex; align-items:center; justify-content:center; gap:10px; }
+
+/* ---------- bilah keranjang untuk HP ---------- */
+.bilah-keranjang{
+  position:fixed; left:0; right:0; bottom:0; z-index:70; display:none;
+  background:var(--kartu); border-top:1px solid var(--garis);
+  box-shadow:0 -10px 30px -12px rgba(15,23,42,.3);
+  padding:11px 14px calc(11px + env(safe-area-inset-bottom));
+  align-items:center; gap:12px;
+}
+.bilah-keranjang .ringkas-keranjang{ flex:1; line-height:1.25; }
+.bilah-keranjang small{ color:var(--lemah); font-size:12px; font-weight:700; }
+.bilah-keranjang b{ display:block; font-size:19px; font-weight:800;
+  letter-spacing:-.01em; font-variant-numeric:tabular-nums; }
 
 .grid-barang{
   display:grid; grid-template-columns:repeat(auto-fill, minmax(155px,1fr));
@@ -563,7 +650,24 @@ label .input, label select{ margin-top:6px; font-weight:500; color:var(--teks); 
 /* ---------- layar sedang ---------- */
 @media (max-width:920px){
   .jual-tata{ grid-template-columns:1fr; }
-  .kolom-kanan{ position:static; }
+
+  /* Panel keranjang jadi lembar yang naik dari bawah layar. */
+  .kolom-kanan{
+    position:fixed; inset:auto 0 0 0; z-index:80; margin:0; max-height:88vh;
+    border-radius:22px 22px 0 0; border-bottom:none;
+    transform:translateY(105%); transition:transform .26s cubic-bezier(.2,.7,.3,1);
+    box-shadow:0 -16px 40px -14px rgba(15,23,42,.4);
+    padding-bottom:calc(16px + env(safe-area-inset-bottom));
+  }
+  body.keranjang-terbuka .kolom-kanan{ transform:none; }
+  body.keranjang-terbuka::after{
+    content:''; position:fixed; inset:0; background:rgba(15,23,42,.5); z-index:75;
+  }
+  .hanya-hp{ display:inline-flex; }
+  .hanya-besar{ display:none; }
+  .bilah-keranjang.tampil{ display:flex; }
+  .daftar-keranjang{ max-height:40vh; }
+  .grid-barang{ padding-bottom:70px; }
   .dua-kolom{ grid-template-columns:1fr; }
   .form-grid{ grid-template-columns:1fr; }
   .grid-barang{ max-height:none; }
