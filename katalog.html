@@ -9,9 +9,9 @@
 
 <!-- Kartu pratinjau saat tautan ini dibagikan di WhatsApp atau Facebook -->
 <meta property="og:type" content="website">
-<meta property="og:site_name" content="Toko Manjadda Wajada Kubu">
-<meta property="og:title" content="Katalog Toko Manjadda Wajada Kubu">
-<meta property="og:description" content="Toko Pecah Belah. Lihat barang dan harga terbaru, lalu pesan langsung lewat WhatsApp.">
+<meta property="og:site_name" content="Toko Man Jadda Wajada Kubu">
+<meta property="og:title" content="Katalog Toko Man Jadda Wajada Kubu">
+<meta property="og:description" content="Toko Pecah Belah di Pasar Pelita Kubu. Pilihan tepat untuk kebutuhan rumah tangga Anda. Lihat harga terbaru, pesan lewat WhatsApp.">
 <meta property="og:image" content="ikon-512.png">
 <meta property="og:locale" content="id_ID">
 <meta name="twitter:card" content="summary">
@@ -68,6 +68,7 @@ body{ padding:0; background:var(--bg); }
 }
 .sampul h1{ font-size:clamp(23px,5.4vw,31px); letter-spacing:-.02em; position:relative; }
 .sampul .jenis{ opacity:.92; font-size:14.5px; margin-top:3px; position:relative; }
+.sampul .slogan{ opacity:.8; font-size:13px; margin-top:8px; position:relative; font-style:italic; }
 .keping-baris{ display:flex; gap:8px; justify-content:center; flex-wrap:wrap; margin-top:16px; position:relative; }
 .keping{
   background:rgba(255,255,255,.18); border-radius:999px; padding:7px 14px;
@@ -228,6 +229,7 @@ body{ padding:0; background:var(--bg); }
   <div class="sampul">
     <h1 id="k-nama">Katalog</h1>
     <div class="jenis" id="k-jenis"></div>
+    <div class="slogan" id="k-slogan"></div>
     <div class="keping-baris" id="k-keping"></div>
   </div>
 
@@ -509,6 +511,7 @@ fetch('katalog.json?t=' + Date.now())
     $('#k-jenis-atas').textContent = toko.jenis || '';
     $('#k-nama').textContent = toko.nama || 'Katalog';
     $('#k-jenis').textContent = toko.jenis || '';
+    $('#k-slogan').textContent = toko.slogan || '';
     $('#k-kaki-nama').textContent = toko.nama || '';
 
     const keping = [];

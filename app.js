@@ -116,7 +116,7 @@ const KUNCI_SIMPAN = 'kasirToko.v1';
    benar-benar yang terbaru: angkanya terlihat di layar Pengaturan paling bawah.
    Kalau angka di layar tidak sama dengan yang disebutkan, berarti browser masih
    memakai simpanan lama dan perlu dimuat ulang dengan Ctrl+Shift+R. */
-const VERSI_APLIKASI = '24 September 2026 - pembaruan 8 (kasir dirombak)';
+const VERSI_APLIKASI = '24 September 2026 - pembaruan 9 (identitas toko)';
 
 /** Isi awal saat aplikasi pertama kali dibuka. Semua bisa diubah dari dalam aplikasi. */
 function dataAwal() {
@@ -125,8 +125,10 @@ function dataAwal() {
   return {
     versi: 1,
     toko: {
-      nama: 'Toko Manjadda Wajada Kubu', jenis: 'Toko Pecah Belah', alamat: '', telepon: '',
-      catatanStruk: 'Terima kasih sudah berbelanja', tema: 'terang', urutBarang: 'nama-az', jamBuka: '', katalogOtomatis: true
+      nama: 'Toko Man Jadda Wajada Kubu', jenis: 'Toko Pecah Belah',
+      slogan: 'Pilihan tepat untuk kebutuhan rumah tangga Anda',
+      alamat: 'Jln. Jend Sudirman, Pasar Pelita Kubu', telepon: '0813-7189-7171',
+      catatanStruk: 'Terima kasih sudah berbelanja', tema: 'terang', urutBarang: 'nama-az', jamBuka: '08.00 - 21.00', katalogOtomatis: true
     },
     petugas: [
       { id: idBaru(), nama: 'Bapak', peran: 'pemilik' },
@@ -1397,6 +1399,7 @@ function gambarCatatan() {
 function gambarPengaturan() {
   $('#set-nama').value = db.toko.nama || '';
   $('#set-jenis').value = db.toko.jenis || '';
+  $('#set-slogan').value = db.toko.slogan || '';
   $('#set-telepon').value = db.toko.telepon || '';
   $('#set-alamat').value = db.toko.alamat || '';
   $('#set-jam-buka').value = db.toko.jamBuka || '';
@@ -1422,6 +1425,7 @@ function gambarPengaturan() {
 function simpanToko() {
   db.toko.nama = $('#set-nama').value.trim() || 'Toko';
   db.toko.jenis = $('#set-jenis').value.trim();
+  db.toko.slogan = $('#set-slogan').value.trim();
   db.toko.telepon = $('#set-telepon').value.trim();
   db.toko.alamat = $('#set-alamat').value.trim();
   db.toko.jamBuka = $('#set-jam-buka').value.trim();
@@ -1642,7 +1646,7 @@ function muatanKatalog() {
   return {
     waktu: new Date().toISOString(),
     toko: {
-      nama: db.toko.nama, jenis: db.toko.jenis,
+      nama: db.toko.nama, jenis: db.toko.jenis, slogan: db.toko.slogan || '',
       alamat: db.toko.alamat, telepon: db.toko.telepon, jamBuka: db.toko.jamBuka || ''
     },
     barang: db.barang.map(b => ({
