@@ -567,7 +567,7 @@ function gambarSpanduk(daftar) {
 }
 
 function keHelai(nomor, jumlah) {
-  const semua = $#k-rel-spanduk .helai.length || 1;
+  const semua = $$('#k-rel-spanduk .helai').length || 1;
   const batas = jumlah || semua;
   helaiSekarang = (nomor + batas) % batas;
   $('#k-rel-spanduk').style.transform = 'translateX(-' + (helaiSekarang * 100) + '%)';
