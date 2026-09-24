@@ -116,7 +116,7 @@ const KUNCI_SIMPAN = 'kasirToko.v1';
    benar-benar yang terbaru: angkanya terlihat di layar Pengaturan paling bawah.
    Kalau angka di layar tidak sama dengan yang disebutkan, berarti browser masih
    memakai simpanan lama dan perlu dimuat ulang dengan Ctrl+Shift+R. */
-const VERSI_APLIKASI = '24 September 2026 - pembaruan 5 (katalog toko)';
+const VERSI_APLIKASI = '24 September 2026 - pembaruan 6 (katalog ikut otomatis)';
 
 /** Isi awal saat aplikasi pertama kali dibuka. Semua bisa diubah dari dalam aplikasi. */
 function dataAwal() {
@@ -126,7 +126,7 @@ function dataAwal() {
     versi: 1,
     toko: {
       nama: 'Toko Manjadda Wajada Kubu', jenis: 'Toko Pecah Belah', alamat: '', telepon: '',
-      catatanStruk: 'Terima kasih sudah berbelanja', tema: 'terang', urutBarang: 'nama-az', jamBuka: ''
+      catatanStruk: 'Terima kasih sudah berbelanja', tema: 'terang', urutBarang: 'nama-az', jamBuka: '', katalogOtomatis: true
     },
     petugas: [
       { id: idBaru(), nama: 'Bapak', peran: 'pemilik' },
@@ -203,6 +203,9 @@ function muatData() {
 function simpanData(data = db) {
   try {
     localStorage.setItem(KUNCI_SIMPAN, JSON.stringify(data));
+    // Setiap perubahan data ikut menyegarkan katalog pelanggan. Dibungkus
+    // karena saat aplikasi baru dinyalakan datanya memang belum siap.
+    try { perbaruiKatalogOtomatis(); } catch (e) { /* belum siap, abaikan */ }
     return true;
   } catch (e) {
     pesan('Data GAGAL disimpan: ' + e.message, 'bahaya', 6000);
@@ -1420,6 +1423,7 @@ const alamatKatalog = () => new URL('katalog.html', location.href).href;
 
 function gambarKatalogPengaturan() {
   $('#set-kode-terbit').value = db.toko.kodeTerbit || '';
+  $('#set-katalog-otomatis').checked = db.toko.katalogOtomatis !== false;
   $('#alamat-katalog').value = alamatKatalog();
   $('#info-katalog').innerHTML = db.toko.katalogTerbitPada
     ? `Katalog terakhir diterbitkan <b>${waktuSingkat(db.toko.katalogTerbitPada)}</b>,
@@ -1427,14 +1431,10 @@ function gambarKatalogPengaturan() {
     : 'Katalog <b>belum pernah diterbitkan</b>. Pelanggan yang membuka alamat di atas akan melihat pesan kosong.';
 }
 
-async function terbitkanKatalog() {
-  if (!bolehPemilik()) { pesan('Hanya pemilik yang boleh menerbitkan katalog.', 'peringatan'); return; }
-  if (!db.barang.length) { pesan('Daftar barang masih kosong.', 'peringatan'); return; }
-
-  db.toko.kodeTerbit = $('#set-kode-terbit').value.replace(/\D/g, '');
-
-  // Harga beli, untung, jumlah stok, dan laporan tidak pernah ikut terkirim.
-  const muatan = {
+/** Isi katalog: hanya yang boleh dilihat pembeli. Harga beli, untung,
+    jumlah stok, laporan, dan petugas tidak pernah ikut terkirim. */
+function muatanKatalog() {
+  return {
     waktu: new Date().toISOString(),
     toko: {
       nama: db.toko.nama, jenis: db.toko.jenis,
@@ -1445,6 +1445,47 @@ async function terbitkanKatalog() {
       hargaJual: b.hargaJual, gambar: b.gambar || '', tersedia: b.stok > 0
     }))
   };
+}
+
+/* Pembaruan otomatis setelah penjualan, barang masuk, atau perubahan harga.
+   Dikumpulkan tiga detik dulu supaya sepuluh perubahan beruntun hanya jadi
+   satu kiriman. Kalau pelayan halaman tidak ada -- misalnya aplikasi dibuka
+   dari GitHub Pages -- ia diam saja, tanpa mengganggu kasir yang sedang
+   melayani pembeli. */
+let janjiKatalog = null;
+let sedangMenyegarkanKatalog = false;   // penjaga supaya tidak berputar sendiri
+
+function perbaruiKatalogOtomatis() {
+  if (sedangMenyegarkanKatalog) return;
+  if (db.toko.katalogOtomatis === false) return;
+  if (!db.toko.katalogTerbitPada) return;   // belum pernah diterbitkan manual
+  if (!db.barang.length) return;
+  clearTimeout(janjiKatalog);
+  janjiKatalog = setTimeout(async () => {
+    const muatan = muatanKatalog();
+    try {
+      const jawaban = await fetch('terbitkan-katalog', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-kunci-terbit': db.toko.kodeTerbit || '' },
+        body: JSON.stringify(muatan)
+      });
+      if (!jawaban.ok) return;
+      db.toko.katalogTerbitPada = muatan.waktu;
+      db.toko.katalogJumlah = muatan.barang.length;
+      sedangMenyegarkanKatalog = true;
+      simpanData();
+      sedangMenyegarkanKatalog = false;
+      if ($('#layar-pengaturan').classList.contains('aktif')) gambarKatalogPengaturan();
+    } catch (e) { /* pelayan tidak ada, katalog cukup diperbarui manual nanti */ }
+  }, 3000);
+}
+
+async function terbitkanKatalog() {
+  if (!bolehPemilik()) { pesan('Hanya pemilik yang boleh menerbitkan katalog.', 'peringatan'); return; }
+  if (!db.barang.length) { pesan('Daftar barang masih kosong.', 'peringatan'); return; }
+
+  db.toko.kodeTerbit = $('#set-kode-terbit').value.replace(/\D/g, '');
+  const muatan = muatanKatalog();
 
   const tombol = $('#btn-terbitkan-katalog');
   tombol.disabled = true;
@@ -1665,6 +1706,11 @@ function pasangPendengar() {
 
   /* --- katalog pelanggan --- */
   $('#btn-terbitkan-katalog').onclick = terbitkanKatalog;
+  $('#set-katalog-otomatis').addEventListener('change', e => {
+    db.toko.katalogOtomatis = e.target.checked;
+    simpanData();
+    pesan(e.target.checked ? 'Katalog akan ikut diperbarui sendiri.' : 'Katalog hanya diperbarui saat tombol Terbitkan ditekan.', 'info', 4000);
+  });
   $('#btn-buka-katalog').onclick = () => window.open(alamatKatalog(), '_blank', 'noopener');
   $('#btn-salin-alamat').onclick = async () => {
     try {
