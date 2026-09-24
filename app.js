@@ -116,7 +116,7 @@ const KUNCI_SIMPAN = 'kasirToko.v1';
    benar-benar yang terbaru: angkanya terlihat di layar Pengaturan paling bawah.
    Kalau angka di layar tidak sama dengan yang disebutkan, berarti browser masih
    memakai simpanan lama dan perlu dimuat ulang dengan Ctrl+Shift+R. */
-const VERSI_APLIKASI = '24 September 2026 - pembaruan 18 (data pelanggan)';
+const VERSI_APLIKASI = '24 September 2026 - pembaruan 19 (papan iklan layar pelanggan)';
 
 /** Isi awal saat aplikasi pertama kali dibuka. Semua bisa diubah dari dalam aplikasi. */
 function dataAwal() {
@@ -758,6 +758,18 @@ function kirimKePelanggan(data) {
   try { siaranPelanggan?.postMessage(data); } catch (e) { /* jendela tertutup */ }
 }
 
+/* Identitas toko yang ikut dikirim ke layar pembeli. Saat keranjang kosong,
+   layar itu memakainya sebagai papan iklan: nama, slogan, jam buka, alamat,
+   dan spanduk promo, supaya tidak pernah terlihat mati. */
+function tokoUntukLayar() {
+  return {
+    nama: db.toko.nama, jenis: db.toko.jenis, slogan: db.toko.slogan || '',
+    alamat: db.toko.alamat || '', telepon: db.toko.telepon || '',
+    jamBuka: db.toko.jamBuka || '', catatanStruk: db.toko.catatanStruk,
+    promo: Array.isArray(db.toko.promo) ? db.toko.promo : []
+  };
+}
+
 function siarkanKePelanggan() {
   const subtotal = keranjang.reduce((j, i) => j + i.hargaJual * i.jumlah, 0);
   const diskon = Math.min(nilaiAngka($('#diskon')), subtotal);
@@ -765,7 +777,7 @@ function siarkanKePelanggan() {
   const bayar = nilaiAngka($('#bayar'));
   kirimKePelanggan({
     status: keranjang.length ? 'belanja' : 'kosong',
-    toko: { nama: db.toko.nama, jenis: db.toko.jenis, catatanStruk: db.toko.catatanStruk },
+    toko: tokoUntukLayar(),
     petugas: petugasSekarang?.nama || '',
     item: keranjang.map(i => ({
       nama: i.nama, jumlah: i.jumlah, hargaJual: i.hargaJual,
@@ -779,7 +791,7 @@ function siarkanKePelanggan() {
 function siarkanSelesai(trx) {
   kirimKePelanggan({
     status: 'selesai',
-    toko: { nama: db.toko.nama, jenis: db.toko.jenis, catatanStruk: db.toko.catatanStruk },
+    toko: tokoUntukLayar(),
     petugas: trx.petugas, nomor: trx.nomor,
     item: trx.item.map(i => ({ nama: i.nama, jumlah: i.jumlah, hargaJual: i.hargaJual, gambar: '' })),
     subtotal: trx.subtotal, diskon: trx.diskon, total: trx.total,

@@ -66,6 +66,42 @@ body{ background:#070b16; color:#eef2ff; overflow:hidden; }
 .centang svg{ width:58px; height:58px; stroke:#fff; fill:none; stroke-width:3.4;
   stroke-linecap:round; stroke-linejoin:round; }
 
+/* --- papan iklan saat menganggur --- */
+.papan-iklan{
+  flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center;
+  text-align:center; gap:6px; padding:10px 0;
+}
+.papan-iklan h1{ font-size:clamp(26px,4.2vw,44px); letter-spacing:-.02em; line-height:1.15; }
+.jenis-papan{ color:#93a3bd; font-size:17px; }
+.slogan-papan{ color:#c7d2fe; font-size:16px; font-style:italic; margin-top:6px; max-width:36ch; }
+.keping-papan{ display:flex; gap:9px; flex-wrap:wrap; justify-content:center; margin-top:16px; }
+.keping-papan span{
+  background:#16203a; border:1px solid #223054; border-radius:999px;
+  padding:7px 15px; font-size:13.5px; color:#b9c4d9; font-weight:600;
+}
+.promo-papan{
+  margin-top:26px; padding:18px 26px; border-radius:18px; max-width:44ch;
+  background:linear-gradient(135deg,#4f46e5,#7c3aed); box-shadow:0 18px 40px -20px #4f46e5;
+  animation:muncul-promo .5s ease;
+}
+.promo-papan b{ display:block; font-size:19px; font-weight:800; }
+.promo-papan span{ display:block; font-size:14px; opacity:.92; margin-top:5px; line-height:1.5; }
+@keyframes muncul-promo{ from{ opacity:0; transform:translateY(8px) } to{ opacity:1; transform:none } }
+
+.kaki-papan{ display:flex; gap:18px; align-items:center; flex-wrap:wrap;
+  justify-content:center; margin-top:28px; }
+.jam-papan{ font-size:15px; color:#93a3bd; font-weight:600; }
+.tanda-hubung{ display:inline-flex; align-items:center; gap:7px; font-size:13px; color:#64748b; }
+.tanda-hubung i{ width:8px; height:8px; border-radius:50%; background:#64748b; display:block; }
+.tanda-hubung.hidup{ color:#4ade80; }
+.tanda-hubung.hidup i{ background:#4ade80; animation:denyut-hubung 2s ease-out infinite; }
+@keyframes denyut-hubung{
+  0%{ box-shadow:0 0 0 0 rgba(74,222,128,.6) }
+  70%{ box-shadow:0 0 0 8px rgba(74,222,128,0) }
+  100%{ box-shadow:0 0 0 0 rgba(74,222,128,0) }
+}
+.petunjuk-papan{ margin-top:16px; font-size:13px; color:#64748b; max-width:44ch; line-height:1.6; }
+
 .jejak{ text-align:center; color:#64748b; font-size:12.5px; padding-top:10px; }
 @media (max-width:640px){
   .papan{ padding:12px 14px; }
@@ -134,16 +170,11 @@ function tampilkan(data) {
 
   const item = data.item || [];
   if (!item.length) {
-    isi.innerHTML = `
-      <div class="tengah-layar">
-        <div class="lambang">${aman(inisial(toko.nama || 'Toko'))}</div>
-        <h1>Selamat datang</h1>
-        <p>${aman(toko.nama || '')}${toko.jenis ? ' &middot; ' + aman(toko.jenis) : ''}</p>
-        <p style="margin-top:6px">Silakan letakkan belanjaan di meja kasir.</p>
-      </div>`;
+    gambarPapanIklan(toko, pernahTerima);
     jumlahItemSebelumnya = 0;
     return;
   }
+  hentikanPapanIklan();
 
   const barisBaru = item.length > jumlahItemSebelumnya;
   jumlahItemSebelumnya = item.length;
@@ -172,22 +203,90 @@ function tampilkan(data) {
   if (daftar) daftar.scrollTop = daftar.scrollHeight;
 }
 
+/* ---------- papan iklan saat menganggur ----------
+   Layar yang menghadap pembeli tidak boleh terlihat mati. Selama kasir belum
+   memindai apa pun, layar ini memajang jati diri toko, jam, dan promo yang
+   berganti sendiri, sehingga waktu menganggur pun tetap bekerja. */
+
+let jamPapan = null;
+let promoPapan = 0;
+
+function hentikanPapanIklan() {
+  clearInterval(jamPapan);
+  jamPapan = null;
+}
+
+function gambarPapanIklan(toko, terhubung) {
+  const promo = Array.isArray(toko.promo) ? toko.promo.filter(p => p && p.judul) : [];
+  const keping = [];
+  if (toko.jamBuka) keping.push('Buka ' + aman(toko.jamBuka));
+  if (toko.alamat) keping.push(aman(toko.alamat));
+  if (toko.telepon) keping.push(aman(toko.telepon));
+
+  document.getElementById('p-isi').innerHTML = `
+    <div class="papan-iklan">
+      <div class="lambang">${aman(inisial(toko.nama || 'Toko'))}</div>
+      <h1>${aman(toko.nama || 'Selamat datang')}</h1>
+      ${toko.jenis ? `<p class="jenis-papan">${aman(toko.jenis)}</p>` : ''}
+      ${toko.slogan ? `<p class="slogan-papan">${aman(toko.slogan)}</p>` : ''}
+      ${keping.length ? `<div class="keping-papan">${keping.map(k => `<span>${k}</span>`).join('')}</div>` : ''}
+      ${promo.length ? `<div class="promo-papan" id="promo-papan"></div>` : ''}
+      <div class="kaki-papan">
+        <span class="jam-papan" id="jam-papan"></span>
+        <span class="tanda-hubung ${terhubung ? 'hidup' : ''}">
+          <i></i>${terhubung ? 'Terhubung dengan kasir' : 'Menunggu kiriman dari kasir'}
+        </span>
+      </div>
+      ${terhubung ? '' : `<p class="petunjuk-papan">Buka layar ini lewat tombol
+        <b>Tampilan Pelanggan</b> di aplikasi kasir, pada perangkat yang sama.</p>`}
+    </div>`;
+
+  const perbarui = () => {
+    const jam = document.getElementById('jam-papan');
+    if (jam) {
+      jam.textContent = new Date().toLocaleTimeString('id-ID',
+        { hour: '2-digit', minute: '2-digit' }) + ' · ' +
+        new Date().toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long' });
+    }
+    const kotak = document.getElementById('promo-papan');
+    if (kotak && promo.length) {
+      const p = promo[promoPapan % promo.length];
+      kotak.innerHTML = `<b>${aman(p.judul)}</b><span>${aman(p.teks || '')}</span>`;
+    }
+  };
+  perbarui();
+  hentikanPapanIklan();
+  let detik = 0;
+  jamPapan = setInterval(() => {
+    detik += 1;
+    if (promo.length > 1 && detik % 7 === 0) promoPapan += 1;   // promo berganti tiap tujuh detik
+    perbarui();
+  }, 1000);
+}
+
 /* Dua jalur penerimaan: siaran seketika, dan simpanan browser sebagai cadangan
    sekaligus pengisi layar saat halaman ini baru dibuka. */
+let pernahTerima = false;
+function terima(data) {
+  pernahTerima = true;
+  tampilkan(data);
+}
+
 try {
   const saluran = new BroadcastChannel(SALURAN);
-  saluran.onmessage = e => tampilkan(e.data);
+  saluran.onmessage = e => terima(e.data);
 } catch (e) { /* browser lama: cukup pakai jalur simpanan */ }
 
 window.addEventListener('storage', e => {
   if (e.key === SALURAN && e.newValue) {
-    try { tampilkan(JSON.parse(e.newValue)); } catch (err) { /* abaikan */ }
+    try { terima(JSON.parse(e.newValue)); } catch (err) { /* abaikan */ }
   }
 });
 
 try {
   const awal = localStorage.getItem(SALURAN);
-  tampilkan(awal ? JSON.parse(awal) : { status: 'kosong', toko: {}, item: [] });
+  if (awal) terima(JSON.parse(awal));
+  else tampilkan({ status: 'kosong', toko: {}, item: [] });
 } catch (e) {
   tampilkan({ status: 'kosong', toko: {}, item: [] });
 }
