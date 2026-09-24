@@ -116,7 +116,7 @@ const KUNCI_SIMPAN = 'kasirToko.v1';
    benar-benar yang terbaru: angkanya terlihat di layar Pengaturan paling bawah.
    Kalau angka di layar tidak sama dengan yang disebutkan, berarti browser masih
    memakai simpanan lama dan perlu dimuat ulang dengan Ctrl+Shift+R. */
-const VERSI_APLIKASI = '24 September 2026 - pembaruan 4 (siap GitHub)';
+const VERSI_APLIKASI = '24 September 2026 - pembaruan 5 (katalog toko)';
 
 /** Isi awal saat aplikasi pertama kali dibuka. Semua bisa diubah dari dalam aplikasi. */
 function dataAwal() {
@@ -126,7 +126,7 @@ function dataAwal() {
     versi: 1,
     toko: {
       nama: 'Toko Manjadda Wajada Kubu', jenis: 'Toko Pecah Belah', alamat: '', telepon: '',
-      catatanStruk: 'Terima kasih sudah berbelanja', tema: 'terang', urutBarang: 'nama-az'
+      catatanStruk: 'Terima kasih sudah berbelanja', tema: 'terang', urutBarang: 'nama-az', jamBuka: ''
     },
     petugas: [
       { id: idBaru(), nama: 'Bapak', peran: 'pemilik' },
@@ -1191,6 +1191,7 @@ function gambarPengaturan() {
   $('#set-jenis').value = db.toko.jenis || '';
   $('#set-telepon').value = db.toko.telepon || '';
   $('#set-alamat').value = db.toko.alamat || '';
+  $('#set-jam-buka').value = db.toko.jamBuka || '';
   $('#set-catatan').value = db.toko.catatanStruk || '';
 
   $('#daftar-petugas').innerHTML = db.petugas.map(p => `
@@ -1215,6 +1216,7 @@ function simpanToko() {
   db.toko.jenis = $('#set-jenis').value.trim();
   db.toko.telepon = $('#set-telepon').value.trim();
   db.toko.alamat = $('#set-alamat').value.trim();
+  db.toko.jamBuka = $('#set-jam-buka').value.trim();
   db.toko.catatanStruk = $('#set-catatan').value.trim();
   catat('sistem', `Mengubah identitas toko (nama toko sekarang "${db.toko.nama}")`);
   simpanData();
@@ -1436,7 +1438,7 @@ async function terbitkanKatalog() {
     waktu: new Date().toISOString(),
     toko: {
       nama: db.toko.nama, jenis: db.toko.jenis,
-      alamat: db.toko.alamat, telepon: db.toko.telepon
+      alamat: db.toko.alamat, telepon: db.toko.telepon, jamBuka: db.toko.jamBuka || ''
     },
     barang: db.barang.map(b => ({
       nama: b.nama, kode: b.kode || '', satuan: b.satuan || 'pcs',

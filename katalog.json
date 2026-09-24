@@ -1,0 +1,68 @@
+{
+  "barang": [
+    {
+      "hargaJual": 65000,
+      "satuan": "pcs",
+      "tersedia": true,
+      "gambar": "",
+      "nama": "Kuali besar"
+    },
+    {
+      "hargaJual": 145000,
+      "satuan": "pcs",
+      "tersedia": true,
+      "gambar": "",
+      "nama": "Kompor 2 tungku"
+    },
+    {
+      "hargaJual": 18000,
+      "satuan": "pcs",
+      "tersedia": true,
+      "gambar": "",
+      "nama": "Baskom besar"
+    },
+    {
+      "hargaJual": 8000,
+      "satuan": "pcs",
+      "tersedia": true,
+      "gambar": "",
+      "nama": "Baskom kecil"
+    },
+    {
+      "hargaJual": 1500,
+      "satuan": "pcs",
+      "tersedia": true,
+      "gambar": "",
+      "nama": "Sendok makan plastik"
+    },
+    {
+      "hargaJual": 1000,
+      "satuan": "pcs",
+      "tersedia": true,
+      "gambar": "",
+      "nama": "Sabut cuci piring"
+    },
+    {
+      "hargaJual": 5000,
+      "satuan": "pcs",
+      "tersedia": true,
+      "gambar": "",
+      "nama": "Sikat gosok lantai"
+    },
+    {
+      "hargaJual": 6000,
+      "satuan": "pcs",
+      "tersedia": false,
+      "gambar": "",
+      "nama": "Sapu lidi"
+    }
+  ],
+  "waktu": "2026-09-24T16:13:48.3008109+07:00",
+  "toko": {
+    "alamat": "",
+    "jenis": "Toko Pecah Belah",
+    "jamBuka": "",
+    "telepon": "",
+    "nama": "Toko Manjadda Wajada Kubu"
+  }
+}

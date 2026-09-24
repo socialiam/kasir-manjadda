@@ -118,3 +118,22 @@ function ikonBarang(barang, kelasTambahan = '') {
   const kunci = barang?.gambar || tebakGambar(barang?.nama);
   return `<span class="ikon-barang ${kelasTambahan}">${bingkaiSvg(GAMBAR_BARANG[kunci] || GAMBAR_BARANG.kardus)}</span>`;
 }
+
+/* Kategori untuk katalog pelanggan. Diambil dari ikon barang, jadi pemilik
+   tidak perlu mengisi kategori satu per satu: begitu ikonnya benar,
+   kategorinya ikut benar dengan sendirinya. */
+const KATEGORI_GAMBAR = {
+  piring: 'Peralatan Makan', gelas: 'Peralatan Makan', mangkuk: 'Peralatan Makan',
+  sendok: 'Peralatan Makan', garpu: 'Peralatan Makan', pisau: 'Peralatan Makan',
+  panci: 'Peralatan Masak', wajan: 'Peralatan Masak', kompor: 'Peralatan Masak',
+  teko: 'Air & Minum', termos: 'Air & Minum', galon: 'Air & Minum',
+  lemari: 'Penyimpanan', toples: 'Penyimpanan', keranjang: 'Penyimpanan',
+  'rak-piring': 'Penyimpanan',
+  sapu: 'Kebersihan', pel: 'Kebersihan', spons: 'Kebersihan', sampah: 'Kebersihan',
+  ember: 'Kebersihan', baskom: 'Kebersihan', gayung: 'Kebersihan',
+  kardus: 'Lainnya'
+};
+
+function kategoriBarang(barang) {
+  return KATEGORI_GAMBAR[barang?.gambar || tebakGambar(barang?.nama)] || 'Lainnya';
+}

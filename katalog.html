@@ -4,85 +4,269 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Katalog Toko</title>
+<meta name="description" content="Daftar barang dan harga terbaru. Pesan langsung lewat WhatsApp.">
+<meta name="theme-color" content="#4f46e5">
 <link rel="stylesheet" href="style.css">
 <style>
-/* Halaman ini dibuka pelanggan dari HP mereka. Hanya bisa dilihat:
-   tidak ada tombol jual, tidak ada harga beli, tidak ada laporan. */
-.kop-katalog{
-  text-align:center; padding:30px 18px 24px; margin:0 -16px 20px;
-  background:linear-gradient(150deg, var(--utama), #8b5cf6); color:#fff;
-  border-radius:0 0 28px 28px;
-}
-.kop-katalog .lambang{
-  width:66px; height:66px; margin:0 auto 12px; border-radius:20px; display:grid; place-items:center;
-  background:rgba(255,255,255,.2); font-size:24px; font-weight:800;
-}
-.kop-katalog h1{ font-size:25px; letter-spacing:-.02em; }
-.kop-katalog p{ opacity:.9; font-size:14px; margin-top:2px; }
-.kop-katalog .waktu{ font-size:12px; opacity:.75; margin-top:10px; }
+/* ============================================================
+   KATALOG PELANGGAN
+   Halaman ini milik pembeli. Yang tampil hanya yang mereka perlukan:
+   nama barang, gambar, harga jual, dan ketersediaan. Tidak ada harga
+   beli, untung, jumlah stok, laporan, maupun tombol yang mengubah data.
+   ============================================================ */
 
-.alat-katalog{ display:flex; gap:10px; flex-wrap:wrap; margin-bottom:16px; }
-.alat-katalog .input{ flex:1; min-width:190px; }
+body{ padding:0; background:var(--bg); }
+.toko{ max-width:1080px; margin:0 auto; padding-bottom:120px; }
 
-.grid-katalog{ display:grid; grid-template-columns:repeat(auto-fill, minmax(160px,1fr)); gap:12px; }
-.kartu-katalog{
+/* ---------- bilah atas ---------- */
+.bilah-toko-atas{
+  position:sticky; top:0; z-index:50;
+  background:color-mix(in srgb, var(--kartu) 92%, transparent);
+  backdrop-filter:saturate(1.6) blur(12px); -webkit-backdrop-filter:saturate(1.6) blur(12px);
+  border-bottom:1px solid var(--garis);
+  display:flex; align-items:center; gap:12px; padding:10px 16px;
+}
+.bilah-toko-atas .lambang{
+  width:40px; height:40px; border-radius:13px; display:grid; place-items:center; flex:none;
+  background:linear-gradient(145deg,var(--utama),#8b5cf6); color:#fff; font-weight:800; font-size:15px;
+}
+.bilah-toko-atas .judul{ flex:1; min-width:0; line-height:1.25; }
+.bilah-toko-atas .judul b{ display:block; font-size:15.5px; font-weight:800; letter-spacing:-.01em;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.bilah-toko-atas .judul span{ font-size:12px; color:var(--lemah); }
+.tombol-bulat{
+  width:42px; height:42px; border-radius:50%; display:grid; place-items:center; flex:none;
+  background:var(--sukses); color:#fff; text-decoration:none; box-shadow:var(--bayang-2);
+}
+.tombol-bulat svg{ width:22px; height:22px; fill:currentColor; }
+
+/* ---------- sampul ---------- */
+.sampul{
+  background:linear-gradient(150deg,#4f46e5,#7c3aed 55%,#9333ea);
+  color:#fff; padding:30px 20px 34px; text-align:center; position:relative; overflow:hidden;
+}
+.sampul::after{
+  content:''; position:absolute; right:-70px; top:-70px; width:240px; height:240px;
+  border-radius:50%; background:rgba(255,255,255,.09);
+}
+.sampul::before{
+  content:''; position:absolute; left:-50px; bottom:-90px; width:200px; height:200px;
+  border-radius:50%; background:rgba(255,255,255,.07);
+}
+.sampul h1{ font-size:clamp(23px,5.4vw,31px); letter-spacing:-.02em; position:relative; }
+.sampul .jenis{ opacity:.92; font-size:14.5px; margin-top:3px; position:relative; }
+.keping-baris{ display:flex; gap:8px; justify-content:center; flex-wrap:wrap; margin-top:16px; position:relative; }
+.keping{
+  background:rgba(255,255,255,.18); border-radius:999px; padding:7px 14px;
+  font-size:12.5px; font-weight:600; display:inline-flex; align-items:center; gap:6px;
+}
+.keping svg{ width:14px; height:14px; stroke:currentColor; fill:none; stroke-width:2;
+  stroke-linecap:round; stroke-linejoin:round; flex:none; }
+
+/* ---------- pencarian dan kategori ---------- */
+.alat-toko{
+  position:sticky; top:61px; z-index:40; background:var(--bg);
+  padding:14px 16px 8px; border-bottom:1px solid var(--garis);
+}
+.kotak-cari{ position:relative; }
+.kotak-cari svg{
+  position:absolute; left:14px; top:50%; transform:translateY(-50%);
+  width:19px; height:19px; stroke:var(--lemah); fill:none; stroke-width:2; stroke-linecap:round;
+}
+.kotak-cari input{
+  width:100%; padding:13px 14px 13px 42px; font-size:15px; font-family:inherit;
+  border:1px solid var(--garis); border-radius:999px; background:var(--kartu); color:var(--teks);
+}
+.kotak-cari input:focus{ outline:none; border-color:var(--utama); box-shadow:var(--cincin); }
+
+.kategori-baris{ display:flex; gap:8px; overflow-x:auto; padding:12px 0 6px; scrollbar-width:none; }
+.kategori-baris::-webkit-scrollbar{ display:none; }
+.kategori{
+  border:1px solid var(--garis); background:var(--kartu); color:var(--lemah);
+  padding:8px 15px; border-radius:999px; cursor:pointer; white-space:nowrap;
+  font-size:13.5px; font-weight:700; font-family:inherit; flex:none; transition:.15s;
+}
+.kategori.aktif{ background:var(--utama); color:#fff; border-color:var(--utama); }
+
+.baris-jumlah{ display:flex; justify-content:space-between; align-items:center; gap:10px;
+  padding:14px 16px 0; font-size:13px; color:var(--lemah); }
+.baris-jumlah select{
+  border:1px solid var(--garis); background:var(--kartu); color:var(--teks);
+  border-radius:999px; padding:7px 12px; font-size:13px; font-family:inherit;
+  font-weight:700; cursor:pointer;
+}
+
+/* ---------- kartu barang ---------- */
+.rak{ display:grid; grid-template-columns:repeat(auto-fill,minmax(168px,1fr)); gap:13px; padding:14px 16px; }
+.barang{
   background:var(--kartu); border:1px solid var(--garis); border-radius:var(--lengkung);
-  padding:14px; box-shadow:var(--bayang-2); display:flex; flex-direction:column; gap:5px;
+  overflow:hidden; display:flex; flex-direction:column; box-shadow:var(--bayang-1);
+  transition:transform .16s cubic-bezier(.2,.7,.3,1), box-shadow .2s, border-color .2s;
 }
-.kartu-katalog .ikon-barang{ width:52px; height:52px; margin-bottom:4px; }
-.kartu-katalog .nama{ font-weight:700; font-size:15px; line-height:1.3; flex:1; }
-.kartu-katalog .harga{ font-size:19px; font-weight:800; color:var(--sukses); letter-spacing:-.01em; }
-.kartu-katalog .satuan{ font-size:12px; color:var(--lemah); font-weight:600; }
-.kartu-katalog.habis{ opacity:.6; }
+.barang:hover{ transform:translateY(-3px); box-shadow:var(--bayang-2); border-color:var(--utama); }
+.panggung{
+  background:linear-gradient(160deg, var(--sorot), color-mix(in srgb, var(--sorot) 40%, var(--kartu)));
+  aspect-ratio:1/.82; display:grid; place-items:center; position:relative;
+}
+.panggung .ikon-barang{ width:58%; height:58%; color:var(--utama); }
+.pita{
+  position:absolute; top:10px; left:10px; background:var(--bahaya); color:#fff;
+  font-size:10.5px; font-weight:800; padding:4px 10px; border-radius:999px; letter-spacing:.03em;
+}
+.isi-barang{ padding:12px 13px 10px; display:flex; flex-direction:column; gap:2px; flex:1; }
+.isi-barang .nama{ font-weight:700; font-size:14.5px; line-height:1.35; flex:1;
+  display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+.isi-barang .harga{ font-size:18px; font-weight:800; color:var(--utama-gelap);
+  letter-spacing:-.02em; margin-top:5px; }
+[data-tema="gelap"] .isi-barang .harga{ color:#a5b4fc; }
+.isi-barang .satuan{ font-size:11.5px; color:var(--lemah); font-weight:600; }
+.barang.habis .panggung, .barang.habis .isi-barang{ opacity:.55; }
 
-.wa{
-  position:sticky; bottom:16px; margin-top:22px; display:block; text-align:center;
-  background:linear-gradient(135deg,#16a34a,#059669); color:#fff; text-decoration:none;
-  padding:15px; border-radius:var(--lengkung); font-weight:800; box-shadow:var(--bayang-3);
+.aksi-barang{ padding:0 13px 13px; }
+.tambah{
+  width:100%; border:none; border-radius:10px; padding:10px; cursor:pointer;
+  background:var(--utama); color:#fff; font-weight:700; font-size:13.5px; font-family:inherit;
+  transition:.15s;
 }
-.catatan-kaki{ text-align:center; color:var(--lemah); font-size:12.5px; margin:22px 0 10px; line-height:1.7; }
+.tambah:hover{ filter:brightness(1.08); }
+.tambah:disabled{ background:var(--garis); color:var(--lemah); cursor:not-allowed; }
+.penghitung{ display:flex; align-items:center; gap:8px; }
+.penghitung button{
+  width:36px; height:36px; border-radius:10px; border:1px solid var(--utama);
+  background:var(--kartu); color:var(--utama); font-size:18px; cursor:pointer;
+  font-family:inherit; line-height:1; flex:none;
+}
+.penghitung span{ flex:1; text-align:center; font-weight:800; font-variant-numeric:tabular-nums; }
+
+/* ---------- keranjang melayang ---------- */
+.bilah-pesan{
+  position:fixed; left:0; right:0; bottom:0; z-index:60;
+  background:var(--kartu); border-top:1px solid var(--garis);
+  box-shadow:0 -10px 30px -12px rgba(15,23,42,.3);
+  padding:12px 16px calc(12px + env(safe-area-inset-bottom));
+  display:flex; align-items:center; gap:12px;
+  transform:translateY(130%); transition:transform .25s cubic-bezier(.2,.7,.3,1);
+}
+.bilah-pesan.tampil{ transform:none; }
+.bilah-pesan .ringkas-pesan{ flex:1; line-height:1.3; min-width:0; }
+.bilah-pesan .ringkas-pesan small{ color:var(--lemah); font-size:12px; font-weight:600; }
+.bilah-pesan .ringkas-pesan b{ display:block; font-size:18px; font-weight:800;
+  letter-spacing:-.01em; font-variant-numeric:tabular-nums; }
+.tombol-pesan{
+  border:none; border-radius:12px; padding:13px 20px; cursor:pointer; font-family:inherit;
+  background:linear-gradient(180deg,#22b45c,#15a34a); color:#fff; font-weight:800; font-size:15px;
+  display:flex; align-items:center; gap:8px; box-shadow:var(--bayang-2);
+}
+.tombol-pesan svg{ width:19px; height:19px; fill:currentColor; }
+
+/* ---------- lembar pesanan ---------- */
+.baris-pesanan{
+  display:flex; align-items:center; gap:11px; padding:11px 0; border-bottom:1px solid var(--garis);
+}
+.baris-pesanan:last-child{ border-bottom:none; }
+.baris-pesanan .ikon-barang{ width:38px; height:38px; }
+.baris-pesanan .keterangan{ flex:1; min-width:0; line-height:1.35; }
+.baris-pesanan .keterangan b{ font-size:14px; font-weight:700; }
+.baris-pesanan .keterangan small{ display:block; color:var(--lemah); font-size:12px; }
+.baris-pesanan .penghitung{ flex:none; width:118px; }
+
+/* ---------- kaki halaman ---------- */
+.kaki-toko{
+  margin-top:20px; padding:26px 20px 34px; text-align:center;
+  border-top:1px solid var(--garis); background:var(--kartu);
+}
+.kaki-toko h3{ margin-bottom:6px; }
+.kaki-toko p{ color:var(--lemah); font-size:13.5px; line-height:1.8; }
+.kaki-toko .peringatan{ font-size:12px; margin-top:14px; }
+
+.muat{ text-align:center; padding:54px 20px; color:var(--lemah); }
+
+@media (max-width:560px){
+  .rak{ grid-template-columns:repeat(2,1fr); gap:11px; padding:12px; }
+  .alat-toko{ padding:12px 12px 6px; }
+  .baris-jumlah{ padding:12px 12px 0; }
+  .isi-barang .harga{ font-size:16.5px; }
+  .sampul{ padding:26px 16px 30px; }
+}
 </style>
 </head>
 <body>
 
-<div class="aplikasi">
-  <div class="kop-katalog">
+<div class="toko">
+  <div class="bilah-toko-atas">
     <div class="lambang" id="k-lambang">T</div>
-    <h1 id="k-nama">Katalog</h1>
-    <p id="k-jenis"></p>
-    <p id="k-kontak" style="font-size:13px;margin-top:4px"></p>
-    <div class="waktu" id="k-waktu"></div>
+    <div class="judul"><b id="k-nama-atas">Katalog</b><span id="k-jenis-atas"></span></div>
+    <a class="tombol-bulat tersembunyi" id="k-wa-atas" target="_blank" rel="noopener" aria-label="Hubungi WhatsApp">
+      <svg viewBox="0 0 24 24"><path d="M12.04 2c-5.5 0-9.96 4.46-9.96 9.96 0 1.76.46 3.45 1.34 4.95L2 22l5.25-1.38a9.9 9.9 0 0 0 4.79 1.22c5.5 0 9.96-4.46 9.96-9.96 0-2.66-1.04-5.16-2.92-7.04A9.88 9.88 0 0 0 12.04 2m0 1.67c2.22 0 4.3.86 5.87 2.43a8.24 8.24 0 0 1 2.43 5.86c0 4.58-3.72 8.3-8.3 8.3a8.23 8.23 0 0 1-4.2-1.15l-.3-.18-3.12.82.83-3.04-.2-.31a8.22 8.22 0 0 1-1.27-4.44c0-4.57 3.72-8.29 8.3-8.29m-3.2 4.2c-.15 0-.4.06-.6.3-.21.23-.8.78-.8 1.9s.82 2.2.93 2.36c.12.15 1.6 2.44 3.87 3.42.54.23.96.37 1.29.48.54.17 1.03.15 1.42.09.43-.07 1.34-.55 1.53-1.08.19-.53.19-.98.13-1.08-.06-.1-.21-.15-.44-.27-.23-.11-1.34-.66-1.55-.74-.2-.07-.36-.11-.51.12-.15.22-.58.73-.71.88-.13.15-.26.17-.49.06-.23-.12-.96-.36-1.83-1.13-.68-.6-1.13-1.35-1.27-1.58-.13-.23-.01-.35.1-.47.1-.1.23-.27.34-.4.12-.14.15-.23.23-.39.08-.15.04-.29-.02-.4-.06-.12-.51-1.23-.7-1.68-.18-.44-.37-.38-.5-.39z"/></svg>
+    </a>
   </div>
 
-  <div id="k-alat" class="alat-katalog tersembunyi">
-    <input id="k-cari" class="input" type="search" placeholder="Cari barang..." autocomplete="off">
-    <select id="k-urut" class="input" style="flex:none;min-width:175px">
-      <option value="nama">Urut: Nama A &rarr; Z</option>
-      <option value="murah">Urut: Harga termurah</option>
-      <option value="mahal">Urut: Harga termahal</option>
+  <div class="sampul">
+    <h1 id="k-nama">Katalog</h1>
+    <div class="jenis" id="k-jenis"></div>
+    <div class="keping-baris" id="k-keping"></div>
+  </div>
+
+  <div class="alat-toko tersembunyi" id="k-alat">
+    <div class="kotak-cari">
+      <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+      <input id="k-cari" type="search" placeholder="Cari gelas, panci, sapu..." autocomplete="off">
+    </div>
+    <div class="kategori-baris" id="k-kategori"></div>
+  </div>
+
+  <div class="baris-jumlah tersembunyi" id="k-baris-jumlah">
+    <span id="k-jumlah"></span>
+    <select id="k-urut">
+      <option value="nama">Urutkan: Nama</option>
+      <option value="murah">Harga termurah</option>
+      <option value="mahal">Harga termahal</option>
     </select>
   </div>
 
-  <div id="k-jumlah" class="lemah kecil" style="margin-bottom:12px"></div>
-  <div id="k-grid" class="grid-katalog"></div>
-  <div id="k-kosong" class="kosong"></div>
+  <div id="k-rak" class="rak"></div>
+  <div id="k-pesan-kosong" class="muat">Memuat katalog...</div>
 
-  <a id="k-wa" class="wa tersembunyi" target="_blank" rel="noopener">Pesan lewat WhatsApp</a>
+  <div class="kaki-toko">
+    <h3 id="k-kaki-nama">Toko</h3>
+    <p id="k-kaki-info"></p>
+    <p class="peringatan lemah">
+      Harga dan ketersediaan menurut pembaruan terakhir dari toko<span id="k-kaki-waktu"></span>.<br>
+      Untuk memastikan sebelum datang, silakan hubungi toko lebih dulu.
+    </p>
+  </div>
+</div>
 
-  <p class="catatan-kaki">
-    Harga dapat berubah sewaktu-waktu. Ketersediaan terakhir diperbarui pada waktu di atas.<br>
-    Untuk memastikan, silakan hubungi toko.
-  </p>
+<div class="bilah-pesan" id="k-bilah-pesan">
+  <div class="ringkas-pesan">
+    <small id="k-pesan-jumlah">0 barang</small>
+    <b id="k-pesan-total">Rp 0</b>
+  </div>
+  <button class="tombol-pesan" id="k-buka-pesanan">
+    <svg viewBox="0 0 24 24"><path d="M12.04 2c-5.5 0-9.96 4.46-9.96 9.96 0 1.76.46 3.45 1.34 4.95L2 22l5.25-1.38a9.9 9.9 0 0 0 4.79 1.22c5.5 0 9.96-4.46 9.96-9.96 0-2.66-1.04-5.16-2.92-7.04A9.88 9.88 0 0 0 12.04 2m0 1.67c2.22 0 4.3.86 5.87 2.43a8.24 8.24 0 0 1 2.43 5.86c0 4.58-3.72 8.3-8.3 8.3a8.23 8.23 0 0 1-4.2-1.15l-.3-.18-3.12.82.83-3.04-.2-.31a8.22 8.22 0 0 1-1.27-4.44c0-4.57 3.72-8.29 8.3-8.29"/></svg>
+    Pesan
+  </button>
+</div>
+
+<div id="latar-modal" class="latar-modal tersembunyi">
+  <div class="modal" role="dialog" aria-modal="true">
+    <div class="modal-atas"><h3 id="modal-judul"></h3><button id="modal-tutup" class="tombol-ikon">&times;</button></div>
+    <div id="modal-isi" class="modal-isi"></div>
+    <div id="modal-aksi" class="modal-aksi"></div>
+  </div>
 </div>
 
 <script src="ikon-barang.js"></script>
 <script>
 'use strict';
-const angka = new Intl.NumberFormat('id-ID');
-const rupiah = n => 'Rp ' + angka.format(Math.round(Number(n) || 0));
+
+const $ = s => document.querySelector(s);
+const $$ = s => Array.from(document.querySelectorAll(s));
+const pemformat = new Intl.NumberFormat('id-ID');
+const angka = n => pemformat.format(Math.round(Number(n) || 0));
+const rupiah = n => 'Rp ' + angka(n);
 const aman = t => String(t ?? '').replace(/[&<>"']/g, c =>
   ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-const $ = s => document.querySelector(s);
 
 function inisial(nama) {
   const kata = String(nama || '?').trim().split(/\s+/);
@@ -90,73 +274,266 @@ function inisial(nama) {
 }
 
 let katalog = null;
+let kategoriTerpilih = 'Semua';
+let pesanan = {};   // nama barang -> jumlah
 
-function gambar() {
-  if (!katalog) return;
+/* Pilihan pembeli disimpan di HP mereka sendiri, supaya tidak hilang kalau
+   halaman tertutup sebelum sempat dikirim. Tidak ada yang sampai ke toko
+   sebelum tombol WhatsApp ditekan. */
+const KUNCI_PESANAN = 'katalogManjadda.pesanan';
+try { pesanan = JSON.parse(localStorage.getItem(KUNCI_PESANAN) || '{}'); } catch (e) { pesanan = {}; }
+function simpanPesanan() {
+  try { localStorage.setItem(KUNCI_PESANAN, JSON.stringify(pesanan)); } catch (e) { /* abaikan */ }
+}
+
+/* ---------- daftar barang ---------- */
+
+function barangTersaring() {
   const cari = $('#k-cari').value.trim().toLowerCase();
-  const urut = $('#k-urut').value;
-  let daftar = (katalog.barang || []).filter(b => !cari ||
-    b.nama.toLowerCase().includes(cari) || (b.kode || '').toLowerCase().includes(cari));
+  const daftar = (katalog.barang || []).filter(b =>
+    (kategoriTerpilih === 'Semua' || kategoriBarang(b) === kategoriTerpilih) &&
+    (!cari || b.nama.toLowerCase().includes(cari) || kategoriBarang(b).toLowerCase().includes(cari)));
 
   const abjad = (a, b) => a.nama.localeCompare(b.nama, 'id');
+  const urut = $('#k-urut').value;
   if (urut === 'murah') daftar.sort((a, b) => (a.hargaJual - b.hargaJual) || abjad(a, b));
   else if (urut === 'mahal') daftar.sort((a, b) => (b.hargaJual - a.hargaJual) || abjad(a, b));
   else daftar.sort(abjad);
 
-  $('#k-jumlah').textContent = daftar.length
-    ? `Menampilkan ${angka.format(daftar.length)} dari ${angka.format(katalog.barang.length)} barang`
-    : '';
-  $('#k-grid').innerHTML = daftar.map(b => `
-    <div class="kartu-katalog ${b.tersedia ? '' : 'habis'}">
-      ${ikonBarang(b)}
-      <span class="nama">${aman(b.nama)}</span>
-      <span class="harga">${rupiah(b.hargaJual)}</span>
-      <span class="satuan">per ${aman(b.satuan || 'pcs')}</span>
-      <span class="lencana ${b.tersedia ? 'lencana-baik' : 'lencana-bahaya'}" style="margin-top:6px;align-self:flex-start">
-        ${b.tersedia ? 'Tersedia' : 'Habis'}</span>
-    </div>`).join('');
-  $('#k-kosong').textContent = daftar.length ? '' : 'Barang tidak ditemukan.';
-  $('#k-kosong').classList.toggle('tersembunyi', daftar.length > 0);
+  // barang habis selalu turun ke bawah supaya yang bisa dibeli terlihat lebih dulu
+  return daftar.sort((a, b) => (a.tersedia === b.tersedia) ? 0 : (a.tersedia ? -1 : 1));
+}
+
+function gambarRak() {
+  const daftar = barangTersaring();
+  $('#k-jumlah').textContent = `${angka(daftar.length)} barang`;
+  $('#k-rak').innerHTML = daftar.map(b => {
+    const jumlah = pesanan[b.nama] || 0;
+    return `<div class="barang ${b.tersedia ? '' : 'habis'}">
+      <div class="panggung">
+        ${ikonBarang(b)}
+        ${b.tersedia ? '' : '<span class="pita">Stok habis</span>'}
+      </div>
+      <div class="isi-barang">
+        <span class="nama">${aman(b.nama)}</span>
+        <span class="harga">${rupiah(b.hargaJual)}</span>
+        <span class="satuan">per ${aman(b.satuan || 'pcs')} &middot; ${aman(kategoriBarang(b))}</span>
+      </div>
+      <div class="aksi-barang">
+        ${!b.tersedia
+          ? '<button class="tambah" disabled>Kosong</button>'
+          : jumlah
+            ? `<div class="penghitung">
+                 <button data-kurang="${aman(b.nama)}" aria-label="Kurangi">&minus;</button>
+                 <span>${angka(jumlah)}</span>
+                 <button data-tambah="${aman(b.nama)}" aria-label="Tambah">+</button>
+               </div>`
+            : `<button class="tambah" data-tambah="${aman(b.nama)}">+ Pilih</button>`}
+      </div>
+    </div>`;
+  }).join('');
+
+  $('#k-pesan-kosong').textContent = daftar.length ? '' :
+    'Barang tidak ditemukan. Coba kata lain, atau pilih kategori Semua.';
+  $('#k-pesan-kosong').classList.toggle('tersembunyi', daftar.length > 0);
+  gambarBilahPesan();
+}
+
+function ubahPesanan(nama, selisih) {
+  const barang = (katalog?.barang || []).find(b => b.nama === nama);
+  if (!barang || !barang.tersedia) return;
+  const baru = (pesanan[nama] || 0) + selisih;
+  if (baru <= 0) delete pesanan[nama]; else pesanan[nama] = baru;
+  simpanPesanan();
+  gambarRak();
+  if (!$('#latar-modal').classList.contains('tersembunyi')) {
+    if (isiPesanan().length) bukaPesanan(); else tutupModal();
+  }
+}
+
+/* ---------- keranjang dan pesanan ---------- */
+
+function isiPesanan() {
+  return Object.entries(pesanan).map(([nama, jumlah]) => {
+    const b = (katalog?.barang || []).find(x => x.nama === nama);
+    return b ? Object.assign({}, b, { jumlah }) : null;
+  }).filter(Boolean);
+}
+
+function gambarBilahPesan() {
+  const isi = isiPesanan();
+  const jumlahBarang = isi.reduce((j, i) => j + i.jumlah, 0);
+  const total = isi.reduce((j, i) => j + i.jumlah * i.hargaJual, 0);
+  $('#k-pesan-jumlah').textContent = `${angka(jumlahBarang)} barang dipilih`;
+  $('#k-pesan-total').textContent = rupiah(total);
+  $('#k-bilah-pesan').classList.toggle('tampil', jumlahBarang > 0);
 }
 
 function nomorWa(telepon) {
-  const angkaSaja = String(telepon || '').replace(/\D/g, '');
-  if (!angkaSaja) return '';
-  if (angkaSaja.startsWith('62')) return angkaSaja;
-  if (angkaSaja.startsWith('0')) return '62' + angkaSaja.slice(1);
-  return angkaSaja;
+  const a = String(telepon || '').replace(/\D/g, '');
+  if (!a) return '';
+  if (a.startsWith('62')) return a;
+  if (a.startsWith('0')) return '62' + a.slice(1);
+  return a;
 }
+
+function tutupModal() { $('#latar-modal').classList.add('tersembunyi'); }
+
+function bukaPesanan() {
+  const isi = isiPesanan();
+  if (!isi.length) return;
+  const total = isi.reduce((j, i) => j + i.jumlah * i.hargaJual, 0);
+  const namaLama = $('#k-nama-pembeli')?.value || '';
+  const catatanLama = $('#k-catatan')?.value || '';
+
+  $('#modal-judul').textContent = 'Pesanan Saya';
+  $('#modal-isi').innerHTML = `
+    ${isi.map(i => `
+      <div class="baris-pesanan">
+        ${ikonBarang(i)}
+        <span class="keterangan"><b>${aman(i.nama)}</b>
+          <small>${angka(i.jumlah)} ${aman(i.satuan || 'pcs')} &times; ${rupiah(i.hargaJual)}
+            = ${rupiah(i.jumlah * i.hargaJual)}</small></span>
+        <span class="penghitung">
+          <button data-kurang="${aman(i.nama)}">&minus;</button>
+          <span>${angka(i.jumlah)}</span>
+          <button data-tambah="${aman(i.nama)}">+</button>
+        </span>
+      </div>`).join('')}
+    <div class="baris besar" style="margin-top:10px"><span>Perkiraan total</span><b>${rupiah(total)}</b></div>
+    <label style="margin-top:14px">Nama Anda
+      <input id="k-nama-pembeli" class="input" type="text" placeholder="Contoh: Ibu Ani"
+             value="${aman(namaLama)}"></label>
+    <label style="margin-top:12px">Catatan <span class="lemah kecil">(warna, ukuran, waktu ambil)</span>
+      <input id="k-catatan" class="input" type="text" placeholder="Boleh dikosongkan"
+             value="${aman(catatanLama)}"></label>
+    <p class="lemah kecil" style="margin-top:14px">
+      Tombol di bawah akan membuka WhatsApp berisi daftar ini. Pesanan dianggap jadi
+      setelah dibalas oleh toko.</p>`;
+
+  $('#modal-aksi').innerHTML = '';
+  const kosongkan = document.createElement('button');
+  kosongkan.className = 'tombol tombol-netral';
+  kosongkan.textContent = 'Kosongkan';
+  kosongkan.onclick = () => { pesanan = {}; simpanPesanan(); gambarRak(); tutupModal(); };
+  const kirim = document.createElement('button');
+  kirim.className = 'tombol tombol-sukses';
+  kirim.textContent = 'Kirim lewat WhatsApp';
+  kirim.onclick = kirimPesanan;
+  $('#modal-aksi').append(kosongkan, kirim);
+  $('#latar-modal').classList.remove('tersembunyi');
+}
+
+function kirimPesanan() {
+  const isi = isiPesanan();
+  if (!isi.length) return;
+  const toko = katalog.toko || {};
+  const wa = nomorWa(toko.telepon);
+  const total = isi.reduce((j, i) => j + i.jumlah * i.hargaJual, 0);
+  const pembeli = ($('#k-nama-pembeli')?.value || '').trim();
+  const catatan = ($('#k-catatan')?.value || '').trim();
+
+  const baris = [`Halo ${toko.nama || 'Toko'}, saya mau pesan:`, ''];
+  isi.forEach((i, urut) => baris.push(
+    `${urut + 1}. ${i.nama} - ${i.jumlah} ${i.satuan || 'pcs'} x ${rupiah(i.hargaJual)} = ${rupiah(i.jumlah * i.hargaJual)}`));
+  baris.push('', `Perkiraan total: ${rupiah(total)}`);
+  if (pembeli) baris.push('', `Nama: ${pembeli}`);
+  if (catatan) baris.push(`Catatan: ${catatan}`);
+  baris.push('', '(dikirim dari katalog online toko)');
+  const teks = baris.join('\n');
+
+  if (wa) {
+    window.open('https://wa.me/' + wa + '?text=' + encodeURIComponent(teks), '_blank', 'noopener');
+    tutupModal();
+    return;
+  }
+  // Toko belum mengisi nomor telepon: daftarnya tetap bisa disalin pembeli.
+  try { navigator.clipboard?.writeText(teks); } catch (e) { /* abaikan */ }
+  $('#modal-judul').textContent = 'Nomor toko belum tersedia';
+  $('#modal-isi').innerHTML = `<p>Daftar pesanan sudah disalin. Silakan tempel dan kirim ke toko,
+    atau tunjukkan langsung saat datang.</p>
+    <pre style="white-space:pre-wrap;background:var(--kartu-2);padding:12px;border-radius:12px;
+      margin-top:12px;font-size:13px">${aman(teks)}</pre>`;
+  $('#modal-aksi').innerHTML = '';
+}
+
+/* ---------- memuat katalog ---------- */
+
+const IKON_KEPING = {
+  alamat: '<svg viewBox="0 0 24 24"><path d="M12 21s7-5.6 7-11a7 7 0 1 0-14 0c0 5.4 7 11 7 11z"/><circle cx="12" cy="10" r="2.6"/></svg>',
+  telepon: '<svg viewBox="0 0 24 24"><path d="M5 3h4l2 5-2.5 1.5a12 12 0 0 0 6 6L16 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 5a2 2 0 0 1 2-2z"/></svg>',
+  jam: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>'
+};
 
 fetch('katalog.json?t=' + Date.now())
   .then(j => { if (!j.ok) throw new Error('belum ada'); return j.json(); })
   .then(data => {
     katalog = data;
     const toko = data.toko || {};
+
     document.title = 'Katalog ' + (toko.nama || 'Toko');
     $('#k-lambang').textContent = inisial(toko.nama);
+    $('#k-nama-atas').textContent = toko.nama || 'Katalog';
+    $('#k-jenis-atas').textContent = toko.jenis || '';
     $('#k-nama').textContent = toko.nama || 'Katalog';
     $('#k-jenis').textContent = toko.jenis || '';
-    $('#k-kontak').textContent = [toko.alamat, toko.telepon].filter(Boolean).join(' · ');
-    $('#k-waktu').textContent = 'Diperbarui ' + new Date(data.waktu).toLocaleString('id-ID',
-      { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+    $('#k-kaki-nama').textContent = toko.nama || '';
+
+    const keping = [];
+    if (toko.alamat) keping.push(`<span class="keping">${IKON_KEPING.alamat}${aman(toko.alamat)}</span>`);
+    if (toko.telepon) keping.push(`<span class="keping">${IKON_KEPING.telepon}${aman(toko.telepon)}</span>`);
+    if (toko.jamBuka) keping.push(`<span class="keping">${IKON_KEPING.jam}${aman(toko.jamBuka)}</span>`);
+    $('#k-keping').innerHTML = keping.join('');
+    $('#k-kaki-info').innerHTML = [toko.alamat, toko.telepon, toko.jamBuka]
+      .filter(Boolean).map(aman).join('<br>');
+    $('#k-kaki-waktu').textContent = data.waktu
+      ? ', ' + new Date(data.waktu).toLocaleString('id-ID',
+        { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+      : '';
 
     const wa = nomorWa(toko.telepon);
     if (wa) {
-      const tautan = $('#k-wa');
-      tautan.href = 'https://wa.me/' + wa + '?text=' +
-        encodeURIComponent('Halo ' + (toko.nama || '') + ', saya mau tanya barang di katalog.');
-      tautan.classList.remove('tersembunyi');
+      const t = $('#k-wa-atas');
+      t.href = 'https://wa.me/' + wa + '?text=' +
+        encodeURIComponent('Halo ' + (toko.nama || '') + ', saya mau bertanya tentang barang di katalog.');
+      t.classList.remove('tersembunyi');
     }
+
+    // kategori disusun dari barang yang benar-benar ada di toko
+    const adaKategori = [...new Set((data.barang || []).map(kategoriBarang))].sort();
+    $('#k-kategori').innerHTML = ['Semua', ...adaKategori].map((k, urut) =>
+      `<button class="kategori ${urut === 0 ? 'aktif' : ''}" data-kategori="${aman(k)}">${aman(k)}</button>`).join('');
+
     $('#k-alat').classList.remove('tersembunyi');
-    gambar();
+    $('#k-baris-jumlah').classList.remove('tersembunyi');
+    gambarRak();
   })
   .catch(() => {
-    $('#k-kosong').innerHTML = 'Katalog belum diterbitkan oleh toko.<br>' +
-      '<span class="kecil">Pemilik dapat menerbitkannya lewat Pengaturan di aplikasi kasir.</span>';
+    $('#k-pesan-kosong').innerHTML = `<b>Katalog belum diterbitkan.</b><br>
+      <span class="kecil">Pemilik toko dapat menerbitkannya lewat menu Pengaturan di aplikasi kasir.</span>`;
   });
 
-$('#k-cari').addEventListener('input', gambar);
-$('#k-urut').addEventListener('change', gambar);
+/* ---------- pendengar ---------- */
+
+$('#k-cari').addEventListener('input', () => gambarRak());
+$('#k-urut').addEventListener('change', () => gambarRak());
+$('#k-kategori').addEventListener('click', e => {
+  const t = e.target.closest('[data-kategori]');
+  if (!t) return;
+  kategoriTerpilih = t.dataset.kategori;
+  $$('#k-kategori .kategori').forEach(x => x.classList.toggle('aktif', x === t));
+  gambarRak();
+});
+document.addEventListener('click', e => {
+  const tambah = e.target.closest('[data-tambah]');
+  const kurang = e.target.closest('[data-kurang]');
+  if (tambah) ubahPesanan(tambah.dataset.tambah, 1);
+  if (kurang) ubahPesanan(kurang.dataset.kurang, -1);
+});
+$('#k-buka-pesanan').onclick = bukaPesanan;
+$('#modal-tutup').onclick = tutupModal;
+$('#latar-modal').addEventListener('click', e => { if (e.target.id === 'latar-modal') tutupModal(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') tutupModal(); });
 </script>
 </body>
 </html>
