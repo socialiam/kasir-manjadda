@@ -116,7 +116,7 @@ const KUNCI_SIMPAN = 'kasirToko.v1';
    benar-benar yang terbaru: angkanya terlihat di layar Pengaturan paling bawah.
    Kalau angka di layar tidak sama dengan yang disebutkan, berarti browser masih
    memakai simpanan lama dan perlu dimuat ulang dengan Ctrl+Shift+R. */
-const VERSI_APLIKASI = '24 September 2026 - pembaruan 23 (PIN milik tiap petugas)';
+const VERSI_APLIKASI = '24 September 2026 - pembaruan 24 (ganti petugas lebih aman)';
 
 /** Isi awal saat aplikasi pertama kali dibuka. Semua bisa diubah dari dalam aplikasi. */
 function dataAwal() {
@@ -624,6 +624,50 @@ function batalPin() {
   ketikanPin = '';
   gambarLayarMasuk();
   gantiLayar('layar-masuk');
+}
+
+/* ----- keluar dari giliran -----
+   Menekan Ganti Petugas berarti meninggalkan meja kasir. Karena tiap orang
+   punya PIN sendiri, keluar sama dengan mengunci kasir: yang meneruskan
+   harus mengetik PIN miliknya. Tiga hal wajib ikut dibersihkan, kalau tidak
+   sisa giliran sebelumnya terbawa ke giliran berikutnya. */
+function keluarDariGiliran() {
+  petugasSekarang = null;        // dikosongkan lebih dulu, supaya siaran ke
+  petugasMenunggu = null;        // layar pembeli tidak lagi menyebut nama lama
+  kosongkanKeranjang();          // ikut mengosongkan diskon, bayar, dan pelanggan
+  gambarLayarMasuk();
+  gantiLayar('layar-masuk');
+  pesan('Kasir dikunci. Pilih nama untuk melanjutkan.', 'info', 4000);
+}
+
+function gantiPetugas() {
+  if (!keranjang.length) { keluarDariGiliran(); return; }
+
+  const jumlah = keranjang.reduce((j, i) => j + i.jumlah, 0);
+  const nilai = keranjang.reduce((j, i) => j + i.hargaJual * i.jumlah, 0);
+
+  bukaModal({
+    judul: 'Keranjang masih terisi',
+    isi: `<p>Ada <b>${angka(jumlah)} barang</b> senilai <b>${rupiah(nilai)}</b> yang belum dibayar.</p>
+      <p style="margin-top:12px" class="lemah">Menahannya lebih aman: keranjang disimpan utuh dan
+      bisa dilanjutkan siapa pun lewat tombol <b>Ditahan</b> di layar Jual.</p>`,
+    aksi: [
+      { label: 'Batal', kelas: 'tombol-netral', saatKlik: tutupModal },
+      {
+        label: 'Buang keranjang', kelas: 'tombol-bahaya', saatKlik: () => {
+          tutupModal();
+          keluarDariGiliran();
+        }
+      },
+      {
+        label: '⏸ Tahan dulu', kelas: 'tombol-utama', saatKlik: () => {
+          tutupModal();
+          tahanTransaksi();      // masih atas nama petugas yang sekarang
+          keluarDariGiliran();
+        }
+      }
+    ]
+  });
 }
 
 function mintaPinLama(p) {
@@ -2756,21 +2800,7 @@ function pasangPendengar() {
     }
   });
 
-  $('#btn-ganti-petugas').onclick = async () => {
-    if (keranjang.length) {
-      const ya = await konfirmasi('Keranjang masih terisi',
-        'Masih ada barang di keranjang yang belum dibayar. Ganti petugas sekarang dan kosongkan keranjang?',
-        'Ya, ganti petugas');
-      if (!ya) return;
-      kosongkanKeranjang();
-    }
-    // Keluar berarti kembali ke daftar petugas. Yang meneruskan giliran
-    // mengetik PIN miliknya sendiri, bukan PIN orang sebelumnya.
-    petugasSekarang = null;
-    petugasMenunggu = null;
-    gambarLayarMasuk();
-    gantiLayar('layar-masuk');
-  };
+  $('#btn-ganti-petugas').onclick = gantiPetugas;
 
   /* --- layar kunci --- */
   $('#papan-angka').addEventListener('click', e => {
