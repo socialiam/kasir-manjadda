@@ -1,92 +1,233 @@
 {
+  "waktu": "2026-09-24T10:06:10.328Z",
+  "toko": {
+    "nama": "Toko Man Jadda Wajada Kubu",
+    "jenis": "Toko Pecah Belah",
+    "slogan": "Pilihan tepat untuk kebutuhan rumah tangga Anda",
+    "alamat": "Jln. Jend Sudirman, Pasar Pelita Kubu",
+    "telepon": "0813-7189-7171",
+    "jamBuka": "08.00 - 21.00"
+  },
   "barang": [
     {
-      "grosirSatuan": "",
+      "nama": "Lemari pakaian Plastik",
+      "kode": "B01",
       "satuan": "pcs",
+      "hargaJual": 465000,
+      "gambar": "",
+      "tersedia": true,
       "grosirJumlah": 0,
+      "grosirSatuan": "lusin",
+      "grosirHarga": 0
+    },
+    {
+      "nama": "Lemari plastik TwinnPan",
+      "kode": "B02",
+      "satuan": "pcs",
+      "hargaJual": 520000,
+      "gambar": "",
+      "tersedia": true,
+      "grosirJumlah": 0,
+      "grosirSatuan": "lusin",
+      "grosirHarga": 0
+    },
+    {
+      "nama": "Lemari Plastik BESTPLAST",
+      "kode": "B03",
+      "satuan": "pcs",
+      "hargaJual": 615000,
+      "gambar": "",
+      "tersedia": true,
+      "grosirJumlah": 0,
+      "grosirSatuan": "lusin",
+      "grosirHarga": 0
+    },
+    {
+      "nama": "Rak piring Aluminium merek Master",
+      "kode": "B04",
+      "satuan": "pcs",
+      "hargaJual": 195000,
+      "gambar": "",
+      "tersedia": true,
+      "grosirJumlah": 0,
+      "grosirSatuan": "lusin",
+      "grosirHarga": 0
+    },
+    {
+      "nama": "Rak susun plastik Panen",
+      "kode": "B05",
+      "satuan": "pcs",
+      "hargaJual": 265000,
+      "gambar": "",
+      "tersedia": true,
+      "grosirJumlah": 0,
+      "grosirSatuan": "lusin",
+      "grosirHarga": 0
+    },
+    {
+      "nama": "Kuali besar",
+      "kode": "B06",
+      "satuan": "pcs",
       "hargaJual": 65000,
       "gambar": "",
       "tersedia": true,
-      "nama": "Kuali besar",
+      "grosirJumlah": 0,
+      "grosirSatuan": "lusin",
       "grosirHarga": 0
     },
     {
-      "grosirSatuan": "",
+      "nama": "Kompor 2 tungku",
+      "kode": "B07",
       "satuan": "pcs",
-      "grosirJumlah": 0,
       "hargaJual": 145000,
       "gambar": "",
       "tersedia": true,
-      "nama": "Kompor 2 tungku",
+      "grosirJumlah": 0,
+      "grosirSatuan": "lusin",
       "grosirHarga": 0
     },
     {
-      "grosirSatuan": "",
+      "nama": "Gelas kaca bening",
+      "kode": "B08",
       "satuan": "pcs",
-      "grosirJumlah": 0,
-      "hargaJual": 18000,
-      "gambar": "",
-      "tersedia": true,
-      "nama": "Baskom besar",
-      "grosirHarga": 0
-    },
-    {
-      "grosirSatuan": "lusin",
-      "satuan": "pcs",
-      "grosirJumlah": 12,
-      "hargaJual": 8000,
-      "gambar": "",
-      "tersedia": true,
-      "nama": "Baskom kecil",
-      "grosirHarga": 85000
-    },
-    {
-      "grosirSatuan": "lusin",
-      "satuan": "pcs",
-      "grosirJumlah": 12,
-      "hargaJual": 1500,
-      "gambar": "",
-      "tersedia": true,
-      "nama": "Sendok makan plastik",
-      "grosirHarga": 15000
-    },
-    {
-      "grosirSatuan": "kodi",
-      "satuan": "pcs",
-      "grosirJumlah": 20,
-      "hargaJual": 1000,
-      "gambar": "",
-      "tersedia": true,
-      "nama": "Sabut cuci piring",
-      "grosirHarga": 17000
-    },
-    {
-      "grosirSatuan": "",
-      "satuan": "pcs",
-      "grosirJumlah": 0,
       "hargaJual": 5000,
       "gambar": "",
       "tersedia": true,
-      "nama": "Sikat gosok lantai",
+      "grosirJumlah": 12,
+      "grosirSatuan": "lusin",
+      "grosirHarga": 55000
+    },
+    {
+      "nama": "Piring makan melamin",
+      "kode": "B09",
+      "satuan": "pcs",
+      "hargaJual": 10000,
+      "gambar": "",
+      "tersedia": true,
+      "grosirJumlah": 12,
+      "grosirSatuan": "lusin",
+      "grosirHarga": 110000
+    },
+    {
+      "nama": "Mangkuk sayur melamin",
+      "kode": "B10",
+      "satuan": "pcs",
+      "hargaJual": 13000,
+      "gambar": "",
+      "tersedia": true,
+      "grosirJumlah": 12,
+      "grosirSatuan": "lusin",
+      "grosirHarga": 144000
+    },
+    {
+      "nama": "Sendok makan plastik",
+      "kode": "B11",
+      "satuan": "pcs",
+      "hargaJual": 1500,
+      "gambar": "",
+      "tersedia": true,
+      "grosirJumlah": 12,
+      "grosirSatuan": "lusin",
+      "grosirHarga": 15000
+    },
+    {
+      "nama": "Baskom besar",
+      "kode": "B12",
+      "satuan": "pcs",
+      "hargaJual": 18000,
+      "gambar": "",
+      "tersedia": true,
+      "grosirJumlah": 0,
+      "grosirSatuan": "lusin",
       "grosirHarga": 0
     },
     {
-      "grosirSatuan": "",
+      "nama": "Baskom kecil",
+      "kode": "B13",
       "satuan": "pcs",
+      "hargaJual": 8000,
+      "gambar": "",
+      "tersedia": true,
+      "grosirJumlah": 12,
+      "grosirSatuan": "lusin",
+      "grosirHarga": 85000
+    },
+    {
+      "nama": "Ember 20 liter",
+      "kode": "B14",
+      "satuan": "pcs",
+      "hargaJual": 32000,
+      "gambar": "",
+      "tersedia": true,
       "grosirJumlah": 0,
+      "grosirSatuan": "lusin",
+      "grosirHarga": 0
+    },
+    {
+      "nama": "Gayung plastik",
+      "kode": "B15",
+      "satuan": "pcs",
+      "hargaJual": 7000,
+      "gambar": "",
+      "tersedia": true,
+      "grosirJumlah": 12,
+      "grosirSatuan": "lusin",
+      "grosirHarga": 76000
+    },
+    {
+      "nama": "Galon kosong",
+      "kode": "B16",
+      "satuan": "pcs",
+      "hargaJual": 58000,
+      "gambar": "",
+      "tersedia": true,
+      "grosirJumlah": 0,
+      "grosirSatuan": "lusin",
+      "grosirHarga": 0
+    },
+    {
+      "nama": "Sabut cuci piring",
+      "kode": "B17",
+      "satuan": "pcs",
+      "hargaJual": 1000,
+      "gambar": "",
+      "tersedia": true,
+      "grosirJumlah": 20,
+      "grosirSatuan": "kodi",
+      "grosirHarga": 17000
+    },
+    {
+      "nama": "Sikat gosok lantai",
+      "kode": "B18",
+      "satuan": "pcs",
+      "hargaJual": 5000,
+      "gambar": "",
+      "tersedia": true,
+      "grosirJumlah": 0,
+      "grosirSatuan": "lusin",
+      "grosirHarga": 0
+    },
+    {
+      "nama": "Sapu lidi",
+      "kode": "B19",
+      "satuan": "pcs",
       "hargaJual": 6000,
       "gambar": "",
-      "tersedia": false,
-      "nama": "Sapu lidi",
+      "tersedia": true,
+      "grosirJumlah": 0,
+      "grosirSatuan": "lusin",
       "grosirHarga": 0
+    },
+    {
+      "nama": "Toples kue bulat",
+      "kode": "B20",
+      "satuan": "pcs",
+      "hargaJual": 16000,
+      "gambar": "",
+      "tersedia": true,
+      "grosirJumlah": 6,
+      "grosirSatuan": "pak",
+      "grosirHarga": 90000
     }
-  ],
-  "waktu": "2026-09-24T16:40:59.6653910+07:00",
-  "toko": {
-    "alamat": "",
-    "jenis": "Toko Pecah Belah",
-    "jamBuka": "",
-    "telepon": "",
-    "nama": "Toko Manjadda Wajada Kubu"
-  }
+  ]
 }

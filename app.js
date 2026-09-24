@@ -1,4 +1,4 @@
-/* ============================================================
+﻿/* ============================================================
    KASIR TOKO - seluruh logika aplikasi
    JavaScript murni, tanpa kerangka kerja apa pun.
 
@@ -116,12 +116,14 @@ const KUNCI_SIMPAN = 'kasirToko.v1';
    benar-benar yang terbaru: angkanya terlihat di layar Pengaturan paling bawah.
    Kalau angka di layar tidak sama dengan yang disebutkan, berarti browser masih
    memakai simpanan lama dan perlu dimuat ulang dengan Ctrl+Shift+R. */
-const VERSI_APLIKASI = '24 September 2026 - pembaruan 9 (identitas toko)';
+const VERSI_APLIKASI = '24 September 2026 - pembaruan 10 (barang toko terisi)';
 
 /** Isi awal saat aplikasi pertama kali dibuka. Semua bisa diubah dari dalam aplikasi. */
 function dataAwal() {
   const brg = (kode, nama, beli, jual, stok, satuan = 'pcs') =>
-    ({ id: idBaru(), kode, nama, satuan, hargaBeli: beli, hargaJual: jual, stok, stokMinimum: 5 });
+    ({ id: idBaru(), kode, nama, satuan, hargaBeli: beli, hargaJual: jual, stok, stokMinimum: 5, gambar: '' });
+  const borong = (barang, isi, satuanBorong, harga) =>
+    Object.assign(barang, { grosirJumlah: isi, grosirSatuan: satuanBorong || 'lusin', grosirHarga: harga });
   return {
     versi: 1,
     toko: {
@@ -135,15 +137,30 @@ function dataAwal() {
       { id: idBaru(), nama: 'Siti', peran: 'karyawan' },
       { id: idBaru(), nama: 'Ujang', peran: 'karyawan' }
     ],
+    /* Daftar awal: lima barang pertama diambil dari katalog WhatsApp toko,
+       sisanya barang pecah belah yang umum. SEMUA HARGA DI SINI PERKIRAAN
+       untuk keperluan uji coba; pemilik membetulkannya lewat Daftar Barang. */
     barang: [
-      brg('B01', 'Kuali besar', 45000, 65000, 8),
-      brg('B02', 'Kompor 2 tungku', 110000, 145000, 4),
-      brg('B03', 'Baskom besar', 12000, 18000, 15),
-      brg('B04', 'Baskom kecil', 5000, 8000, 22),
-      brg('B05', 'Sendok makan plastik', 800, 1500, 98),
-      brg('B06', 'Sabut cuci piring', 300, 1000, 150),
-      brg('B07', 'Sikat gosok lantai', 2500, 5000, 35),
-      brg('B08', 'Sapu lidi', 3000, 6000, 28)
+      borong(brg('B01', 'Lemari pakaian Plastik', 380000, 465000, 4), 0, '', 0),
+      borong(brg('B02', 'Lemari plastik TwinnPan', 420000, 520000, 3), 0, '', 0),
+      borong(brg('B03', 'Lemari Plastik BESTPLAST', 510000, 615000, 2), 0, '', 0),
+      borong(brg('B04', 'Rak piring Aluminium merek Master', 155000, 195000, 6), 0, '', 0),
+      borong(brg('B05', 'Rak susun plastik Panen', 210000, 265000, 5), 0, '', 0),
+      borong(brg('B06', 'Kuali besar', 45000, 65000, 8), 0, '', 0),
+      borong(brg('B07', 'Kompor 2 tungku', 110000, 145000, 4), 0, '', 0),
+      borong(brg('B08', 'Gelas kaca bening', 3500, 5000, 96), 12, 'lusin', 55000),
+      borong(brg('B09', 'Piring makan melamin', 7000, 10000, 60), 12, 'lusin', 110000),
+      borong(brg('B10', 'Mangkuk sayur melamin', 9000, 13000, 36), 12, 'lusin', 144000),
+      borong(brg('B11', 'Sendok makan plastik', 800, 1500, 240), 12, 'lusin', 15000),
+      borong(brg('B12', 'Baskom besar', 12000, 18000, 15), 0, '', 0),
+      borong(brg('B13', 'Baskom kecil', 5000, 8000, 24), 12, 'lusin', 85000),
+      borong(brg('B14', 'Ember 20 liter', 22000, 32000, 18), 0, '', 0),
+      borong(brg('B15', 'Gayung plastik', 4000, 7000, 40), 12, 'lusin', 76000),
+      borong(brg('B16', 'Galon kosong', 45000, 58000, 12), 0, '', 0),
+      borong(brg('B17', 'Sabut cuci piring', 300, 1000, 200), 20, 'kodi', 17000),
+      borong(brg('B18', 'Sikat gosok lantai', 2500, 5000, 35), 0, '', 0),
+      borong(brg('B19', 'Sapu lidi', 3000, 6000, 28), 0, '', 0),
+      borong(brg('B20', 'Toples kue bulat', 11000, 16000, 24), 6, 'pak', 90000)
     ],
     transaksi: [],
     barangMasuk: [],
@@ -869,7 +886,7 @@ function formBarang(id = null) {
           <input id="f-minimum" class="input" type="number" min="0" step="1" value="${b ? (b.stokMinimum ?? 5) : 5}"></label>
       </div>
       <p style="margin-top:16px"><b>Harga borongan</b>
-        <span class="lemah kecil">— kosongkan kalau barang ini hanya dijual satuan</span></p>
+        <span class="lemah kecil">â€” kosongkan kalau barang ini hanya dijual satuan</span></p>
       <div class="form-grid" style="margin:8px 0 0">
         <label>Nama borongan
           <select id="f-grosir-satuan" class="input">
@@ -888,7 +905,7 @@ function formBarang(id = null) {
         dan stok berkurang 12 sekaligus.</p>
       <p class="lemah kecil" style="margin-top:12px">Untung per barang dihitung sendiri dari harga jual dikurangi harga beli.</p>
       <p style="margin-top:14px"><b>Gambar barang</b>
-        <span class="lemah kecil">— kalau dibiarkan Otomatis, gambar dipilih sendiri dari nama barang</span></p>
+        <span class="lemah kecil">â€” kalau dibiarkan Otomatis, gambar dipilih sendiri dari nama barang</span></p>
       <input type="hidden" id="f-gambar" value="${aman(b?.gambar || '')}">
       <div class="pilih-gambar">
         <button type="button" data-pilih-gambar="" class="${b?.gambar ? '' : 'terpilih'}">
@@ -982,7 +999,7 @@ function formImporBarang() {
       <p class="lemah kecil">Harga beli dan stok boleh dikosongkan. Kalau nama barang sudah ada di daftar,
         harganya diperbarui dan stoknya diganti, bukan dibuat dua kali.</p>
       <textarea id="impor-teks" class="input" spellcheck="false"
-        placeholder="Contoh — hapus tulisan ini, lalu tulis daftar Bapak sendiri:&#10;Lemari pakaian Plastik ; 450000 ; 380000 ; 3&#10;Lemari plastik TwinnPan ; 520000 ; 440000 ; 2&#10;Lemari Plastik BESTPLAST ; 610000 ; 520000 ; 2&#10;Rak piring Aluminium Master ; 185000 ; 150000 ; 6&#10;Ember plastik besar ; 35000 ; 27000 ; 12"></textarea>
+        placeholder="Contoh â€” hapus tulisan ini, lalu tulis daftar Bapak sendiri:&#10;Lemari pakaian Plastik ; 450000 ; 380000 ; 3&#10;Lemari plastik TwinnPan ; 520000 ; 440000 ; 2&#10;Lemari Plastik BESTPLAST ; 610000 ; 520000 ; 2&#10;Rak piring Aluminium Master ; 185000 ; 150000 ; 6&#10;Ember plastik besar ; 35000 ; 27000 ; 12"></textarea>
       <p class="lemah kecil" style="margin-top:10px"><b>Angka contoh di atas hanya contoh.</b>
         Isi dengan harga toko Bapak yang sebenarnya.</p>`,
     aksi: [
@@ -1051,7 +1068,7 @@ function unduhDaftarBarang() {
     baris.push([b.kode || '', b.nama, b.satuan, b.hargaBeli, b.hargaJual,
       b.hargaJual - b.hargaBeli, b.stok, b.stokMinimum ?? 5].map(sel).join(';'));
   });
-  unduhBerkas(`daftar-barang-${slugToko()}-${kunciTanggal()}.csv`, '﻿' + baris.join('\r\n'), 'text/csv;charset=utf-8');
+  unduhBerkas(`daftar-barang-${slugToko()}-${kunciTanggal()}.csv`, 'ï»¿' + baris.join('\r\n'), 'text/csv;charset=utf-8');
   pesan('Daftar barang diunduh. Bisa dibuka dengan Excel.', 'sukses');
 }
 
@@ -1267,7 +1284,7 @@ function unduhCsv() {
     baris.push(kolom.map(sel).join(';'));
   }));
   unduhBerkas(`laporan-${slugToko()}-${$('#dari-tanggal').value}-sampai-${$('#sampai-tanggal').value}.csv`,
-    '﻿' + baris.join('\r\n'), 'text/csv;charset=utf-8');
+    'ï»¿' + baris.join('\r\n'), 'text/csv;charset=utf-8');
   pesan('Berkas laporan diunduh.', 'sukses');
 }
 
@@ -1580,10 +1597,10 @@ function panduanAwal() {
       <p style="margin-top:18px"><b>Daftar barangnya mau diisi bagaimana?</b></p>
       <label class="pilihan-radio"><input type="radio" name="w-isi" value="contoh" checked>
         <span>Pakai <b>8 barang contoh</b> dulu
-        <span class="lemah kecil">— enak untuk mencoba, boleh dihapus kapan saja</span></span></label>
+        <span class="lemah kecil">â€” enak untuk mencoba, boleh dihapus kapan saja</span></span></label>
       <label class="pilihan-radio"><input type="radio" name="w-isi" value="kosong">
         <span><b>Kosongkan</b>, saya isi sendiri barang toko saya
-        <span class="lemah kecil">— daftar barang mulai dari nol</span></span></label>`,
+        <span class="lemah kecil">â€” daftar barang mulai dari nol</span></span></label>`,
     aksi: [{ label: 'Mulai Pakai', kelas: 'tombol-utama', saatKlik: simpanPanduanAwal }]
   });
 }

@@ -84,7 +84,8 @@ const NAMA_GAMBAR = {
 const TEBAKAN_GAMBAR = [
   ['rak-piring', ['rak piring', 'rak pinggan', 'rak gelas', 'rak dapur']],
   ['spons', ['sabut', 'spons', 'busa cuci', 'cuci piring', 'sikat']],
-  ['lemari', ['lemari', 'laci', 'bufet', 'buffet', 'rak baju', 'rak pakaian']],
+  ['lemari', ['lemari', 'laci', 'bufet', 'buffet', 'rak baju', 'rak pakaian',
+              'rak susun', 'rak plastik', 'rak serbaguna', 'rak buku']],
   ['kompor', ['kompor', 'tungku', 'anglo']],
   ['gelas', ['gelas', 'cangkir', 'mug']],
   ['piring', ['piring', 'lepek', 'pinggan']],
@@ -130,7 +131,9 @@ const KATEGORI_GAMBAR = {
   lemari: 'Penyimpanan', toples: 'Penyimpanan', keranjang: 'Penyimpanan',
   'rak-piring': 'Penyimpanan',
   sapu: 'Kebersihan', pel: 'Kebersihan', spons: 'Kebersihan', sampah: 'Kebersihan',
-  ember: 'Kebersihan', baskom: 'Kebersihan', gayung: 'Kebersihan',
+  // Ember, baskom, dan gayung berdiri sendiri: di toko pecah belah ketiganya
+  // satu rak, dan mencampurnya dengan sapu membuat pembeli sulit mencari.
+  ember: 'Ember & Baskom', baskom: 'Ember & Baskom', gayung: 'Ember & Baskom',
   kardus: 'Lainnya'
 };
 
