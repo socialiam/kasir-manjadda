@@ -234,6 +234,23 @@ body{ padding:0; background:var(--bg); }
 .baris-pesanan .penghitung{ flex:none; width:118px; }
 
 /* ---------- kaki halaman ---------- */
+/* ---------- ajakan jadi pelanggan tetap ---------- */
+.ajakan-daftar{
+  display:flex; align-items:center; gap:14px; margin:22px 16px 0; padding:18px 20px;
+  border-radius:var(--lengkung); background:linear-gradient(135deg,#0d9488,#0891b2);
+  color:#fff; box-shadow:var(--bayang-2);
+}
+.ajakan-daftar b{ display:block; font-size:16px; font-weight:800; }
+.ajakan-daftar span{ display:block; font-size:12.5px; opacity:.92; margin-top:3px; line-height:1.5; }
+.ajakan-daftar > div{ flex:1; min-width:0; }
+.tombol-daftar{
+  border:none; border-radius:12px; padding:12px 20px; cursor:pointer; flex:none;
+  background:#fff; color:#0f766e; font-weight:800; font-size:14.5px; font-family:inherit;
+}
+.tombol-daftar:hover{ filter:brightness(.96); }
+@media (max-width:560px){ .ajakan-daftar{ margin:18px 12px 0; flex-direction:column; text-align:center; }
+  .tombol-daftar{ width:100%; } }
+
 .kaki-toko{
   margin-top:20px; padding:26px 20px 34px; text-align:center;
   border-top:1px solid var(--garis); background:var(--kartu);
@@ -309,6 +326,14 @@ body{ padding:0; background:var(--bg); }
   </div>
   <div id="k-rak" class="rak"></div>
   <div id="k-pesan-kosong" class="muat tersembunyi"></div>
+
+  <div class="ajakan-daftar" id="k-ajakan">
+    <div>
+      <b>Jadi pelanggan tetap</b>
+      <span>Dapat kabar barang baru dan harga khusus. Cukup nama dan nomor HP.</span>
+    </div>
+    <button id="k-daftar" class="tombol-daftar">Daftar</button>
+  </div>
 
   <div class="kaki-toko">
     <h3 id="k-kaki-nama">Toko</h3>
@@ -543,6 +568,57 @@ function kirimPesanan() {
   $('#modal-aksi').innerHTML = '';
 }
 
+/* ---------- mendaftar jadi pelanggan tetap ----------
+   Tidak ada pelayan data di balik halaman ini, jadi pendaftarannya dikirim
+   sebagai pesan WhatsApp biasa. Pemilik menempelnya sekali di aplikasi
+   kasir, dan pembeli tidak perlu membuat akun atau kata sandi apa pun. */
+function bukaPendaftaran() {
+  const toko = katalog?.toko || {};
+  $('#modal-judul').textContent = 'Jadi Pelanggan Tetap';
+  $('#modal-isi').innerHTML = `
+    <p class="lemah">Cukup nama dan satu nomor HP. Tidak perlu kata sandi,
+      tidak perlu kode apa pun.</p>
+    <label style="margin-top:16px">Nama Anda
+      <input id="d-nama" class="input input-besar" type="text" autocomplete="name"
+             placeholder="Contoh: Ibu Ani"></label>
+    <label style="margin-top:12px">Nomor HP <span class="lemah kecil">atau alamat email</span>
+      <input id="d-kontak" class="input input-besar" type="text" autocomplete="tel"
+             placeholder="0813-7189-7171"></label>
+    <p id="d-pesan" class="kecil" style="color:var(--bahaya);min-height:18px;margin-top:10px"></p>
+    <p class="lemah kecil">Menekan tombol di bawah akan membuka WhatsApp berisi data ini,
+      lalu Anda tinggal mengirimnya ke toko.</p>`;
+
+  $('#modal-aksi').innerHTML = '';
+  const batal = document.createElement('button');
+  batal.className = 'tombol tombol-netral';
+  batal.textContent = 'Batal';
+  batal.onclick = tutupModal;
+  const kirim = document.createElement('button');
+  kirim.className = 'tombol tombol-sukses';
+  kirim.textContent = 'Kirim lewat WhatsApp';
+  kirim.onclick = () => {
+    const nama = $('#d-nama').value.trim();
+    const kontak = $('#d-kontak').value.trim();
+    if (!nama) { $('#d-pesan').textContent = 'Nama belum diisi.'; return; }
+    if (!kontak) { $('#d-pesan').textContent = 'Nomor HP atau email belum diisi.'; return; }
+    const teks = [
+      `Halo ${toko.nama || 'Toko'}, saya mau daftar jadi pelanggan.`, '',
+      `Nama: ${nama}`, `HP/Email: ${kontak}`, '', '(dikirim dari katalog online)'
+    ].join('\n');
+    const wa = nomorWa(toko.telepon);
+    if (wa) {
+      window.open('https://wa.me/' + wa + '?text=' + encodeURIComponent(teks), '_blank', 'noopener');
+      tutupModal();
+    } else {
+      try { navigator.clipboard?.writeText(teks); } catch (e) { /* abaikan */ }
+      $('#d-pesan').style.color = 'var(--lemah)';
+      $('#d-pesan').textContent = 'Nomor toko belum tersedia. Data sudah disalin, kirimkan sendiri ke toko.';
+    }
+  };
+  $('#modal-aksi').append(batal, kirim);
+  $('#latar-modal').classList.remove('tersembunyi');
+}
+
 /* ---------- papan pengumuman berjalan ---------- */
 
 const LAJU_SPANDUK = 62;   // piksel per detik, kecepatan yang masih enak dibaca
@@ -671,6 +747,7 @@ document.addEventListener('click', e => {
   if (kurang) ubahPesanan(kurang.dataset.kurang, -1);
 });
 $('#k-buka-pesanan').onclick = bukaPesanan;
+$('#k-daftar').onclick = bukaPendaftaran;
 $('#modal-tutup').onclick = tutupModal;
 $('#latar-modal').addEventListener('click', e => { if (e.target.id === 'latar-modal') tutupModal(); });
 document.addEventListener('keydown', e => { if (e.key === 'Escape') tutupModal(); });

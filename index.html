@@ -92,6 +92,10 @@
           <span class="menu-ikon"><svg viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="2.5"/><path d="M8 7h8"/><path d="M8.5 12h.01M12 12h.01M15.5 12h.01M8.5 16h.01M12 16h.01M15.5 16h.01"/></svg></span>
           <span class="menu-teks"><b>TUTUP KASIR</b><small>Hitung uang laci, cari selisih</small></span>
         </button>
+        <button class="menu-btn merahjambu" data-buka="layar-pelanggan">
+          <span class="menu-ikon"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.6"/><path d="M4.5 20.5a7.5 7.5 0 0 1 15 0"/></svg></span>
+          <span class="menu-teks"><b>DATA PELANGGAN</b><small>Pelanggan tetap &amp; riwayat belanja</small></span>
+        </button>
         <button class="menu-btn toska" id="menu-tampilan-pelanggan">
           <span class="menu-ikon"><svg viewBox="0 0 24 24"><rect x="2.5" y="4" width="19" height="12.5" rx="2"/><path d="M8.5 20.5h7M12 16.5v4"/></svg></span>
           <span class="menu-teks"><b>TAMPILAN PELANGGAN</b><small>Layar pembeli &amp; katalog online</small></span>
@@ -134,6 +138,12 @@
         </div>
 
         <aside class="kartu kolom-kanan panel-keranjang" id="panel-keranjang">
+          <button id="baris-pelanggan" class="baris-pelanggan" title="Catat belanja atas nama pelanggan">
+            <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.6"/><path d="M4.5 20.5a7.5 7.5 0 0 1 15 0"/></svg>
+            <span id="nama-pelanggan-jual">Pembeli umum</span>
+            <span class="lemah kecil" id="ganti-pelanggan">pilih</span>
+          </button>
+
           <div class="kepala-keranjang">
             <h3>Keranjang <span id="jumlah-keranjang" class="lencana lencana-baik">0</span></h3>
             <div class="aksi-kepala">
@@ -318,6 +328,42 @@
           </table>
         </div>
         <div id="transaksi-kosong" class="kosong"></div>
+      </div>
+    </section>
+
+    <!-- ====== DATA PELANGGAN ====== -->
+    <section id="layar-pelanggan" class="layar">
+      <div class="judul-layar">
+        <button class="tombol tombol-netral kecil" data-beranda>&larr; Beranda</button>
+        <h2>&#128100; Data Pelanggan</h2>
+        <button id="btn-tempel-pelanggan" class="tombol tombol-netral kecil"
+                title="Tempel pesan pendaftaran dari WhatsApp">&#128203; Tempel dari WhatsApp</button>
+        <button id="btn-tambah-pelanggan" class="tombol tombol-utama">&#65291; Daftarkan Pelanggan</button>
+      </div>
+
+      <div class="baris-alat">
+        <input id="cari-pelanggan" class="input" type="search"
+               placeholder="Cari nama atau nomor HP..." autocomplete="off">
+        <label class="kecil urut-bungkus">Urutkan
+          <select id="urut-pelanggan" class="input">
+            <option value="baru">Paling baru mendaftar</option>
+            <option value="belanja">Paling banyak belanja</option>
+            <option value="nama">Nama A &rarr; Z</option>
+            <option value="lama">Paling lama tidak belanja</option>
+          </select>
+        </label>
+      </div>
+
+      <div class="kartu">
+        <div id="info-pelanggan" class="lemah kecil" style="margin-bottom:10px"></div>
+        <div class="tabel-bungkus">
+          <table class="tabel" id="tabel-pelanggan">
+            <thead><tr><th>Nama</th><th>HP / Email</th><th class="tengah">Nota</th>
+              <th class="kanan">Total Belanja</th><th>Terakhir</th><th class="tengah">Aksi</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <div id="pelanggan-kosong" class="kosong"></div>
       </div>
     </section>
 
