@@ -116,7 +116,7 @@ const KUNCI_SIMPAN = 'kasirToko.v1';
    benar-benar yang terbaru: angkanya terlihat di layar Pengaturan paling bawah.
    Kalau angka di layar tidak sama dengan yang disebutkan, berarti browser masih
    memakai simpanan lama dan perlu dimuat ulang dengan Ctrl+Shift+R. */
-const VERSI_APLIKASI = '24 September 2026 - pembaruan 21 (karyawan Vidal)';
+const VERSI_APLIKASI = '24 September 2026 - pembaruan 22 (sapaan pemilik)';
 
 /** Isi awal saat aplikasi pertama kali dibuka. Semua bisa diubah dari dalam aplikasi. */
 function dataAwal() {
@@ -152,7 +152,7 @@ function dataAwal() {
        menambah sendiri sebanyak yang diperlukan lewat Pengaturan, tanpa
        batas jumlah. Daftar panjang sejak awal hanya menyulitkan. */
     petugas: [
-      { id: idBaru(), nama: 'Bapak', peran: 'pemilik' },
+      { id: idBaru(), nama: 'Bpk Kamal', peran: 'pemilik' },
       { id: idBaru(), nama: 'Vidal', peran: 'karyawan' }
     ],
     /* Daftar awal: lima barang pertama diambil dari katalog WhatsApp toko,
@@ -651,7 +651,7 @@ function lanjutkanMasuk(p) {
   $('#bilah-tanggal').textContent = tanggalPanjang(new Date());
   terapkanHakAkses();
   gantiLayar('layar-beranda');
-  pesan('Selamat bekerja, ' + p.nama + '!', 'sukses');
+  pesan(`${salamWaktu()}, ${p.nama}. Selamat bekerja!`, 'sukses', 4000);
   // Dua pemeriksaan ini sengaja di sini: saat petugas baru masuk, bukan
   // saat sedang melayani pembeli.
   setTimeout(() => { periksaPenyimpanan(); ingatkanCadangan(); }, 1200);
@@ -702,6 +702,50 @@ function terapkanHakAkses() {
   $$('[data-peran="pemilik"]').forEach(el => el.classList.toggle('tersembunyi', !pemilik));
 }
 
+/* ----- sapaan di beranda -----
+   Sapaan yang baik membawa kabar, bukan sekadar basa-basi. Pemilik langsung
+   tahu keadaan tokonya pada baris pertama, tanpa perlu membuka laporan. */
+
+function salamWaktu() {
+  const jam = new Date().getHours();
+  if (jam < 11) return 'Selamat pagi';
+  if (jam < 15) return 'Selamat siang';
+  if (jam < 18) return 'Selamat sore';
+  return 'Selamat malam';
+}
+
+function kabarToko(pemilik, trxHariIni, omzet, menipis) {
+  const kabar = [];
+  if (!trxHariIni.length) {
+    kabar.push(pemilik ? 'Belum ada penjualan hari ini.' : 'Belum ada nota atas nama Anda hari ini.');
+  } else {
+    kabar.push(`${angka(trxHariIni.length)} nota hari ini, ${rupiah(omzet)}.`);
+  }
+  if (pemilik) {
+    if (menipis.length) kabar.push(`${angka(menipis.length)} barang perlu dibelanjakan.`);
+    const tertahan = (db.tertahan || []).length;
+    if (tertahan) kabar.push(`${angka(tertahan)} keranjang masih ditahan.`);
+  }
+  return kabar.join(' ');
+}
+
+function gambarSapaan(pemilik, trxHariIni, omzet, menipis) {
+  const nama = petugasSekarang?.nama || '';
+  const tanggal = new Date().toLocaleDateString('id-ID',
+    { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+
+  $('#sapaan-beranda').innerHTML = `
+    <div class="sapaan ${pemilik ? 'pemilik' : ''}">
+      <span class="avatar-sapaan">${aman(inisial(nama || 'P'))}</span>
+      <div class="isi-sapaan">
+        <b>${salamWaktu()}, ${aman(nama)}</b>
+        <span class="tanggal-sapaan">${aman(tanggal)}</span>
+        <span class="kabar-sapaan">${aman(kabarToko(pemilik, trxHariIni, omzet, menipis))}</span>
+      </div>
+      ${pemilik ? '<span class="lencana lencana-baik">Pemilik</span>' : ''}
+    </div>`;
+}
+
 function gambarBeranda() {
   const hariIni = kunciTanggal();
   const pemilik = bolehPemilik();
@@ -712,6 +756,7 @@ function gambarBeranda() {
   const omzet = trxHariIni.reduce((j, t) => j + t.total, 0);
   const laba = trxHariIni.reduce((j, t) => j + labaTransaksi(t), 0);
   const menipis = barangMenipis();
+  gambarSapaan(pemilik, trxHariIni, omzet, menipis);
 
   $('#ringkas-beranda').innerHTML = `
     <div class="ringkas"><div class="label">${pemilik ? 'Omzet Hari Ini' : 'Penjualan Saya Hari Ini'}</div>

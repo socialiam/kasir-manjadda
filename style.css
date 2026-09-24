@@ -291,6 +291,38 @@ label .input, label select{ margin-top:6px; font-weight:500; color:var(--teks); 
 .papan-angka button:active{ transform:scale(.96); background:var(--utama); color:#fff; }
 .papan-angka button.kecil-teks{ font-size:14px; font-weight:800; color:var(--lemah); }
 
+/* ---------- sapaan di beranda ---------- */
+.sapaan{
+  display:flex; align-items:center; gap:15px; margin-bottom:18px; padding:16px 20px;
+  background:var(--kartu); border:1px solid var(--garis); border-radius:var(--lengkung);
+  box-shadow:var(--bayang-2); position:relative; overflow:hidden;
+}
+.sapaan::before{
+  content:''; position:absolute; left:0; top:0; bottom:0; width:5px;
+  background:linear-gradient(180deg, var(--utama), #8b5cf6);
+}
+.sapaan.pemilik{
+  background:linear-gradient(135deg, var(--sorot), var(--kartu) 70%);
+  border-color:color-mix(in srgb, var(--utama) 30%, var(--garis));
+}
+.avatar-sapaan{
+  width:50px; height:50px; flex:none; border-radius:16px; display:grid; place-items:center;
+  font-weight:800; font-size:17px; letter-spacing:.02em; color:#fff;
+  background:linear-gradient(145deg, var(--utama), #8b5cf6);
+  box-shadow:0 10px 24px -12px var(--utama);
+}
+.isi-sapaan{ flex:1; min-width:0; line-height:1.4; display:flex; flex-direction:column; }
+.isi-sapaan b{ font-size:18px; font-weight:800; letter-spacing:-.01em; }
+.tanggal-sapaan{ font-size:12.5px; color:var(--lemah); font-weight:600; }
+.kabar-sapaan{ font-size:13.5px; color:var(--teks); margin-top:5px; font-weight:600; }
+
+@media (max-width:560px){
+  .sapaan{ padding:14px 16px; gap:12px; }
+  .avatar-sapaan{ width:42px; height:42px; font-size:15px; border-radius:13px; }
+  .isi-sapaan b{ font-size:16px; }
+  .sapaan .lencana{ display:none; }
+}
+
 /* ---------- beranda ---------- */
 .ringkas-grid{
   display:grid; grid-template-columns:repeat(auto-fit, minmax(190px,1fr));
