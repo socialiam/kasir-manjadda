@@ -116,7 +116,7 @@ const KUNCI_SIMPAN = 'kasirToko.v1';
    benar-benar yang terbaru: angkanya terlihat di layar Pengaturan paling bawah.
    Kalau angka di layar tidak sama dengan yang disebutkan, berarti browser masih
    memakai simpanan lama dan perlu dimuat ulang dengan Ctrl+Shift+R. */
-const VERSI_APLIKASI = '24 September 2026 - pembaruan 11 (pintu tampilan pelanggan)';
+const VERSI_APLIKASI = '24 September 2026 - pembaruan 12 (spanduk promo)';
 
 /** Isi awal saat aplikasi pertama kali dibuka. Semua bisa diubah dari dalam aplikasi. */
 function dataAwal() {
@@ -130,7 +130,19 @@ function dataAwal() {
       nama: 'Toko Man Jadda Wajada Kubu', jenis: 'Toko Pecah Belah',
       slogan: 'Pilihan tepat untuk kebutuhan rumah tangga Anda',
       alamat: 'Jln. Jend Sudirman, Pasar Pelita Kubu', telepon: '0813-7189-7171',
-      catatanStruk: 'Terima kasih sudah berbelanja', tema: 'terang', urutBarang: 'nama-az', jamBuka: '08.00 - 21.00', katalogOtomatis: true
+      catatanStruk: 'Terima kasih sudah berbelanja', tema: 'terang',
+      urutBarang: 'nama-az', jamBuka: '08.00 - 21.00', katalogOtomatis: true,
+      /* Spanduk berjalan di katalog. Isinya kalimat, bukan foto: foto milik
+         orang lain tidak boleh dipakai, dan kalimat promo lebih menggerakkan
+         pembeli daripada gambar barang biasa. */
+      promo: [
+        { judul: 'Harga Lusinan Lebih Hemat', warna: 'ungu',
+          teks: 'Gelas, piring, sendok, baskom, dan gayung tersedia per lusin dan kodi.' },
+        { judul: 'Pesan Lewat WhatsApp', warna: 'hijau',
+          teks: 'Pilih barangnya di sini, kirim pesanannya, tinggal ambil di toko.' },
+        { judul: 'Buka Setiap Hari', warna: 'jingga',
+          teks: '08.00 sampai 21.00 di Pasar Pelita Kubu, Jln. Jend Sudirman.' }
+      ]
     },
     petugas: [
       { id: idBaru(), nama: 'Bapak', peran: 'pemilik' },
@@ -1434,6 +1446,7 @@ function gambarPengaturan() {
 
   $('#versi-aplikasi').textContent = 'Versi aplikasi: ' + VERSI_APLIKASI;
   gambarKatalogPengaturan();
+  gambarPromoPengaturan();
   $('#info-cadangan').innerHTML = db.terakhirCadangan
     ? `Cadangan terakhir diunduh: <b>${waktuSingkat(db.terakhirCadangan)}</b>.`
     : '<b>Belum pernah mengunduh cadangan.</b>';
@@ -1703,6 +1716,62 @@ function pintuTampilanPelanggan() {
   };
 }
 
+/* ----- spanduk promo ----- */
+
+const WARNA_PROMO = { ungu: 'Ungu', hijau: 'Hijau', jingga: 'Jingga', biru: 'Biru', merah: 'Merah' };
+
+function gambarPromoPengaturan() {
+  const daftar = db.toko.promo || [];
+  $('#daftar-promo').innerHTML = daftar.length ? daftar.map((p, urut) => `
+    <div class="baris-daftar">
+      <span style="min-width:0"><b>${aman(p.judul)}</b>
+        <span class="lencana lencana-baik">${aman(WARNA_PROMO[p.warna] || 'Biru')}</span>
+        <br><span class="lemah kecil">${aman(p.teks)}</span></span>
+      <span style="white-space:nowrap">
+        <button class="tombol-ikon" data-ubah-promo="${urut}" title="Ubah">&#9998;</button>
+        <button class="tombol-ikon" data-hapus-promo="${urut}" title="Hapus">&#128465;</button>
+      </span>
+    </div>`).join('') : '<div class="kosong">Belum ada spanduk. Katalog akan tampil tanpa spanduk.</div>';
+  $('#btn-tambah-promo').disabled = daftar.length >= 4;
+}
+
+function formPromo(urut = null) {
+  const p = urut !== null ? (db.toko.promo || [])[urut] : null;
+  bukaModal({
+    judul: p ? 'Ubah Spanduk' : 'Tambah Spanduk',
+    isi: `<div class="form-grid" style="margin:0">
+        <label class="lebar-penuh">Judul <span class="lemah kecil">(singkat, tebal)</span>
+          <input id="promo-judul" class="input" type="text" maxlength="40"
+                 value="${aman(p?.judul || '')}" placeholder="Contoh: Harga Lusinan Lebih Hemat"></label>
+        <label class="lebar-penuh">Keterangan <span class="lemah kecil">(satu kalimat)</span>
+          <input id="promo-teks" class="input" type="text" maxlength="110"
+                 value="${aman(p?.teks || '')}" placeholder="Contoh: Gelas dan piring tersedia per lusin."></label>
+        <label class="lebar-penuh">Warna
+          <select id="promo-warna" class="input">
+            ${Object.entries(WARNA_PROMO).map(([k, n]) =>
+              `<option value="${k}" ${p?.warna === k ? 'selected' : ''}>${n}</option>`).join('')}
+          </select></label>
+      </div>`,
+    aksi: [
+      { label: 'Batal', kelas: 'tombol-netral', saatKlik: tutupModal },
+      {
+        label: p ? 'Simpan' : 'Tambahkan', kelas: 'tombol-utama', saatKlik: () => {
+          const judul = $('#promo-judul').value.trim();
+          if (!judul) { pesan('Judul belum diisi.', 'peringatan'); $('#promo-judul').focus(); return; }
+          const isi = { judul, teks: $('#promo-teks').value.trim(), warna: $('#promo-warna').value };
+          db.toko.promo = db.toko.promo || [];
+          if (p) db.toko.promo[urut] = isi; else db.toko.promo.push(isi);
+          catat('sistem', `${p ? 'Mengubah' : 'Menambah'} spanduk promo "${judul}"`);
+          simpanData();
+          tutupModal();
+          gambarPromoPengaturan();
+          pesan('Spanduk disimpan. Tekan Terbitkan Katalog agar pelanggan melihatnya.', 'sukses', 5000);
+        }
+      }
+    ]
+  });
+}
+
 function bukaLayarPelanggan() {
   const jendela = window.open('pelanggan.html', 'layarPelanggan',
     'width=1100,height=760,menubar=no,toolbar=no');
@@ -1731,7 +1800,8 @@ function muatanKatalog() {
     waktu: new Date().toISOString(),
     toko: {
       nama: db.toko.nama, jenis: db.toko.jenis, slogan: db.toko.slogan || '',
-      alamat: db.toko.alamat, telepon: db.toko.telepon, jamBuka: db.toko.jamBuka || ''
+      alamat: db.toko.alamat, telepon: db.toko.telepon, jamBuka: db.toko.jamBuka || '',
+      promo: Array.isArray(db.toko.promo) ? db.toko.promo : []
     },
     barang: db.barang.map(b => ({
       nama: b.nama, kode: b.kode || '', satuan: b.satuan || 'pcs',
@@ -1797,6 +1867,7 @@ async function terbitkanKatalog() {
     catat('sistem', `Menerbitkan katalog pelanggan berisi ${muatan.barang.length} barang`);
     simpanData();
     gambarKatalogPengaturan();
+  gambarPromoPengaturan();
     pesan(`Katalog terbit: ${muatan.barang.length} barang.`, 'sukses', 4000);
   } catch (galat) {
     pesan('Gagal menerbitkan: ' + galat.message, 'bahaya', 7000);
@@ -2043,6 +2114,22 @@ function pasangPendengar() {
   $('#btn-panduan').onclick = panduanAwal;
 
   /* --- katalog pelanggan --- */
+  $('#btn-tambah-promo').onclick = () => formPromo();
+  $('#daftar-promo').addEventListener('click', async e => {
+    const ubah = e.target.closest('[data-ubah-promo]');
+    const hapus = e.target.closest('[data-hapus-promo]');
+    if (ubah) formPromo(Number(ubah.dataset.ubahPromo));
+    if (hapus) {
+      const urut = Number(hapus.dataset.hapusPromo);
+      const judul = (db.toko.promo || [])[urut]?.judul || '';
+      if (await konfirmasi('Hapus spanduk', `Hapus spanduk <b>${aman(judul)}</b> dari katalog?`, 'Ya, hapus')) {
+        db.toko.promo.splice(urut, 1);
+        catat('sistem', `Menghapus spanduk promo "${judul}"`);
+        simpanData(); gambarPromoPengaturan();
+        pesan('Spanduk dihapus.', 'sukses');
+      }
+    }
+  });
   $('#btn-terbitkan-katalog').onclick = terbitkanKatalog;
   $('#set-katalog-otomatis').addEventListener('change', e => {
     db.toko.katalogOtomatis = e.target.checked;

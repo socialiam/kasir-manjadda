@@ -77,6 +77,34 @@ body{ padding:0; background:var(--bg); }
 .keping svg{ width:14px; height:14px; stroke:currentColor; fill:none; stroke-width:2;
   stroke-linecap:round; stroke-linejoin:round; flex:none; }
 
+/* ---------- spanduk berjalan ----------
+   Tiga aturan yang membuatnya tidak mengganggu: paling banyak empat helai,
+   berhenti begitu disentuh, dan tidak pernah memuat keterangan penting yang
+   hanya ada di situ. Yang penting tetap ada di sampul dan kaki halaman. */
+.spanduk{ padding:16px 16px 0; position:relative; }
+.rel-spanduk{ display:flex; transition:transform .45s cubic-bezier(.2,.7,.3,1); }
+.helai{
+  min-width:100%; border-radius:var(--lengkung); padding:20px 22px; color:#fff;
+  position:relative; overflow:hidden; box-shadow:var(--bayang-2);
+}
+.helai::after{
+  content:''; position:absolute; right:-40px; top:-40px; width:150px; height:150px;
+  border-radius:50%; background:rgba(255,255,255,.12);
+}
+.helai b{ display:block; font-size:17px; font-weight:800; letter-spacing:-.01em; position:relative; }
+.helai span{ display:block; font-size:13px; opacity:.93; margin-top:4px; line-height:1.5; position:relative; }
+.helai.ungu{ background:linear-gradient(135deg,#7c3aed,#a21caf); }
+.helai.hijau{ background:linear-gradient(135deg,#16a34a,#059669); }
+.helai.jingga{ background:linear-gradient(135deg,#ea580c,#f59e0b); }
+.helai.biru{ background:linear-gradient(135deg,#4f46e5,#2563eb); }
+.helai.merah{ background:linear-gradient(135deg,#e11d48,#be123c); }
+.titik-spanduk{ display:flex; gap:6px; justify-content:center; margin-top:10px; }
+.titik-spanduk button{
+  width:7px; height:7px; border-radius:99px; border:none; padding:0; cursor:pointer;
+  background:var(--garis); transition:.2s;
+}
+.titik-spanduk button.aktif{ width:20px; background:var(--utama); }
+
 /* ---------- pencarian dan kategori ---------- */
 .alat-toko{
   position:sticky; top:61px; z-index:40; background:var(--bg);
@@ -231,6 +259,11 @@ body{ padding:0; background:var(--bg); }
     <div class="jenis" id="k-jenis"></div>
     <div class="slogan" id="k-slogan"></div>
     <div class="keping-baris" id="k-keping"></div>
+  </div>
+
+  <div class="spanduk tersembunyi" id="k-spanduk">
+    <div class="rel-spanduk" id="k-rel-spanduk"></div>
+    <div class="titik-spanduk" id="k-titik"></div>
   </div>
 
   <div class="alat-toko tersembunyi" id="k-alat">
@@ -491,6 +524,65 @@ function kirimPesanan() {
   $('#modal-aksi').innerHTML = '';
 }
 
+/* ---------- spanduk berjalan ---------- */
+
+let helaiSekarang = 0;
+let jamSpanduk = null;
+
+function gambarSpanduk(daftar) {
+  if (!Array.isArray(daftar) || !daftar.length) return;
+  const helai = daftar.slice(0, 4);   // lebih dari empat tidak akan terbaca orang
+
+  $('#k-rel-spanduk').innerHTML = helai.map(h =>
+    `<div class="helai ${aman(h.warna || 'biru')}">
+      <b>${aman(h.judul || '')}</b><span>${aman(h.teks || '')}</span>
+    </div>`).join('');
+  $('#k-titik').innerHTML = helai.length > 1
+    ? helai.map((h, urut) => `<button data-helai="${urut}" aria-label="Spanduk ${urut + 1}"></button>`).join('')
+    : '';
+  $('#k-spanduk').classList.remove('tersembunyi');
+  keHelai(0);
+  if (helai.length > 1) mulaiJalan(helai.length);
+
+  $('#k-titik').addEventListener('click', e => {
+    const t = e.target.closest('[data-helai]');
+    if (!t) return;
+    keHelai(Number(t.dataset.helai));
+    mulaiJalan(helai.length);        // sentuhan pembeli menunda jalannya
+  });
+
+  /* geser dengan jari */
+  let mulaiX = null;
+  const rel = $('#k-rel-spanduk');
+  rel.addEventListener('touchstart', e => { mulaiX = e.touches[0].clientX; hentikanJalan(); }, { passive: true });
+  rel.addEventListener('touchend', e => {
+    if (mulaiX === null) return;
+    const geser = e.changedTouches[0].clientX - mulaiX;
+    if (Math.abs(geser) > 40) keHelai(helaiSekarang + (geser < 0 ? 1 : -1), helai.length);
+    mulaiX = null;
+    mulaiJalan(helai.length);
+  }, { passive: true });
+  rel.addEventListener('mouseenter', hentikanJalan);
+  rel.addEventListener('mouseleave', () => mulaiJalan(helai.length));
+}
+
+function keHelai(nomor, jumlah) {
+  const semua = $#k-rel-spanduk .helai.length || 1;
+  const batas = jumlah || semua;
+  helaiSekarang = (nomor + batas) % batas;
+  $('#k-rel-spanduk').style.transform = 'translateX(-' + (helaiSekarang * 100) + '%)';
+  $$('#k-titik button').forEach((t, urut) => t.classList.toggle('aktif', urut === helaiSekarang));
+}
+
+function hentikanJalan() { clearInterval(jamSpanduk); }
+
+function mulaiJalan(jumlah) {
+  hentikanJalan();
+  // Yang menyetel HP-nya anti-animasi tidak dijalankan sama sekali.
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  jamSpanduk = setInterval(() => keHelai(helaiSekarang + 1, jumlah), 6000);
+}
+
 /* ---------- memuat katalog ---------- */
 
 const IKON_KEPING = {
@@ -539,6 +631,7 @@ fetch('katalog.json?t=' + Date.now())
     $('#k-kategori').innerHTML = ['Semua', ...adaKategori].map((k, urut) =>
       `<button class="kategori ${urut === 0 ? 'aktif' : ''}" data-kategori="${aman(k)}">${aman(k)}</button>`).join('');
 
+    gambarSpanduk(toko.promo);
     $('#k-kerangka').classList.add('tersembunyi');
     $('#k-alat').classList.remove('tersembunyi');
     $('#k-baris-jumlah').classList.remove('tersembunyi');

@@ -1,12 +1,29 @@
 {
-  "waktu": "2026-09-24T10:06:10.328Z",
+  "waktu": "2026-09-24T10:20:20.288Z",
   "toko": {
     "nama": "Toko Man Jadda Wajada Kubu",
     "jenis": "Toko Pecah Belah",
     "slogan": "Pilihan tepat untuk kebutuhan rumah tangga Anda",
     "alamat": "Jln. Jend Sudirman, Pasar Pelita Kubu",
     "telepon": "0813-7189-7171",
-    "jamBuka": "08.00 - 21.00"
+    "jamBuka": "08.00 - 21.00",
+    "promo": [
+      {
+        "judul": "Harga Lusinan Lebih Hemat",
+        "warna": "ungu",
+        "teks": "Gelas, piring, sendok, baskom, dan gayung tersedia per lusin dan kodi."
+      },
+      {
+        "judul": "Pesan Lewat WhatsApp",
+        "warna": "hijau",
+        "teks": "Pilih barangnya di sini, kirim pesanannya, tinggal ambil di toko."
+      },
+      {
+        "judul": "Buka Setiap Hari",
+        "warna": "jingga",
+        "teks": "08.00 sampai 21.00 di Pasar Pelita Kubu, Jln. Jend Sudirman."
+      }
+    ]
   },
   "barang": [
     {
