@@ -116,7 +116,7 @@ const KUNCI_SIMPAN = 'kasirToko.v1';
    benar-benar yang terbaru: angkanya terlihat di layar Pengaturan paling bawah.
    Kalau angka di layar tidak sama dengan yang disebutkan, berarti browser masih
    memakai simpanan lama dan perlu dimuat ulang dengan Ctrl+Shift+R. */
-const VERSI_APLIKASI = '24 September 2026 - pembaruan 20 (ganti PIN dengan PIN lama)';
+const VERSI_APLIKASI = '24 September 2026 - pembaruan 21 (karyawan Vidal)';
 
 /** Isi awal saat aplikasi pertama kali dibuka. Semua bisa diubah dari dalam aplikasi. */
 function dataAwal() {
@@ -148,10 +148,12 @@ function dataAwal() {
           teks: '08.00 sampai 21.00 di Pasar Pelita Kubu, Jln. Jend Sudirman.' }
       ]
     },
+    /* Cukup dua orang untuk memulai: pemilik dan satu karyawan. Pemilik
+       menambah sendiri sebanyak yang diperlukan lewat Pengaturan, tanpa
+       batas jumlah. Daftar panjang sejak awal hanya menyulitkan. */
     petugas: [
       { id: idBaru(), nama: 'Bapak', peran: 'pemilik' },
-      { id: idBaru(), nama: 'Siti', peran: 'karyawan' },
-      { id: idBaru(), nama: 'Ujang', peran: 'karyawan' }
+      { id: idBaru(), nama: 'Vidal', peran: 'karyawan' }
     ],
     /* Daftar awal: lima barang pertama diambil dari katalog WhatsApp toko,
        sisanya barang pecah belah yang umum. SEMUA HARGA DI SINI PERKIRAAN
@@ -2123,6 +2125,10 @@ function gambarPengaturan() {
   $('#set-jam-buka').value = db.toko.jamBuka || '';
   $('#set-catatan').value = db.toko.catatanStruk || '';
 
+  const jumlahKaryawan = db.petugas.filter(p => p.peran !== 'pemilik').length;
+  $('#info-petugas').innerHTML =
+    `<b>${angka(jumlahPemilik())}</b> pemilik dan <b>${angka(jumlahKaryawan)}</b> karyawan terdaftar.`;
+
   $('#daftar-petugas').innerHTML = db.petugas.map(p => `
     <div class="baris-daftar">
       <span><b>${aman(p.nama)}</b>
@@ -2162,7 +2168,7 @@ function simpanToko() {
 function formPetugas(id = null) {
   const p = id ? db.petugas.find(x => x.id === id) : null;
   bukaModal({
-    judul: p ? 'Ubah Petugas' : 'Tambah Petugas',
+    judul: p ? 'Ubah Petugas' : 'Tambah Karyawan',
     isi: `<div class="form-grid" style="margin:0">
         <label class="lebar-penuh">Nama
           <input id="p-nama" class="input" type="text" value="${aman(p?.nama || '')}" placeholder="Contoh: Mr Kamal"></label>
@@ -2205,7 +2211,7 @@ function formPetugas(id = null) {
             catat('sistem', `Menambah petugas "${nama}" sebagai ${peran}`);
           }
           simpanData(); tutupModal(); gambarPengaturan(); gambarLayarMasuk();
-          pesan(p ? 'Data petugas diperbarui.' : 'Petugas ditambahkan.', 'sukses');
+          pesan(p ? 'Data petugas diperbarui.' : 'Karyawan ditambahkan. Namanya langsung muncul di halaman depan.', 'sukses');
         }
       }
     ]
