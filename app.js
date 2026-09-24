@@ -116,7 +116,7 @@ const KUNCI_SIMPAN = 'kasirToko.v1';
    benar-benar yang terbaru: angkanya terlihat di layar Pengaturan paling bawah.
    Kalau angka di layar tidak sama dengan yang disebutkan, berarti browser masih
    memakai simpanan lama dan perlu dimuat ulang dengan Ctrl+Shift+R. */
-const VERSI_APLIKASI = '24 September 2026 - pembaruan 12 (spanduk promo)';
+const VERSI_APLIKASI = '24 September 2026 - pembaruan 13 (kerangka: arsip, PIN, cadangan)';
 
 /** Isi awal saat aplikasi pertama kali dibuka. Semua bisa diubah dari dalam aplikasi. */
 function dataAwal() {
@@ -177,6 +177,7 @@ function dataAwal() {
     transaksi: [],
     barangMasuk: [],
     tertahan: [],     // keranjang yang ditahan sementara
+    arsip: {},        // rekap bulanan dari nota yang sudah diringkas
     catatan: [],      // buku catatan: siapa mengubah apa, kapan
     tutupKasir: [],   // setoran akhir giliran
     nomorTerakhir: 0,
@@ -214,6 +215,7 @@ function lengkapi(data) {
     b.hargaBeli = Number(b.hargaBeli) || 0;
     b.hargaJual = Number(b.hargaJual) || 0;
   });
+  if (!hasil.arsip || typeof hasil.arsip !== 'object') hasil.arsip = {};
   hasil.nomorTerakhir = Number(hasil.nomorTerakhir) || 0;
   return hasil;
 }
@@ -251,6 +253,108 @@ function simpanData(data = db) {
 
 const cariBarang = id => db.barang.find(b => b.id === id);
 const barangMenipis = () => db.barang.filter(b => b.stok <= (b.stokMinimum ?? 5));
+
+/* ========== PENYIMPANAN DAN PENGARSIPAN ==========
+   Penyimpanan browser hanya sekitar 5 MB, sedangkan satu nota memakan
+   kira-kira 630 huruf. Pada 60 nota sehari jatah itu habis dalam empat
+   bulan, dan begitu penuh penjualan berikutnya GAGAL tersimpan. Karena itu
+   nota lama diringkas sendiri jadi rekap bulanan: omzet, untung, jumlah
+   nota, dan barang terjual tetap utuh untuk laporan, hanya rinciannya yang
+   dipadatkan. Cadangan lengkap selalu diunduh lebih dulu. */
+
+const BATAS_HURUF = 2400000;      // kira-kira 5 MB dalam huruf
+const AMBANG_PERINGATAN = 70;     // persen, mulai mengingatkan
+const AMBANG_RAPIKAN = 85;        // persen, mulai merapikan sendiri
+const SASARAN_SETELAH = 60;       // persen, berhenti merapikan bila sudah di bawah ini
+
+function ukuranData() {
+  try { return JSON.stringify(db).length; } catch (e) { return 0; }
+}
+function persenPenyimpanan() {
+  return Math.min(100, Math.round(ukuranData() / BATAS_HURUF * 100));
+}
+
+const kunciBulan = waktu => String(waktu).slice(0, 7);   // '2026-09'
+
+/** Memindahkan satu nota ke rekap bulanan. Nota batal cukup dibuang. */
+function ringkasKeArsip(trx) {
+  const bulan = kunciBulan(trx.waktu);
+  db.arsip = db.arsip || {};
+  const rekap = db.arsip[bulan] = db.arsip[bulan] ||
+    { omzet: 0, laba: 0, jumlahNota: 0, jumlahBarang: 0, perPetugas: {}, perBarang: {} };
+
+  rekap.omzet += trx.total;
+  rekap.laba += labaTransaksi(trx);
+  rekap.jumlahNota += 1;
+  trx.item.forEach(i => {
+    const biji = i.jumlah * (i.pengali || 1);
+    rekap.jumlahBarang += biji;
+    const b = rekap.perBarang[i.nama] = rekap.perBarang[i.nama] || { jumlah: 0, omzet: 0 };
+    b.jumlah += biji;
+    b.omzet += i.hargaJual * i.jumlah;
+  });
+  const p = rekap.perPetugas[trx.petugas] = rekap.perPetugas[trx.petugas] || { nota: 0, omzet: 0 };
+  p.nota += 1;
+  p.omzet += trx.total;
+}
+
+function arsipkanSebelum(batasWaktu) {
+  const sisa = [];
+  let jumlah = 0;
+  db.transaksi.forEach(t => {
+    if (new Date(t.waktu).getTime() < batasWaktu) {
+      if (!t.batal) ringkasKeArsip(t);
+      jumlah += 1;
+    } else sisa.push(t);
+  });
+  db.transaksi = sisa;
+  return jumlah;
+}
+
+function pangkas(nama, batas) {
+  const daftar = db[nama];
+  if (Array.isArray(daftar) && daftar.length > batas) daftar.splice(0, daftar.length - batas);
+}
+
+function rapikanPenyimpanan(paksa = false) {
+  if (!paksa && persenPenyimpanan() < AMBANG_RAPIKAN) return 0;
+
+  unduhCadangan(true);   // cadangan lengkap dulu, tanpa pesan
+
+  let diarsipkan = 0;
+  for (const bulan of [6, 3, 1]) {
+    if (persenPenyimpanan() < SASARAN_SETELAH) break;
+    diarsipkan += arsipkanSebelum(Date.now() - bulan * 30 * 86400000);
+  }
+  pangkas('barangMasuk', 1500);
+  pangkas('catatan', 3000);
+  pangkas('tutupKasir', 500);
+
+  if (diarsipkan) {
+    catat('sistem', `Merapikan penyimpanan: ${diarsipkan} nota lama diringkas jadi rekap bulanan`);
+  }
+  simpanData();
+  return diarsipkan;
+}
+
+/** Dijalankan saat petugas masuk, bukan saat sedang melayani pembeli. */
+function periksaPenyimpanan() {
+  const persen = persenPenyimpanan();
+  if (persen >= AMBANG_RAPIKAN) {
+    const jumlah = rapikanPenyimpanan(true);
+    if (jumlah) {
+      pesan(`Penyimpanan dirapikan: ${angka(jumlah)} nota lama diringkas. Cadangan lengkapnya terunduh.`,
+        'sukses', 8000);
+    }
+    return;
+  }
+  if (persen >= AMBANG_PERINGATAN && db.toko.peringatanPenyimpanan !== kunciTanggal()) {
+    db.toko.peringatanPenyimpanan = kunciTanggal();
+    simpanData();
+    pesan(`Penyimpanan terpakai ${persen}%. Nota lama akan diringkas sendiri sebentar lagi.`,
+      'peringatan', 8000);
+  }
+}
 
 /* ----- peran ----- */
 const labelPeran = p => (p?.peran === 'pemilik' ? 'Pemilik' : 'Karyawan');
@@ -336,7 +440,60 @@ function gambarLayarMasuk() {
   }
 }
 
+/* ----- PIN pemilik -----
+   Pagar ketertiban, bukan brankas: orang yang paham alat pengembang browser
+   tetap bisa menembusnya. Gunanya menahan karyawan membuka laporan untung
+   dan pengaturan toko, dan itu sudah cukup untuk sebuah toko. */
+
+/** Pengacak sederhana, supaya PIN tidak terbaca telanjang di penyimpanan. */
+function acakPin(pin) {
+  let nilai = 5381;
+  const bahan = 'manjadda' + pin + 'kubu';
+  for (let i = 0; i < bahan.length; i++) nilai = ((nilai * 33) ^ bahan.charCodeAt(i)) >>> 0;
+  return nilai.toString(36);
+}
+
+let gagalPin = 0;
+
+function mintaPin(p) {
+  bukaModal({
+    judul: 'Masuk sebagai ' + p.nama,
+    isi: `<p class="lemah">Akun pemilik dijaga PIN. Masukkan empat angka.</p>
+      <input id="isian-pin" class="input input-besar" type="password" inputmode="numeric"
+             maxlength="4" autocomplete="off" placeholder="••••"
+             style="letter-spacing:.5em;text-align:center;font-size:26px;margin-top:14px">
+      <p id="pesan-pin" class="kecil" style="color:var(--bahaya);margin-top:10px;min-height:18px"></p>`,
+    aksi: [
+      { label: 'Batal', kelas: 'tombol-netral', saatKlik: tutupModal },
+      { label: 'Masuk', kelas: 'tombol-utama', saatKlik: cobaPin }
+    ]
+  });
+  const isian = $('#isian-pin');
+  isian.addEventListener('input', () => { isian.value = isian.value.replace(/\D/g, ''); });
+  isian.addEventListener('keydown', e => { if (e.key === 'Enter') cobaPin(); });
+
+  function cobaPin() {
+    if (acakPin(isian.value) === db.toko.pinPemilik) {
+      gagalPin = 0;
+      tutupModal();
+      lanjutkanMasuk(p);
+      return;
+    }
+    gagalPin += 1;
+    isian.value = '';
+    $('#pesan-pin').textContent = gagalPin >= 3
+      ? `PIN salah ${gagalPin} kali. Kalau lupa, PIN hanya bisa dihapus lewat pemulihan cadangan.`
+      : 'PIN salah. Coba lagi.';
+    isian.focus();
+  }
+}
+
 function masukSebagai(p) {
+  if (p.peran === 'pemilik' && db.toko.pinPemilik) { mintaPin(p); return; }
+  lanjutkanMasuk(p);
+}
+
+function lanjutkanMasuk(p) {
   petugasSekarang = p;
   $('#bilah-nama-toko').textContent = db.toko.nama || 'Kasir Toko';
   $('#bilah-petugas').textContent = p.nama + ' - ' + labelPeran(p);
@@ -344,6 +501,48 @@ function masukSebagai(p) {
   terapkanHakAkses();
   gantiLayar('layar-beranda');
   pesan('Selamat bekerja, ' + p.nama + '!', 'sukses');
+  // Dua pemeriksaan ini sengaja di sini: saat petugas baru masuk, bukan
+  // saat sedang melayani pembeli.
+  setTimeout(() => { periksaPenyimpanan(); ingatkanCadangan(); }, 1200);
+}
+
+/* ----- cadangan mingguan -----
+   Aplikasi tidak bisa menyimpan berkas ke komputer tanpa persetujuan, jadi
+   yang dilakukan adalah mengingatkan dengan tegas dan menyediakan satu
+   ketukan. Peringatan hanya muncul sekali sehari, dan hanya untuk pemilik. */
+function ingatkanCadangan() {
+  if (!bolehPemilik()) return;
+  if (!db.transaksi.length) return;
+  if (db.toko.ingatCadangan === kunciTanggal()) return;
+
+  const hari = db.terakhirCadangan
+    ? Math.floor((Date.now() - new Date(db.terakhirCadangan).getTime()) / 86400000)
+    : null;
+  if (hari !== null && hari < 7) return;
+
+  db.toko.ingatCadangan = kunciTanggal();
+  simpanData();
+
+  bukaModal({
+    judul: 'Saatnya mencadangkan data',
+    isi: `<p>${hari === null
+      ? 'Catatan toko <b>belum pernah dicadangkan</b> sama sekali.'
+      : `Cadangan terakhir <b>${angka(hari)} hari</b> yang lalu.`}</p>
+      <p style="margin-top:12px">Seluruh data toko hanya tersimpan di browser perangkat ini.
+      Kalau riwayat browser dibersihkan atau perangkatnya rusak, catatan
+      <b>${angka(db.transaksi.length)} nota</b> ikut hilang dan tidak bisa dikembalikan.</p>
+      <p class="lemah kecil" style="margin-top:12px">Berkasnya masuk ke folder Unduhan.
+      Simpanlah di flashdisk atau Google Drive.</p>`,
+    aksi: [
+      { label: 'Nanti saja', kelas: 'tombol-netral', saatKlik: tutupModal },
+      {
+        label: 'Unduh Cadangan Sekarang', kelas: 'tombol-sukses', saatKlik: () => {
+          unduhCadangan();
+          tutupModal();
+        }
+      }
+    ]
+  });
 }
 
 /** Menyembunyikan menu dan tombol yang hanya boleh dipakai pemilik. */
@@ -1232,8 +1431,38 @@ function gambarLaporan() {
         ${t.batal ? '' : `<button class="tombol-ikon" data-batalkan="${t.id}" title="Batalkan transaksi">&#8630;</button>`}
       </td>
     </tr>`).join('');
+  gambarArsip();
   $('#transaksi-kosong').textContent = semua.length ? '' : 'Tidak ada transaksi pada rentang tanggal ini.';
   $('#tabel-transaksi').classList.toggle('tersembunyi', semua.length === 0);
+}
+
+/** Rekap bulan yang notanya sudah diringkas. */
+function gambarArsip() {
+  const arsip = db.arsip || {};
+  const bulan = Object.keys(arsip).sort().reverse();
+  $('#kartu-arsip').classList.toggle('tersembunyi', bulan.length === 0 || !bolehPemilik());
+  if (!bulan.length) return;
+
+  const namaBulan = kunci => {
+    const [tahun, bln] = kunci.split('-');
+    return new Date(Number(tahun), Number(bln) - 1, 1)
+      .toLocaleDateString('id-ID', { month: 'long', year: 'numeric' });
+  };
+
+  $('#tabel-arsip tbody').innerHTML = bulan.map(k => {
+    const r = arsip[k];
+    const terlaris = Object.entries(r.perBarang || {})
+      .sort((a, b) => b[1].jumlah - a[1].jumlah).slice(0, 2)
+      .map(([nama, d]) => `${aman(nama)} (${angka(d.jumlah)})`).join(', ');
+    return `<tr>
+      <td><b>${aman(namaBulan(k))}</b></td>
+      <td class="tengah">${angka(r.jumlahNota)}</td>
+      <td class="kanan">${angka(r.omzet)}</td>
+      <td class="kanan">${angka(r.laba)}</td>
+      <td class="tengah">${angka(r.jumlahBarang)}</td>
+      <td class="lemah kecil">${terlaris || '-'}</td>
+    </tr>`;
+  }).join('');
 }
 
 function detailTransaksi(id) {
@@ -1425,6 +1654,53 @@ function gambarCatatan() {
 
 /* ========== 9. LAYAR PENGATURAN ========== */
 
+function gambarPenyimpanan() {
+  const persen = persenPenyimpanan();
+  const batang = $('#meteran-isi');
+  batang.style.width = Math.max(2, persen) + '%';
+  batang.className = persen >= AMBANG_RAPIKAN ? 'bahaya'
+    : (persen >= AMBANG_PERINGATAN ? 'peringatan' : '');
+  const bulanArsip = Object.keys(db.arsip || {}).length;
+  $('#info-penyimpanan').innerHTML =
+    `Terpakai <b>${persen}%</b> (${(ukuranData() / 1024).toFixed(0)} KB) &middot;
+     <b>${angka(db.transaksi.length)}</b> nota rinci tersimpan` +
+    (bulanArsip ? ` &middot; ${angka(bulanArsip)} bulan sudah diringkas` : '');
+}
+
+function gambarPin() {
+  $('#info-pin').innerHTML = db.toko.pinPemilik
+    ? 'PIN <b>sudah terpasang</b>. Isi dua kolom di atas untuk menggantinya.'
+    : 'PIN <b>belum terpasang</b>. Siapa pun bisa masuk sebagai Pemilik.';
+  $('#btn-hapus-pin').classList.toggle('tersembunyi', !db.toko.pinPemilik);
+}
+
+function simpanPin() {
+  const pin = $('#set-pin').value.replace(/\D/g, '');
+  const ulang = $('#set-pin-ulang').value.replace(/\D/g, '');
+  if (pin.length !== 4) { pesan('PIN harus empat angka.', 'peringatan'); $('#set-pin').focus(); return; }
+  if (pin !== ulang) { pesan('Dua isian PIN belum sama.', 'peringatan'); $('#set-pin-ulang').focus(); return; }
+  db.toko.pinPemilik = acakPin(pin);
+  catat('sistem', 'Memasang atau mengganti PIN pemilik');
+  simpanData();
+  $('#set-pin').value = '';
+  $('#set-pin-ulang').value = '';
+  gambarPin();
+  pesan('PIN dipasang. Catat baik-baik, tidak ada cara lain membukanya.', 'sukses', 6000);
+}
+
+async function hapusPin() {
+  if (!db.toko.pinPemilik) return;
+  const ya = await konfirmasi('Hapus PIN',
+    'Setelah dihapus, siapa pun yang memegang perangkat ini bisa masuk sebagai Pemilik dan melihat laporan untung.',
+    'Ya, hapus PIN');
+  if (!ya) return;
+  db.toko.pinPemilik = '';
+  catat('sistem', 'Menghapus PIN pemilik');
+  simpanData();
+  gambarPin();
+  pesan('PIN dihapus.', 'sukses');
+}
+
 function gambarPengaturan() {
   $('#set-nama').value = db.toko.nama || '';
   $('#set-jenis').value = db.toko.jenis || '';
@@ -1445,6 +1721,8 @@ function gambarPengaturan() {
     </div>`).join('');
 
   $('#versi-aplikasi').textContent = 'Versi aplikasi: ' + VERSI_APLIKASI;
+  gambarPenyimpanan();
+  gambarPin();
   gambarKatalogPengaturan();
   gambarPromoPengaturan();
   $('#info-cadangan').innerHTML = db.terakhirCadangan
@@ -1538,11 +1816,12 @@ async function hapusPetugas(id) {
   pesan('Petugas dihapus, riwayatnya tetap ada.', 'sukses', 4000);
 }
 
-function unduhCadangan() {
+function unduhCadangan(diam = false) {
   db.terakhirCadangan = new Date().toISOString();
   simpanData();
   unduhBerkas(`cadangan-${slugToko()}-${kunciTanggal()}.json`, JSON.stringify(db, null, 2), 'application/json');
-  gambarPengaturan();
+  if (diam) return;   // dipanggil dari perapian penyimpanan, jangan mengganggu
+  if ($('#layar-pengaturan').classList.contains('aktif')) gambarPengaturan();
   pesan('Cadangan diunduh. Simpan berkasnya di tempat aman.', 'sukses', 4000);
 }
 
@@ -2112,6 +2391,26 @@ function pasangPendengar() {
   });
   $('#btn-kosongkan-barang').onclick = kosongkanDaftarBarang;
   $('#btn-panduan').onclick = panduanAwal;
+
+  /* --- penyimpanan dan PIN --- */
+  $('#btn-rapikan').onclick = async () => {
+    const ya = await konfirmasi('Rapikan penyimpanan',
+      `Nota yang berumur lebih dari sebulan akan diringkas jadi rekap bulanan.<br>
+       Omzet, untung, dan barang terjual tetap utuh di laporan; yang dipadatkan hanya rinciannya.<br><br>
+       <b>Cadangan lengkap akan diunduh lebih dulu</b>, jadi tidak ada yang benar-benar hilang.`,
+      'Ya, rapikan', false);
+    if (!ya) return;
+    const jumlah = rapikanPenyimpanan(true);
+    gambarPenyimpanan();
+    pesan(jumlah ? `${angka(jumlah)} nota lama diringkas.` : 'Tidak ada nota lama untuk diringkas.',
+      'sukses', 5000);
+  };
+  $('#btn-simpan-pin').onclick = simpanPin;
+  $('#btn-hapus-pin').onclick = hapusPin;
+  $$('#set-pin, #set-pin-ulang').forEach(el => {
+    el.addEventListener('input', () => { el.value = el.value.replace(/\D/g, ''); });
+    el.addEventListener('keydown', e => { if (e.key === 'Enter') simpanPin(); });
+  });
 
   /* --- katalog pelanggan --- */
   $('#btn-tambah-promo').onclick = () => formPromo();

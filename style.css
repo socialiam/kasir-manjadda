@@ -433,6 +433,15 @@ label .input, label select{ margin-top:6px; font-weight:500; color:var(--teks); 
 }
 .kartu-barang .stok{ font-size:11.5px; color:var(--lemah); font-weight:600; }
 
+/* meteran penyimpanan */
+.meteran{ height:12px; background:var(--garis); border-radius:999px; overflow:hidden; }
+.meteran i{
+  display:block; height:100%; border-radius:999px; transition:width .4s ease;
+  background:linear-gradient(90deg, var(--sukses), #22c55e);
+}
+.meteran i.peringatan{ background:linear-gradient(90deg, var(--peringatan), #fbbf24); }
+.meteran i.bahaya{ background:linear-gradient(90deg, var(--bahaya), #fb7185); }
+
 /* dua pintu menuju tampilan pelanggan */
 .pilih-tampilan{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }
 .pilih-tampilan button{

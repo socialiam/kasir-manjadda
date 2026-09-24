@@ -276,6 +276,19 @@
         <div class="kartu" data-peran="pemilik"><h3>Penjualan per Petugas</h3><div id="per-petugas"></div></div>
       </div>
 
+      <div class="kartu" id="kartu-arsip" data-peran="pemilik">
+        <h3>Rekap Bulan Lama</h3>
+        <p class="lemah kecil">Nota yang sudah lama diringkas jadi rekap bulanan supaya
+          penyimpanan tidak penuh. Rinciannya ada di berkas cadangan.</p>
+        <div class="tabel-bungkus">
+          <table class="tabel" id="tabel-arsip">
+            <thead><tr><th>Bulan</th><th class="tengah">Nota</th><th class="kanan">Omzet</th>
+              <th class="kanan">Untung</th><th class="tengah">Barang</th><th>Terlaris</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+
       <div class="kartu">
         <h3>Daftar Transaksi</h3>
         <div class="tabel-bungkus">
@@ -413,6 +426,37 @@
           <button id="btn-terbitkan-katalog" class="tombol tombol-sukses">&#128228; Terbitkan Katalog</button>
           <button id="btn-buka-katalog" class="tombol tombol-netral">&#128065; Lihat Katalog</button>
           <button id="btn-salin-alamat" class="tombol tombol-netral">&#128203; Salin Alamat</button>
+        </div>
+      </div>
+
+      <div class="kartu">
+        <h3>Penyimpanan</h3>
+        <p class="lemah">Catatan toko disimpan di browser perangkat ini, dan jatahnya terbatas.
+          Bila hampir penuh, nota lama diringkas sendiri jadi rekap bulanan — omzet, untung, dan
+          barang terjual tetap utuh di laporan. Cadangan lengkapnya diunduh lebih dulu.</p>
+        <div class="meteran"><i id="meteran-isi"></i></div>
+        <div id="info-penyimpanan" class="lemah kecil" style="margin:8px 0 14px"></div>
+        <button id="btn-rapikan" class="tombol tombol-netral">&#129529; Rapikan Sekarang</button>
+      </div>
+
+      <div class="kartu">
+        <h3>PIN Pemilik</h3>
+        <p class="lemah">Empat angka yang diminta saat masuk sebagai Pemilik, supaya karyawan
+          tidak bisa membuka laporan untung, Buku Catatan, dan Pengaturan.</p>
+        <p class="lemah kecil"><b>Ingat baik-baik:</b> kalau PIN lupa, satu-satunya jalan masuk
+          kembali adalah memulihkan cadangan atau menghapus semua data.</p>
+        <div class="form-grid">
+          <label>PIN baru <span class="lemah kecil">(4 angka)</span>
+            <input id="set-pin" class="input" type="password" inputmode="numeric" maxlength="4"
+                   autocomplete="off" placeholder="••••"></label>
+          <label>Ulangi PIN
+            <input id="set-pin-ulang" class="input" type="password" inputmode="numeric" maxlength="4"
+                   autocomplete="off" placeholder="••••"></label>
+        </div>
+        <div id="info-pin" class="lemah kecil" style="margin-bottom:12px"></div>
+        <div class="baris-alat">
+          <button id="btn-simpan-pin" class="tombol tombol-utama">Pasang PIN</button>
+          <button id="btn-hapus-pin" class="tombol tombol-netral">Hapus PIN</button>
         </div>
       </div>
 
