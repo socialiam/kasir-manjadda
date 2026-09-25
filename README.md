@@ -47,6 +47,8 @@ Kalau panduan itu terlewat, semuanya tetap bisa diatur belakangan:
 | Mau ganti apa | Ke mana |
 | --- | --- |
 | Nama toko, jenis usaha, alamat, telepon, kalimat penutup struk | Pengaturan → Identitas Toko |
+| Jam buka, jam tutup, hari libur | Pengaturan → Identitas Toko |
+| Wilayah yang bisa diantar, ongkos antar, tautan peta, tahun berdiri | Pengaturan → Identitas Toko |
 | Urutan daftar barang (abjad, harga, untung, stok, terbaru) | Daftar Barang → kotak **Urutkan** |
 | Mengisi puluhan barang sekaligus | Daftar Barang → 📋 Isi Cepat Banyak Barang |
 | Mencetak/menyimpan daftar barang untuk stok opname | Daftar Barang → ⬇️ Unduh Daftar |
@@ -57,6 +59,59 @@ Kalau panduan itu terlewat, semuanya tetap bisa diatur belakangan:
 
 Mengganti nama petugas **tidak** mengubah nota lama: nota tetap memakai nama
 yang tercatat saat transaksi itu terjadi, supaya riwayat tidak bisa berubah.
+
+## Katalog online: supaya pembeli sekitar menemukan toko
+
+Katalog pelanggan (`katalog.html`) bukan sekadar daftar harga. Ia dibuat supaya
+orang yang belum kenal toko ini bisa menemukannya dan memutuskan datang.
+
+| Yang dilihat pembeli | Dari mana isinya |
+| --- | --- |
+| **Buka sekarang** atau **Tutup**, lengkap dengan "tutup pukul 21.00" atau "buka besok pukul 08.00" | Pengaturan → Jam buka, Jam tutup, Hari libur |
+| **Bisa antar ke Kubu · Duri · Pinggir · …** | Pengaturan → Wilayah yang bisa diantar |
+| Tombol **WhatsApp**, **Telepon**, dan **Lihat di Peta** di kaki halaman | Pengaturan → Nomor telepon dan Tautan peta |
+| **Melayani sejak tahun …** | Pengaturan → Melayani sejak tahun |
+| Tombol bagi di pojok tiap gambar barang | otomatis, tidak perlu diatur |
+
+Tiga hal yang perlu dimengerti:
+
+1. **Tanda buka/tutup hidup sendiri.** Ia dihitung dari jam di HP pembeli, jadi
+   berubah tiap menit tanpa katalog perlu diterbitkan ulang. Ini satu-satunya
+   bagian katalog yang begitu. Kalau jam buka dikosongkan, tandanya
+   disembunyikan, bukan menampilkan tebakan.
+
+2. **Tombol bagi itu yang menyebarkan toko.** Menekannya di HP memunculkan
+   WhatsApp, dan yang terkirim berisi nama barang, harganya, alamat toko, serta
+   tautan yang langsung membuka barang itu. Di pasar daerah, satu tautan yang
+   diteruskan di grup WhatsApp menjangkau lebih banyak orang daripada iklan
+   apa pun.
+
+3. **Peringatan "Belum sama".** Kalau harga atau barang sudah diubah di kasir
+   tetapi katalog belum diterbitkan ulang, Pengaturan mengatakannya. Inilah
+   lubang terbesar katalog seperti ini: harga di internet diam-diam tertinggal,
+   dan baru ketahuan waktu ada pembeli datang membawa harga lama.
+
+### Satu tempat yang masih harus diubah lewat kode
+
+Google dan pratinjau tautan WhatsApp membaca `katalog.html` **mentah**, tanpa
+menjalankan program apa pun, jadi keduanya tidak akan pernah melihat nama toko
+yang tersimpan di kasir. Karena itu nama, alamat, dan wilayah antar ditulis
+sekali lagi di bagian paling atas `katalog.html`, di antara tanda
+`<!-- PERHATIAN ... -->`. Kalau salah satu dari ketiganya berubah, betulkan juga
+di sana. Selain sepuluh baris itu, tidak ada keterangan toko yang tertanam di
+dalam kode.
+
+### Supaya ditemukan di Google
+
+Katalog sudah membawa keterangan yang dibaca mesin pencari: jenis usaha,
+alamat, jam buka, nomor telepon, rentang harga, dan daftar daerah yang
+dilayani. Yang tidak bisa dikerjakan dari sini, dan sebaiknya dilakukan pemilik
+sendiri:
+
+- Daftarkan toko di **Google Bisnisku** (gratis). Ini yang paling menentukan
+  untuk pencarian seperti "toko pecah belah Kubu".
+- Isi **Tautan peta** di Pengaturan dengan tautan Google Maps toko.
+- Tempel alamat katalog di bio Facebook dan di profil WhatsApp toko.
 
 ## Cara memakai
 

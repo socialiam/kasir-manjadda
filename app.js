@@ -116,7 +116,7 @@ const KUNCI_SIMPAN = 'kasirToko.v1';
    benar-benar yang terbaru: angkanya terlihat di layar Pengaturan paling bawah.
    Kalau angka di layar tidak sama dengan yang disebutkan, berarti browser masih
    memakai simpanan lama dan perlu dimuat ulang dengan Ctrl+Shift+R. */
-const VERSI_APLIKASI = '24 September 2026 - pembaruan 24 (ganti petugas lebih aman)';
+const VERSI_APLIKASI = '25 September 2026 - pembaruan 25 (katalog siap merebut pasar sekitar)';
 
 /** Isi awal saat aplikasi pertama kali dibuka. Semua bisa diubah dari dalam aplikasi. */
 function dataAwal() {
@@ -131,7 +131,24 @@ function dataAwal() {
       slogan: 'Pilihan tepat untuk kebutuhan rumah tangga Anda',
       alamat: 'Jln. Jend Sudirman, Pasar Pelita Kubu', telepon: '0813-7189-7171',
       catatanStruk: 'Terima kasih sudah berbelanja', tema: 'terang',
-      urutBarang: 'nama-az', jamBuka: '08.00 - 21.00', katalogOtomatis: true,
+      urutBarang: 'nama-az', katalogOtomatis: true,
+
+      /* Jam buka disimpan sebagai angka, bukan kalimat, supaya katalog dapat
+         memasang tanda "Buka sekarang" yang benar-benar hidup mengikuti jam
+         di HP pembeli. Kalimat jamBuka disusun sendiri dari kedua angka ini,
+         dan itulah yang tercetak di struk. hariLibur berisi angka hari,
+         0 Minggu sampai 6 Sabtu; kosong berarti buka setiap hari. */
+      bukaJam: '08:00', tutupJam: '21:00', hariLibur: [],
+      jamBuka: 'Setiap hari 08.00 - 21.00',
+
+      /* Wilayah antar, titik peta, dan tahun berdiri. Bagi pembeli daerah
+         inilah tiga pertanyaan pertama, dan jawabannya yang membuat satu
+         toko dipilih daripada toko sebelah. SEMUA ISI DI BAWAH INI PERKIRAAN
+         untuk keperluan uji coba; pemilik membetulkannya lewat Pengaturan
+         tanpa menyentuh kode sama sekali. */
+      wilayahAntar: ['Kubu', 'Duri', 'Pinggir', 'Kandis', 'Ujung Tanjung', 'Dumai'],
+      catatanAntar: 'Ongkos antar menyesuaikan jarak. Hubungi dulu sebelum memesan.',
+      petaTautan: '', sejakTahun: '',
       /* Spanduk berjalan di katalog. Isinya kalimat, bukan foto: foto milik
          orang lain tidak boleh dipakai, dan kalimat promo lebih menggerakkan
          pembeli daripada gambar barang biasa. */
@@ -2276,7 +2293,13 @@ function gambarPengaturan() {
   $('#set-slogan').value = db.toko.slogan || '';
   $('#set-telepon').value = db.toko.telepon || '';
   $('#set-alamat').value = db.toko.alamat || '';
-  $('#set-jam-buka').value = db.toko.jamBuka || '';
+  $('#set-buka-jam').value = db.toko.bukaJam || '';
+  $('#set-tutup-jam').value = db.toko.tutupJam || '';
+  $('#set-sejak').value = db.toko.sejakTahun || '';
+  $('#set-peta').value = db.toko.petaTautan || '';
+  $('#set-wilayah').value = (db.toko.wilayahAntar || []).join(', ');
+  $('#set-catatan-antar').value = db.toko.catatanAntar || '';
+  gambarHariLibur();
   $('#set-catatan').value = db.toko.catatanStruk || '';
 
   const jumlahKaryawan = db.petugas.filter(p => p.peran !== 'pemilik').length;
@@ -2314,7 +2337,14 @@ function simpanToko() {
   db.toko.slogan = $('#set-slogan').value.trim();
   db.toko.telepon = $('#set-telepon').value.trim();
   db.toko.alamat = $('#set-alamat').value.trim();
-  db.toko.jamBuka = $('#set-jam-buka').value.trim();
+  db.toko.bukaJam = $('#set-buka-jam').value.trim();
+  db.toko.tutupJam = $('#set-tutup-jam').value.trim();
+  db.toko.hariLibur = $$('#set-hari-libur .chip-hari.aktif').map(t => Number(t.dataset.hari));
+  db.toko.jamBuka = kalimatJamBuka(db.toko);
+  db.toko.sejakTahun = $('#set-sejak').value.replace(/\D/g, '').slice(0, 4);
+  db.toko.petaTautan = $('#set-peta').value.trim();
+  db.toko.wilayahAntar = $('#set-wilayah').value.split(',').map(t => t.trim()).filter(Boolean);
+  db.toko.catatanAntar = $('#set-catatan-antar').value.trim();
   db.toko.catatanStruk = $('#set-catatan').value.trim();
   catat('sistem', `Mengubah identitas toko (nama toko sekarang "${db.toko.nama}")`);
   simpanData();
@@ -2662,14 +2692,69 @@ function bukaLayarPelanggan() {
   pesan('Geser jendela itu ke monitor kedua, lalu tekan F11 agar penuh layar.', 'info', 6000);
 }
 
+/* ----- jam buka dan sidik katalog ----- */
+
+const NAMA_HARI = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+
+/** Menyusun kalimat jam buka dari angka yang tersimpan, supaya struk, katalog,
+    dan tanda "Buka sekarang" tidak pernah saling berbeda. */
+function kalimatJamBuka(toko) {
+  const buka = String(toko.bukaJam || '').replace(':', '.');
+  const tutup = String(toko.tutupJam || '').replace(':', '.');
+  if (!buka || !tutup) return '';
+  const libur = Array.isArray(toko.hariLibur) ? toko.hariLibur : [];
+  if (libur.length >= 7) return 'Sedang tutup';
+  const hari = !libur.length ? 'Setiap hari'
+    : 'Tutup ' + libur.slice().sort().map(h => NAMA_HARI[h]).join(', ') + ', selain itu buka';
+  return hari + ' ' + buka + ' - ' + tutup;
+}
+
+/** Tujuh tombol hari. Yang menyala berarti toko TUTUP pada hari itu. Tidak ada
+    yang menyala berarti buka setiap hari, dan itulah keadaan yang paling
+    sering, jadi pemilik tidak perlu menyentuhnya sama sekali. */
+function gambarHariLibur() {
+  const libur = Array.isArray(db.toko.hariLibur) ? db.toko.hariLibur : [];
+  $('#set-hari-libur').innerHTML = NAMA_HARI.map((nama, h) =>
+    `<button type="button" class="chip-hari ${libur.includes(h) ? 'aktif' : ''}"
+       data-hari="${h}">${aman(nama.slice(0, 3))}</button>`).join('');
+}
+
+/** Sidik jari isi katalog. Gunanya hanya membandingkan apa yang sudah terbit
+    di internet dengan data kasir sekarang, jadi tidak perlu kuat: cukup
+    berubah begitu ada satu huruf yang berbeda. */
+function sidikKatalog(muatan) {
+  const teks = JSON.stringify({ toko: muatan.toko, barang: muatan.barang });
+  let a = 5381;
+  for (let i = 0; i < teks.length; i++) a = ((a << 5) + a + teks.charCodeAt(i)) | 0;
+  return String(a >>> 0);
+}
+
 function gambarKatalogPengaturan() {
   $('#set-kode-terbit').value = db.toko.kodeTerbit || '';
   $('#set-katalog-otomatis').checked = db.toko.katalogOtomatis !== false;
   $('#alamat-katalog').value = alamatKatalog();
-  $('#info-katalog').innerHTML = db.toko.katalogTerbitPada
-    ? `Katalog terakhir diterbitkan <b>${waktuSingkat(db.toko.katalogTerbitPada)}</b>,
-       berisi ${angka(db.toko.katalogJumlah || 0)} barang.`
-    : 'Katalog <b>belum pernah diterbitkan</b>. Pelanggan yang membuka alamat di atas akan melihat pesan kosong.';
+
+  const bagian = [];
+  if (!db.toko.katalogTerbitPada) {
+    bagian.push('Katalog <b>belum pernah diterbitkan</b>. Pelanggan yang membuka alamat di atas akan melihat pesan kosong.');
+  } else if (db.toko.katalogLewatBerkas) {
+    bagian.push(`Berkas katalog terakhir disiapkan <b>${waktuSingkat(db.toko.katalogTerbitPada)}</b>,
+       berisi ${angka(db.toko.katalogJumlah || 0)} barang. Pastikan
+       <b>Perbarui Katalog Online</b> di Desktop sudah dijalankan sesudah itu.`);
+  } else {
+    bagian.push(`Katalog terakhir diterbitkan <b>${waktuSingkat(db.toko.katalogTerbitPada)}</b>,
+       berisi ${angka(db.toko.katalogJumlah || 0)} barang.`);
+  }
+
+  /* Peringatan ini menutup lubang terbesar katalog statis: harga di internet
+     diam-diam tertinggal dari harga di kasir, dan tidak ada yang menyadarinya
+     sampai ada pembeli datang membawa harga lama. */
+  if (db.toko.katalogTerbitPada && sidikKatalog(muatanKatalog()) !== db.toko.katalogSidik) {
+    bagian.push(`<span class="lencana lencana-peringatan">Belum sama</span>
+       Ada perubahan barang, harga, atau keterangan toko yang
+       <b>belum sampai ke katalog pelanggan</b>. Tekan Terbitkan Katalog sekali lagi.`);
+  }
+  $('#info-katalog').innerHTML = bagian.join('<br><br>');
 }
 
 /** Isi katalog: hanya yang boleh dilihat pembeli. Harga beli, untung,
@@ -2679,7 +2764,14 @@ function muatanKatalog() {
     waktu: new Date().toISOString(),
     toko: {
       nama: db.toko.nama, jenis: db.toko.jenis, slogan: db.toko.slogan || '',
-      alamat: db.toko.alamat, telepon: db.toko.telepon, jamBuka: db.toko.jamBuka || '',
+      alamat: db.toko.alamat, telepon: db.toko.telepon,
+      jamBuka: db.toko.jamBuka || '',
+      // angkanya ikut dikirim supaya katalog bisa menghitung sendiri buka atau tutup
+      bukaJam: db.toko.bukaJam || '', tutupJam: db.toko.tutupJam || '',
+      hariLibur: Array.isArray(db.toko.hariLibur) ? db.toko.hariLibur : [],
+      wilayahAntar: Array.isArray(db.toko.wilayahAntar) ? db.toko.wilayahAntar : [],
+      catatanAntar: db.toko.catatanAntar || '',
+      petaTautan: db.toko.petaTautan || '', sejakTahun: db.toko.sejakTahun || '',
       promo: Array.isArray(db.toko.promo) ? db.toko.promo : []
     },
     barang: db.barang.map(b => ({
@@ -2715,6 +2807,8 @@ function perbaruiKatalogOtomatis() {
       if (!jawaban.ok) return;
       db.toko.katalogTerbitPada = muatan.waktu;
       db.toko.katalogJumlah = muatan.barang.length;
+      db.toko.katalogSidik = sidikKatalog(muatan);
+      db.toko.katalogLewatBerkas = false;
       sedangMenyegarkanKatalog = true;
       simpanData();
       sedangMenyegarkanKatalog = false;
@@ -2743,34 +2837,43 @@ async function terbitkanKatalog() {
 
     db.toko.katalogTerbitPada = muatan.waktu;
     db.toko.katalogJumlah = muatan.barang.length;
+    db.toko.katalogSidik = sidikKatalog(muatan);
+    db.toko.katalogLewatBerkas = false;
     catat('sistem', `Menerbitkan katalog pelanggan berisi ${muatan.barang.length} barang`);
     simpanData();
     gambarKatalogPengaturan();
   gambarPromoPengaturan();
     pesan(`Katalog terbit: ${muatan.barang.length} barang.`, 'sukses', 4000);
   } catch (galat) {
-    pesan('Gagal menerbitkan: ' + galat.message, 'bahaya', 7000);
+    /* Kasir ini dibuka dari GitHub Pages, dan di sana memang tidak ada pelayan
+       halaman yang bisa menerima kiriman. Jadi jalan lewat berkas inilah yang
+       normal, bukan kegagalan. Karena itu tidak ada peringatan merah di sini:
+       yang muncul dua langkah yang harus dikerjakan, itu saja. */
     bukaModal({
-      judul: 'Katalog gagal diterbitkan',
-      isi: `<p>${aman(galat.message)}</p>
-        <p style="margin-top:12px">Dua sebab yang paling sering:</p>
-        <ul style="margin:8px 0 0 20px;line-height:1.8">
-          <li>Aplikasi kasir dibuka lewat <b>Live Server</b> atau berkas langsung, bukan lewat
-              pelayan halaman. Bukalah lewat alamat <b>localhost:5501</b> atau alamat ngrok.</li>
-          <li>Kasir dibuka dari internet tetapi <b>kode terbit</b> belum diisi atau salah.
-              Kodenya tertulis di jendela hitam pelayan halaman.</li>
-        </ul>`,
+      judul: 'Katalog siap diterbitkan',
+      isi: `<p>Katalog berisi <b>${angka(muatan.barang.length)} barang</b> sudah disiapkan.
+          Tinggal dua langkah:</p>
+        <ol style="margin:10px 0 0 20px;line-height:1.9">
+          <li>Tekan <b>Simpan berkas katalog</b> di bawah.</li>
+          <li>Klik dua kali <b>Perbarui Katalog Online</b> di Desktop.</li>
+        </ol>
+        <p class="lemah kecil" style="margin-top:14px">Keterangan teknis: ${aman(galat.message)}</p>`,
       aksi: [
+        { label: 'Nanti saja', kelas: 'tombol-netral', saatKlik: tutupModal },
         {
-          // Di GitHub Pages tidak ada pelayan yang bisa menerima kiriman, jadi
-          // katalognya diunduh di sini lalu diunggah sendiri ke GitHub.
-          label: 'Unduh katalog.json', kelas: 'tombol-netral', saatKlik: () => {
+          label: 'Simpan berkas katalog', kelas: 'tombol-sukses', saatKlik: () => {
             unduhBerkas('katalog.json', JSON.stringify(muatan, null, 2), 'application/json');
-            pesan('Unggah berkas itu ke GitHub untuk memperbarui katalog di sana.', 'info', 6000);
+            db.toko.katalogTerbitPada = muatan.waktu;
+            db.toko.katalogJumlah = muatan.barang.length;
+            db.toko.katalogSidik = sidikKatalog(muatan);
+            db.toko.katalogLewatBerkas = true;
+            catat('sistem', `Menyiapkan berkas katalog berisi ${muatan.barang.length} barang`);
+            simpanData();
+            gambarKatalogPengaturan();
+            pesan('Berkas tersimpan. Sekarang jalankan Perbarui Katalog Online di Desktop.', 'sukses', 8000);
             tutupModal();
           }
-        },
-        { label: 'Mengerti', kelas: 'tombol-utama', saatKlik: tutupModal }
+        }
       ]
     });
   } finally {
@@ -3005,6 +3108,10 @@ function pasangPendengar() {
 
   /* --- pengaturan --- */
   $('#btn-simpan-toko').onclick = simpanToko;
+  $('#set-hari-libur').addEventListener('click', e => {
+    const t = e.target.closest('[data-hari]');
+    if (t) t.classList.toggle('aktif');
+  });
   $('#btn-tema').onclick = () => {
     db.toko.tema = db.toko.tema === 'gelap' ? 'terang' : 'gelap';
     simpanData(); terapkanTema();

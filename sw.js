@@ -12,7 +12,7 @@
    ============================================================ */
 'use strict';
 
-const VERSI = 'kasir-manjadda-v1';
+const VERSI = 'kasir-manjadda-v2';
 const INTI = [
   './',
   'index.html',

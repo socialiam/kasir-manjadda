@@ -868,3 +868,18 @@ label .input, label select{ margin-top:6px; font-weight:500; color:var(--teks); 
 @media (prefers-reduced-motion: reduce){
   *, *::before, *::after{ animation-duration:.01ms !important; transition-duration:.01ms !important; }
 }
+
+/* ---------- pilihan hari libur di Pengaturan ---------- */
+.label-mandiri{ display:block; font-size:13px; color:var(--lemah); font-weight:700; letter-spacing:.01em; }
+.baris-hari{ display:flex; gap:7px; flex-wrap:wrap; margin-top:8px; }
+.chip-hari{
+  width:54px; padding:9px 0; border-radius:var(--lengkung-kecil); cursor:pointer;
+  border:1px solid var(--garis); background:var(--kartu); color:var(--lemah);
+  font-size:13px; font-weight:700; font-family:inherit; transition:.15s;
+}
+.chip-hari:hover{ border-color:var(--peringatan); color:var(--peringatan); }
+/* Menyala berarti toko TUTUP pada hari itu, jadi warnanya peringatan, bukan
+   warna utama yang di tempat lain berarti "terpilih dan baik". */
+.chip-hari.aktif{
+  background:var(--peringatan); border-color:transparent; color:#fff; box-shadow:var(--bayang-1);
+}

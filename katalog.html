@@ -3,15 +3,23 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Katalog Toko</title>
-<meta name="description" content="Daftar barang dan harga terbaru. Pesan langsung lewat WhatsApp.">
+<!-- PERHATIAN: sepuluh baris di bawah ini satu-satunya tempat nama toko
+     ditulis langsung di dalam kode. Sengaja demikian, dan tidak bisa
+     dihindari: mesin pencari Google dan pratinjau tautan WhatsApp membaca
+     berkas ini MENTAH, tanpa menjalankan program apa pun, jadi keduanya
+     tidak akan pernah melihat nama yang tersimpan di kasir. Kalau nama,
+     alamat, atau wilayah antar toko berubah, betulkan juga di sini. -->
+<title>Toko Man Jadda Wajada Kubu &mdash; Pecah Belah &amp; Perabot Rumah Tangga</title>
+<meta name="description" content="Toko pecah belah dan perabot rumah tangga di Pasar Pelita Kubu, Jln. Jend Sudirman. Gelas, piring, panci, ember, baskom, lemari plastik, harga lusinan dan kodi. Melayani Kubu, Duri, Pinggir, Kandis, Ujung Tanjung, dan Dumai. Pesan lewat WhatsApp.">
 <meta name="theme-color" content="#4f46e5">
+<meta name="geo.region" content="ID-RI">
+<meta name="geo.placename" content="Kubu, Bengkalis, Riau">
 
 <!-- Kartu pratinjau saat tautan ini dibagikan di WhatsApp atau Facebook -->
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Toko Man Jadda Wajada Kubu">
-<meta property="og:title" content="Katalog Toko Man Jadda Wajada Kubu">
-<meta property="og:description" content="Toko Pecah Belah di Pasar Pelita Kubu. Pilihan tepat untuk kebutuhan rumah tangga Anda. Lihat harga terbaru, pesan lewat WhatsApp.">
+<meta property="og:title" content="Toko Man Jadda Wajada Kubu &mdash; Pecah Belah, Pasar Pelita Kubu">
+<meta property="og:description" content="Gelas, piring, panci, ember, lemari plastik. Harga lusinan. Bisa antar ke Kubu, Duri, Pinggir, Kandis, Ujung Tanjung, dan Dumai. Pesan lewat WhatsApp.">
 <meta property="og:image" content="ikon-512.png">
 <meta property="og:locale" content="id_ID">
 <meta name="twitter:card" content="summary">
@@ -269,12 +277,103 @@ body{ padding:0; background:var(--bg); }
 }
 @keyframes denyut{ from{ background-position:180% 0 } to{ background-position:-60% 0 } }
 
+/* ---------- tanda buka atau tutup ----------
+   Satu-satunya bagian halaman ini yang hidup sendiri tanpa katalog
+   diterbitkan ulang, dan justru itu yang paling dicari pembeli sebelum
+   berangkat. Karena itu diberi warna penuh, bukan tulisan kecil di kaki. */
+.tanda-buka{
+  display:inline-flex; align-items:center; gap:9px; flex-wrap:wrap;
+  margin-top:18px; padding:9px 18px; border-radius:999px; position:relative;
+  font-size:13.5px; font-weight:700;
+  background:rgba(255,255,255,.93); color:var(--teks); box-shadow:var(--bayang-2);
+}
+.tanda-buka .rinci{ font-weight:600; opacity:.72; }
+.tanda-buka .titik{ width:9px; height:9px; border-radius:50%; flex:none; background:currentColor; }
+.tanda-buka.buka{ color:#0b7a37; }
+.tanda-buka.buka .titik{ background:#16a34a; animation:denyut-titik 2s ease-in-out infinite; }
+.tanda-buka.segera{ color:#a34b06; }
+.tanda-buka.segera .titik{ background:#ea580c; animation:denyut-titik 1.1s ease-in-out infinite; }
+.tanda-buka.tutup{ color:#9f1239; }
+.tanda-buka.tutup .titik{ background:#e11d48; }
+@keyframes denyut-titik{
+  0%,100%{ box-shadow:0 0 0 0 currentColor; opacity:1 }
+  60%{ box-shadow:0 0 0 6px transparent; opacity:.55 }
+}
+
+/* pasangan kecilnya di bilah atas, terlihat terus walaupun halaman digulir */
+.tanda-kecil{ display:inline-flex; align-items:center; gap:5px; font-weight:700; }
+.tanda-kecil .titik{ width:7px; height:7px; border-radius:50%; flex:none; }
+.tanda-kecil.buka{ color:#16a34a; } .tanda-kecil.buka .titik{ background:#16a34a; }
+.tanda-kecil.segera{ color:#ea580c; } .tanda-kecil.segera .titik{ background:#ea580c; }
+.tanda-kecil.tutup{ color:#e11d48; } .tanda-kecil.tutup .titik{ background:#e11d48; }
+
+/* ---------- wilayah antar ----------
+   Diletakkan sebelum daftar barang karena inilah pertanyaan pertama pembeli
+   daerah, dan jawabannya yang menentukan toko mana yang dipilih. */
+.pita-antar{
+  display:flex; align-items:center; gap:14px; margin:14px 16px 0; padding:14px 18px;
+  border:1px solid var(--garis); border-left:4px solid var(--sukses);
+  border-radius:var(--lengkung); background:var(--kartu); box-shadow:var(--bayang-1);
+}
+.pita-antar svg{ width:30px; height:30px; flex:none; color:var(--sukses); }
+.pita-antar .isi-antar{ min-width:0; line-height:1.55; }
+.pita-antar b{ display:block; font-size:14.5px; }
+.pita-antar span{ display:block; margin-top:2px; }
+
+/* ---------- membagikan ---------- */
+svg.garis{ fill:none; stroke:currentColor; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
+.tombol-bulat.netral{
+  padding:0; background:var(--kartu-2); color:var(--lemah);
+  border:1px solid var(--garis); box-shadow:none; cursor:pointer;
+}
+.tombol-bulat.netral:hover{ color:var(--utama); border-color:var(--utama); background:var(--sorot); }
+.tombol-bulat.netral svg{ width:19px; height:19px; }
+
+.bagikan-barang{
+  position:absolute; top:8px; right:8px; width:32px; height:32px; border-radius:50%;
+  display:grid; place-items:center; cursor:pointer; padding:0;
+  border:1px solid var(--garis); background:color-mix(in srgb, var(--kartu) 88%, transparent);
+  color:var(--lemah); backdrop-filter:blur(4px); opacity:.5; transition:.16s;
+}
+.barang:hover .bagikan-barang{ opacity:1; }
+.bagikan-barang:hover{ color:var(--utama); border-color:var(--utama); background:var(--kartu); }
+.bagikan-barang svg{ width:15px; height:15px; }
+/* Layar sentuh tidak mengenal "hover", jadi di HP tombolnya harus terlihat terus. */
+@media (hover:none){ .bagikan-barang{ opacity:.9; } }
+
+/* ---------- tombol di kaki halaman ---------- */
+.kaki-toko .sejak{ font-size:12.5px; font-weight:700; color:var(--utama); }
+.aksi-kaki{ display:flex; gap:9px; justify-content:center; flex-wrap:wrap; margin:16px 0 4px; }
+.tombol-kaki{
+  display:inline-flex; align-items:center; gap:7px; text-decoration:none;
+  padding:10px 16px; border-radius:999px; font-size:13.5px; font-weight:700;
+  border:1px solid var(--garis); background:var(--kartu); color:var(--teks); transition:.15s;
+}
+.tombol-kaki:hover{ border-color:var(--utama); color:var(--utama); background:var(--sorot); }
+.tombol-kaki svg{ width:17px; height:17px; }
+.tombol-kaki.utama{ background:var(--sukses); border-color:transparent; color:#fff; }
+.tombol-kaki.utama:hover{ background:#0f8a3d; color:#fff; }
+.tombol-kaki.utama svg{ fill:currentColor; }
+
+/* ---------- catatan sekejap ---------- */
+.catatan-layar{
+  position:fixed; left:50%; bottom:96px; transform:translate(-50%, 16px); z-index:90;
+  background:var(--teks); color:#fff; padding:11px 18px; border-radius:999px;
+  font-size:13.5px; font-weight:600; box-shadow:var(--bayang-3);
+  opacity:0; pointer-events:none; transition:.22s; max-width:90vw; text-align:center;
+}
+.catatan-layar.tampil{ opacity:1; transform:translate(-50%, 0); }
+
 @media (max-width:560px){
   .rak{ grid-template-columns:repeat(2,1fr); gap:11px; padding:12px; }
   .alat-toko{ padding:12px 12px 6px; }
   .baris-jumlah{ padding:12px 12px 0; }
   .isi-barang .harga{ font-size:16.5px; }
   .sampul{ padding:26px 16px 30px; }
+  .tanda-buka{ font-size:12.5px; padding:8px 14px; gap:7px; }
+  .pita-antar{ margin:12px 12px 0; padding:12px 14px; gap:11px; }
+  .pita-antar svg{ width:26px; height:26px; }
+  .pita-antar b{ font-size:13.5px; }
 }
 </style>
 </head>
@@ -284,6 +383,10 @@ body{ padding:0; background:var(--bg); }
   <div class="bilah-toko-atas">
     <div class="lambang" id="k-lambang">T</div>
     <div class="judul"><b id="k-nama-atas">Katalog</b><span id="k-jenis-atas"></span></div>
+    <button class="tombol-bulat netral" id="k-bagikan-toko" aria-label="Bagikan katalog toko"
+            title="Bagikan katalog ini">
+      <svg viewBox="0 0 24 24" class="garis"><circle cx="18" cy="5" r="2.6"/><circle cx="6" cy="12" r="2.6"/><circle cx="18" cy="19" r="2.6"/><path d="M8.3 10.8 15.7 6.4M8.3 13.2l7.4 4.4"/></svg>
+    </button>
     <a class="tombol-bulat tersembunyi" id="k-wa-atas" target="_blank" rel="noopener" aria-label="Hubungi WhatsApp">
       <svg viewBox="0 0 24 24"><path d="M12.04 2c-5.5 0-9.96 4.46-9.96 9.96 0 1.76.46 3.45 1.34 4.95L2 22l5.25-1.38a9.9 9.9 0 0 0 4.79 1.22c5.5 0 9.96-4.46 9.96-9.96 0-2.66-1.04-5.16-2.92-7.04A9.88 9.88 0 0 0 12.04 2m0 1.67c2.22 0 4.3.86 5.87 2.43a8.24 8.24 0 0 1 2.43 5.86c0 4.58-3.72 8.3-8.3 8.3a8.23 8.23 0 0 1-4.2-1.15l-.3-.18-3.12.82.83-3.04-.2-.31a8.22 8.22 0 0 1-1.27-4.44c0-4.57 3.72-8.29 8.3-8.29m-3.2 4.2c-.15 0-.4.06-.6.3-.21.23-.8.78-.8 1.9s.82 2.2.93 2.36c.12.15 1.6 2.44 3.87 3.42.54.23.96.37 1.29.48.54.17 1.03.15 1.42.09.43-.07 1.34-.55 1.53-1.08.19-.53.19-.98.13-1.08-.06-.1-.21-.15-.44-.27-.23-.11-1.34-.66-1.55-.74-.2-.07-.36-.11-.51.12-.15.22-.58.73-.71.88-.13.15-.26.17-.49.06-.23-.12-.96-.36-1.83-1.13-.68-.6-1.13-1.35-1.27-1.58-.13-.23-.01-.35.1-.47.1-.1.23-.27.34-.4.12-.14.15-.23.23-.39.08-.15.04-.29-.02-.4-.06-.12-.51-1.23-.7-1.68-.18-.44-.37-.38-.5-.39z"/></svg>
     </a>
@@ -293,12 +396,26 @@ body{ padding:0; background:var(--bg); }
     <h1 id="k-nama">Katalog</h1>
     <div class="jenis" id="k-jenis"></div>
     <div class="slogan" id="k-slogan"></div>
+    <!-- Tanda buka atau tutup. Inilah yang paling dicari pembeli sebelum
+         berangkat, dan satu-satunya bagian halaman ini yang berubah sendiri
+         tanpa katalog diterbitkan ulang. -->
+    <div class="tanda-buka tersembunyi" id="k-tanda-buka"></div>
     <div class="keping-baris" id="k-keping"></div>
   </div>
 
   <div class="spanduk tersembunyi" id="k-spanduk">
     <div class="papan-jalan">
       <div class="jalur" id="k-jalur"></div>
+    </div>
+  </div>
+
+  <!-- Wilayah antar. Bagi pembeli daerah inilah pertanyaan pertama, jadi
+       jawabannya diletakkan sebelum daftar barang, bukan di kaki halaman. -->
+  <div class="pita-antar tersembunyi" id="k-antar">
+    <svg viewBox="0 0 24 24" class="garis" aria-hidden="true"><circle cx="6" cy="17" r="3"/><circle cx="18" cy="17" r="3"/><path d="M9 17h6M6 17l3-8h5l3 5M11 9V6h3"/></svg>
+    <div class="isi-antar">
+      <b id="k-antar-wilayah"></b>
+      <span id="k-antar-catatan" class="lemah kecil"></span>
     </div>
   </div>
 
@@ -337,7 +454,9 @@ body{ padding:0; background:var(--bg); }
 
   <div class="kaki-toko">
     <h3 id="k-kaki-nama">Toko</h3>
+    <p id="k-kaki-sejak" class="sejak tersembunyi"></p>
     <p id="k-kaki-info"></p>
+    <div class="aksi-kaki" id="k-aksi-kaki"></div>
     <p class="peringatan lemah">
       Harga dan ketersediaan menurut pembaruan terakhir dari toko<span id="k-kaki-waktu"></span>.<br>
       Untuk memastikan sebelum datang, silakan hubungi toko lebih dulu.
@@ -382,6 +501,7 @@ function inisial(nama) {
 }
 
 let katalog = null;
+let katalogTerbaca = false;   // berkasnya sampai, walaupun penggambarannya mungkin gagal
 let kategoriTerpilih = 'Semua';
 let pesanan = {};   // nama barang -> jumlah
 
@@ -421,6 +541,10 @@ function gambarRak() {
       <div class="panggung">
         ${ikonBarang(b)}
         ${b.tersedia ? '' : '<span class="pita">Stok habis</span>'}
+        <button class="bagikan-barang" data-bagikan="${aman(b.nama)}"
+                title="Bagikan barang ini" aria-label="Bagikan ${aman(b.nama)}">
+          <svg viewBox="0 0 24 24" class="garis"><circle cx="18" cy="5" r="2.6"/><circle cx="6" cy="12" r="2.6"/><circle cx="18" cy="19" r="2.6"/><path d="M8.3 10.8 15.7 6.4M8.3 13.2l7.4 4.4"/></svg>
+        </button>
       </div>
       <div class="isi-barang">
         <span class="nama">${aman(b.nama)}</span>
@@ -668,6 +792,237 @@ window.addEventListener('resize', () => {
   janjiUkurUlang = setTimeout(susunJalur, 250);
 });
 
+/* ---------- buka atau tutup sekarang ---------- */
+
+const NAMA_HARI = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+
+const keMenit = jam => {
+  const cocok = /^(\d{1,2}):(\d{2})$/.exec(String(jam || '').trim());
+  return cocok ? Number(cocok[1]) * 60 + Number(cocok[2]) : null;
+};
+const tulisJam = menit =>
+  String(Math.floor(menit / 60)).padStart(2, '0') + '.' + String(menit % 60).padStart(2, '0');
+
+/** Hanya alamat http yang boleh masuk ke href. Isinya datang dari pengaturan
+    toko, tetapi satu salah tempel tidak boleh bisa menjalankan apa pun. */
+const tautanAman = t => /^https?:\/\//i.test(String(t || '')) ? String(t) : '';
+
+/** Menghitung sendiri toko sedang buka atau tutup, memakai jam di HP pembeli.
+    Mengembalikan null bila jam buka belum diisi, supaya tandanya disembunyikan
+    daripada memajang tebakan. Jam tutup yang lebih kecil daripada jam buka
+    dibaca sebagai lewat tengah malam, misalnya 18.00 - 01.00. */
+function keadaanBuka(toko, saat = new Date()) {
+  const buka = keMenit(toko.bukaJam);
+  const tutup = keMenit(toko.tutupJam);
+  if (buka === null || tutup === null) return null;
+
+  const libur = Array.isArray(toko.hariLibur) ? toko.hariLibur : [];
+  if (libur.length >= 7) return { terbuka: false, keterangan: 'Sedang tutup sampai pemberitahuan berikutnya' };
+
+  const hariIni = saat.getDay();
+  const sekarang = saat.getHours() * 60 + saat.getMinutes();
+  const lewatTengahMalam = tutup <= buka;
+
+  // dini hari masih milik hari sebelumnya kalau tokonya tutup lewat tengah malam
+  const hariPemilik = (lewatTengahMalam && sekarang < tutup) ? (hariIni + 6) % 7 : hariIni;
+  const dalamJam = lewatTengahMalam
+    ? (sekarang >= buka || sekarang < tutup)
+    : (sekarang >= buka && sekarang < tutup);
+
+  if (dalamJam && !libur.includes(hariPemilik)) {
+    const sisa = (tutup - sekarang + 1440) % 1440;
+    return {
+      terbuka: true, segera: sisa <= 60,
+      keterangan: sisa <= 60
+        ? `Tutup ${sisa} menit lagi, pukul ${tulisJam(tutup)}`
+        : `Tutup pukul ${tulisJam(tutup)}`
+    };
+  }
+
+  // mencari hari buka berikutnya, paling jauh seminggu ke depan
+  for (let maju = 0; maju <= 7; maju++) {
+    const hari = (hariIni + maju) % 7;
+    if (libur.includes(hari)) continue;
+    if (maju === 0 && sekarang >= buka) continue;   // jam buka hari ini sudah lewat
+    const kapan = maju === 0 ? 'hari ini' : maju === 1 ? 'besok' : 'hari ' + NAMA_HARI[hari];
+    return { terbuka: false, keterangan: `Buka ${kapan} pukul ${tulisJam(buka)}` };
+  }
+  return { terbuka: false, keterangan: 'Sedang tutup' };
+}
+
+function gambarTandaBuka() {
+  const toko = katalog?.toko || {};
+  const keadaan = keadaanBuka(toko);
+  const tanda = $('#k-tanda-buka');
+  const atas = $('#k-jenis-atas');
+
+  if (!keadaan) {
+    tanda.className = 'tanda-buka tersembunyi';
+    atas.textContent = toko.jenis || '';
+    return;
+  }
+  const warna = keadaan.terbuka ? (keadaan.segera ? 'segera' : 'buka') : 'tutup';
+  const kata = keadaan.terbuka ? 'Buka sekarang' : 'Tutup';
+  tanda.className = 'tanda-buka ' + warna;
+  tanda.innerHTML = `<span class="titik"></span><b>${kata}</b>
+    <span class="rinci">${aman(keadaan.keterangan)}</span>`;
+  atas.innerHTML = `${aman(toko.jenis || '')}${toko.jenis ? ' &middot; ' : ''}<span
+    class="tanda-kecil ${warna}"><span class="titik"></span>${kata}</span>`;
+}
+
+/* ---------- wilayah antar dan tombol menuju toko ---------- */
+
+function gambarAntar(toko) {
+  const wilayah = (Array.isArray(toko.wilayahAntar) ? toko.wilayahAntar : []).filter(Boolean);
+  if (!wilayah.length) return;
+  $('#k-antar-wilayah').textContent = 'Bisa antar ke ' + wilayah.join(' · ');
+  $('#k-antar-catatan').textContent = toko.catatanAntar || '';
+  $('#k-antar').classList.remove('tersembunyi');
+}
+
+const IKON_KAKI = {
+  wa: '<svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 0 0-8.6 15l-1.3 4.8 5-1.3A10 10 0 1 0 12 2m0 2a8 8 0 1 1-4.2 14.8l-.3-.2-2.5.7.7-2.4-.2-.3A8 8 0 0 1 12 4m-2.6 3.9c-.13 0-.34.05-.52.25-.18.2-.68.67-.68 1.63s.7 1.88.8 2.01c.1.13 1.36 2.08 3.3 2.92 1.62.7 1.95.56 2.3.53.35-.03 1.14-.47 1.3-.92.16-.45.16-.84.11-.92-.05-.08-.18-.13-.38-.23s-1.14-.56-1.32-.63c-.18-.06-.3-.09-.43.1-.13.2-.5.63-.6.76-.12.13-.23.14-.42.05-.2-.1-.83-.31-1.57-.97-.58-.52-.97-1.16-1.09-1.35-.11-.2-.01-.3.09-.4.09-.09.2-.23.3-.35.09-.13.12-.22.19-.35.06-.13.03-.25-.02-.35-.05-.1-.43-1.05-.6-1.43-.15-.37-.31-.32-.43-.33z"/></svg>',
+  telepon: '<svg viewBox="0 0 24 24" class="garis"><path d="M5 3h4l2 5-2.5 1.5a12 12 0 0 0 6 6L16 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 5a2 2 0 0 1 2-2z"/></svg>',
+  peta: '<svg viewBox="0 0 24 24" class="garis"><path d="M12 21s7-5.6 7-11a7 7 0 1 0-14 0c0 5.4 7 11 7 11z"/><circle cx="12" cy="10" r="2.6"/></svg>'
+};
+
+/** Tiga tombol yang menutup jarak antara melihat katalog dan benar-benar
+    sampai ke toko: bertanya, menelepon, dan membuka peta. */
+function gambarAksiKaki(toko) {
+  const tombol = [];
+  const wa = nomorWa(toko.telepon);
+  if (wa) tombol.push(`<a class="tombol-kaki utama" target="_blank" rel="noopener"
+      href="https://wa.me/${wa}">${IKON_KAKI.wa} WhatsApp</a>`);
+  if (toko.telepon) tombol.push(`<a class="tombol-kaki"
+      href="tel:${aman(String(toko.telepon).replace(/[^\d+]/g, ''))}">${IKON_KAKI.telepon} Telepon</a>`);
+  if (tautanAman(toko.petaTautan)) tombol.push(`<a class="tombol-kaki" target="_blank" rel="noopener"
+      href="${aman(tautanAman(toko.petaTautan))}">${IKON_KAKI.peta} Lihat di Peta</a>`);
+  $('#k-aksi-kaki').innerHTML = tombol.join('');
+
+  if (toko.sejakTahun) {
+    $('#k-kaki-sejak').textContent = 'Melayani sejak tahun ' + toko.sejakTahun;
+    $('#k-kaki-sejak').classList.remove('tersembunyi');
+  }
+}
+
+/* ---------- membagikan ----------
+   Di pasar daerah, satu tautan yang diteruskan di grup WhatsApp menjangkau
+   lebih banyak orang daripada iklan mana pun. Jadi setiap barang bisa
+   dibagikan sendiri-sendiri, bukan hanya katalognya secara keseluruhan. */
+
+const alamatHalaman = barang =>
+  location.origin + location.pathname + (barang ? '?b=' + encodeURIComponent(barang) : '');
+
+let janjiCatatan = null;
+function tunjukkanCatatan(teks) {
+  let kotak = $('#k-catatan-layar');
+  if (!kotak) {
+    kotak = document.createElement('div');
+    kotak.id = 'k-catatan-layar';
+    kotak.className = 'catatan-layar';
+    document.body.appendChild(kotak);
+  }
+  kotak.textContent = teks;
+  kotak.classList.add('tampil');
+  clearTimeout(janjiCatatan);
+  janjiCatatan = setTimeout(() => kotak.classList.remove('tampil'), 3500);
+}
+
+/** Memakai tombol bagi bawaan HP bila ada; di Android itu memunculkan
+    WhatsApp, Facebook, dan yang lain sekaligus. Di komputer yang tidak
+    punya tombol itu, tautannya disalin supaya tetap bisa ditempel. */
+async function bagikan(judul, teks) {
+  if (navigator.share) {
+    try { await navigator.share({ title: judul, text: teks }); return; }
+    catch (galat) { if (galat && galat.name === 'AbortError') return; }
+  }
+  try {
+    await navigator.clipboard.writeText(teks);
+    tunjukkanCatatan('Tautan sudah disalin. Tinggal ditempel di WhatsApp.');
+  } catch (galat) {
+    window.open('https://wa.me/?text=' + encodeURIComponent(teks), '_blank', 'noopener');
+  }
+}
+
+function bagikanToko() {
+  const toko = katalog?.toko || {};
+  bagikan(toko.nama || 'Katalog toko', [
+    `${toko.nama || 'Katalog toko'}${toko.jenis ? ' - ' + toko.jenis : ''}`,
+    toko.alamat || '', toko.jamBuka || '', '', alamatHalaman()
+  ].filter(Boolean).join('\n'));
+}
+
+function bagikanBarang(nama) {
+  const b = (katalog?.barang || []).find(x => x.nama === nama);
+  if (!b) return;
+  const toko = katalog?.toko || {};
+  bagikan(b.nama, [
+    `${b.nama} - ${rupiah(b.hargaJual)} per ${b.satuan || 'pcs'}`,
+    b.grosirJumlah > 1 && b.grosirHarga > 0
+      ? `Harga ${b.grosirSatuan}: ${rupiah(b.grosirHarga)} isi ${angka(b.grosirJumlah)}` : '',
+    '', `Ada di ${toko.nama || 'toko kami'}${toko.alamat ? ', ' + toko.alamat : ''}`,
+    alamatHalaman(b.nama)
+  ].filter(Boolean).join('\n'));
+}
+
+/* ---------- keterangan untuk mesin pencari ----------
+   Bagian ini yang membuat pencarian "toko pecah belah Kubu" bisa sampai ke
+   sini. Google membacanya untuk mengerti bahwa halaman ini toko sungguhan:
+   di mana alamatnya, jam berapa buka, nomor berapa, dan melayani daerah
+   mana. Disusun dari data toko, bukan ditulis tangan, supaya keterangan di
+   mesin pencari tidak pernah berbeda dengan yang dilihat pembeli. */
+
+const HARI_INGGRIS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
+function pasangDataTerstruktur(data) {
+  const toko = data.toko || {};
+  const harga = (data.barang || []).map(b => Number(b.hargaJual) || 0).filter(h => h > 0);
+  const libur = Array.isArray(toko.hariLibur) ? toko.hariLibur : [];
+  const wilayah = (Array.isArray(toko.wilayahAntar) ? toko.wilayahAntar : []).filter(Boolean);
+  const hariBuka = HARI_INGGRIS.filter((nama, h) => !libur.includes(h));
+
+  const keterangan = {
+    '@context': 'https://schema.org',
+    '@type': 'HomeGoodsStore',
+    name: toko.nama || '',
+    description: toko.slogan || '',
+    url: alamatHalaman(),
+    image: new URL('ikon-512.png', location.href).href,
+    telephone: toko.telepon || undefined,
+    address: {
+      '@type': 'PostalAddress',
+      streetAddress: toko.alamat || '',
+      addressLocality: 'Kubu', addressRegion: 'Riau', addressCountry: 'ID'
+    },
+    currenciesAccepted: 'IDR'
+  };
+  if (wilayah.length) keterangan.areaServed = wilayah.map(w => ({ '@type': 'Place', name: w }));
+  if (toko.sejakTahun) keterangan.foundingDate = String(toko.sejakTahun);
+  if (tautanAman(toko.petaTautan)) keterangan.hasMap = tautanAman(toko.petaTautan);
+  if (keMenit(toko.bukaJam) !== null && keMenit(toko.tutupJam) !== null && hariBuka.length) {
+    keterangan.openingHoursSpecification = [{
+      '@type': 'OpeningHoursSpecification',
+      dayOfWeek: hariBuka, opens: toko.bukaJam, closes: toko.tutupJam
+    }];
+  }
+  if (harga.length) {
+    keterangan.priceRange = 'Rp' + angka(Math.min(...harga)) + ' - Rp' + angka(Math.max(...harga));
+  }
+
+  const wadah = document.createElement('script');
+  wadah.type = 'application/ld+json';
+  wadah.textContent = JSON.stringify(keterangan).replace(/</g, '\\u003c');
+  document.head.appendChild(wadah);
+
+  // alamat resmi halaman, supaya tautan bercabang tidak dihitung dua kali
+  const kanonik = document.createElement('link');
+  kanonik.rel = 'canonical';
+  kanonik.href = alamatHalaman();
+  document.head.appendChild(kanonik);
+
+  document.title = [toko.nama || 'Katalog', toko.jenis, toko.alamat].filter(Boolean).join(' - ');
+}
+
 /* ---------- memuat katalog ---------- */
 
 const IKON_KEPING = {
@@ -680,9 +1035,9 @@ fetch('katalog.json?t=' + Date.now())
   .then(j => { if (!j.ok) throw new Error('belum ada'); return j.json(); })
   .then(data => {
     katalog = data;
+    katalogTerbaca = true;
     const toko = data.toko || {};
 
-    document.title = 'Katalog ' + (toko.nama || 'Toko');
     $('#k-lambang').textContent = inisial(toko.nama);
     $('#k-nama-atas').textContent = toko.nama || 'Katalog';
     $('#k-jenis-atas').textContent = toko.jenis || '';
@@ -717,16 +1072,41 @@ fetch('katalog.json?t=' + Date.now())
       `<button class="kategori ${urut === 0 ? 'aktif' : ''}" data-kategori="${aman(k)}">${aman(k)}</button>`).join('');
 
     gambarSpanduk(toko.promo);
+    gambarAntar(toko);
+    gambarAksiKaki(toko);
+    gambarTandaBuka();
+    /* Tanda buka/tutup dihitung ulang tiap menit, jadi halaman yang dibiarkan
+       terbuka di HP pembeli tidak pernah memajang keterangan basi. Inilah
+       satu-satunya bagian halaman ini yang berubah tanpa katalog diterbitkan
+       ulang, dan itu memang yang paling sering ditanyakan pembeli. */
+    setInterval(gambarTandaBuka, 60000);
+    pasangDataTerstruktur(data);
+
+    /* Tautan yang dibagikan boleh menunjuk satu barang: ?b=Nama Barang.
+       Namanya cukup ditaruh di kotak cari, sehingga penerima tautan melihat
+       barang yang dimaksud sekaligus tahu cara kembali ke daftar penuh. */
+    const barangDitunjuk = new URLSearchParams(location.search).get('b');
+    if (barangDitunjuk) $('#k-cari').value = barangDitunjuk;
+
     $('#k-kerangka').classList.add('tersembunyi');
     $('#k-alat').classList.remove('tersembunyi');
     $('#k-baris-jumlah').classList.remove('tersembunyi');
     gambarRak();
   })
-  .catch(() => {
+  .catch(galat => {
     $('#k-kerangka').classList.add('tersembunyi');
     $('#k-pesan-kosong').classList.remove('tersembunyi');
-    $('#k-pesan-kosong').innerHTML = `<b>Katalog belum diterbitkan.</b><br>
-      <span class="kecil">Pemilik toko dapat menerbitkannya lewat menu Pengaturan di aplikasi kasir.</span>`;
+    /* Dua sebab yang sama sekali berbeda, jadi jangan disamakan. Katalog yang
+       belum pernah diterbitkan itu keadaan wajar dan pembeli tinggal menunggu.
+       Katalog yang berkasnya sampai tetapi gagal digambar itu kerusakan, dan
+       menyebutnya "belum diterbitkan" akan membuat pembeli menunggu sesuatu
+       yang tidak akan pernah datang. */
+    $('#k-pesan-kosong').innerHTML = katalogTerbaca
+      ? `<b>Katalog gagal ditampilkan.</b><br>
+         <span class="kecil">Coba muat ulang halaman ini. Kalau tetap begini, hubungi toko
+           langsung. Keterangan teknis: ${aman((galat && galat.message) || galat)}</span>`
+      : `<b>Katalog belum diterbitkan.</b><br>
+         <span class="kecil">Pemilik toko dapat menerbitkannya lewat menu Pengaturan di aplikasi kasir.</span>`;
   });
 
 /* ---------- pendengar ---------- */
@@ -743,9 +1123,12 @@ $('#k-kategori').addEventListener('click', e => {
 document.addEventListener('click', e => {
   const tambah = e.target.closest('[data-tambah]');
   const kurang = e.target.closest('[data-kurang]');
+  const bagi = e.target.closest('[data-bagikan]');
   if (tambah) ubahPesanan(tambah.dataset.tambah, 1);
   if (kurang) ubahPesanan(kurang.dataset.kurang, -1);
+  if (bagi) bagikanBarang(bagi.dataset.bagikan);
 });
+$('#k-bagikan-toko').onclick = bagikanToko;
 $('#k-buka-pesanan').onclick = bukaPesanan;
 $('#k-daftar').onclick = bukaPendaftaran;
 $('#modal-tutup').onclick = tutupModal;

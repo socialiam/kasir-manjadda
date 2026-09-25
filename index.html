@@ -439,7 +439,8 @@
 
       <div class="kartu">
         <h3>Identitas Toko</h3>
-        <p class="lemah kecil">Yang ditulis di sini akan muncul di struk pembeli.</p>
+        <p class="lemah kecil">Yang ditulis di sini muncul di struk pembeli dan di katalog online.
+          Sesudah mengubahnya, tekan Terbitkan Katalog agar pembeli ikut melihatnya.</p>
         <div class="form-grid">
           <label>Nama toko <input id="set-nama" class="input" type="text"></label>
           <label>Jenis usaha <span class="lemah kecil">(contoh: Toko Pecah Belah)</span>
@@ -450,8 +451,27 @@
           <label>Nomor telepon <input id="set-telepon" class="input" type="text"></label>
           <label class="lebar-penuh">Alamat <input id="set-alamat" class="input" type="text"
             placeholder="Contoh: Jl. Raya Kubu No. 12"></label>
-          <label class="lebar-penuh">Jam buka <span class="lemah kecil">(tampil di katalog pelanggan)</span>
-            <input id="set-jam-buka" class="input" type="text" placeholder="Contoh: Setiap hari 07.00 - 21.00"></label>
+          <label>Jam buka <span class="lemah kecil">(dipakai tanda "Buka sekarang")</span>
+            <input id="set-buka-jam" class="input" type="time"></label>
+          <label>Jam tutup <input id="set-tutup-jam" class="input" type="time"></label>
+          <div class="lebar-penuh">
+            <span class="label-mandiri">Hari libur
+              <span class="lemah kecil">(nyalakan hari toko tutup &mdash; tidak ada yang menyala
+                berarti buka setiap hari)</span></span>
+            <div id="set-hari-libur" class="baris-hari"></div>
+          </div>
+          <label>Melayani sejak tahun <span class="lemah kecil">(boleh dikosongkan)</span>
+            <input id="set-sejak" class="input" type="text" inputmode="numeric" maxlength="4"
+              placeholder="Contoh: 2015"></label>
+          <label>Tautan peta <span class="lemah kecil">(salin dari Google Maps)</span>
+            <input id="set-peta" class="input" type="url" placeholder="https://maps.app.goo.gl/..."></label>
+          <label class="lebar-penuh">Wilayah yang bisa diantar
+            <span class="lemah kecil">(pisahkan dengan koma; kosongkan bila toko tidak melayani antar)</span>
+            <input id="set-wilayah" class="input" type="text"
+              placeholder="Contoh: Kubu, Duri, Pinggir, Kandis"></label>
+          <label class="lebar-penuh">Keterangan ongkos antar
+            <input id="set-catatan-antar" class="input" type="text"
+              placeholder="Contoh: Gratis antar dalam Kubu, luar Kubu menyesuaikan jarak"></label>
           <label class="lebar-penuh">Kalimat penutup struk <input id="set-catatan" class="input" type="text"></label>
         </div>
         <button id="btn-simpan-toko" class="tombol tombol-utama">Simpan</button>
