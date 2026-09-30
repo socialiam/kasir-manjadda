@@ -47,7 +47,6 @@ Kalau panduan itu terlewat, semuanya tetap bisa diatur belakangan:
 | Mau ganti apa | Ke mana |
 | --- | --- |
 | Nama toko, jenis usaha, alamat, telepon, kalimat penutup struk | Pengaturan → Identitas Toko |
-| Jam buka, jam tutup, hari libur | Pengaturan → Identitas Toko |
 | Urutan daftar barang (abjad, harga, untung, stok, terbaru) | Daftar Barang → kotak **Urutkan** |
 | Mengisi puluhan barang sekaligus | Daftar Barang → 📋 Isi Cepat Banyak Barang |
 | Mencetak/menyimpan daftar barang untuk stok opname | Daftar Barang → ⬇️ Unduh Daftar |

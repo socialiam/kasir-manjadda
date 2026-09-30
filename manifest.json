@@ -23,13 +23,6 @@
       "description": "Langsung melayani pembeli",
       "url": "index.html",
       "icons": [{ "src": "ikon-192.png", "sizes": "192x192" }]
-    },
-    {
-      "name": "Layar Pelanggan",
-      "short_name": "Layar",
-      "description": "Layar yang menghadap pembeli",
-      "url": "pelanggan.html",
-      "icons": [{ "src": "ikon-192.png", "sizes": "192x192" }]
     }
   ]
 }
