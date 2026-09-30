@@ -30,13 +30,6 @@
       "description": "Layar yang menghadap pembeli",
       "url": "pelanggan.html",
       "icons": [{ "src": "ikon-192.png", "sizes": "192x192" }]
-    },
-    {
-      "name": "Katalog",
-      "short_name": "Katalog",
-      "description": "Etalase untuk pelanggan",
-      "url": "katalog.html",
-      "icons": [{ "src": "ikon-192.png", "sizes": "192x192" }]
     }
   ]
 }

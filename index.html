@@ -28,9 +28,9 @@
     <div class="bilah-kanan">
       <span id="bilah-tanggal" class="bilah-kecil"></span>
       <button id="btn-tampilan-pelanggan" class="tombol tombol-tampilan kecil"
-              title="Buka layar pembeli atau katalog online">
+              title="Buka monitor kedua yang menghadap pembeli">
         <svg viewBox="0 0 24 24"><rect x="2.5" y="4" width="19" height="12.5" rx="2"/><path d="M8.5 20.5h7M12 16.5v4"/></svg>
-        <span class="hanya-besar">Tampilan Pelanggan</span>
+        <span class="hanya-besar">Layar Pelanggan</span>
         <i id="titik-layar" class="titik-hidup tersembunyi" title="Layar pelanggan sedang terbuka"></i>
       </button>
       <button id="btn-ganti-petugas" class="tombol tombol-netral kecil"
@@ -103,7 +103,7 @@
         </button>
         <button class="menu-btn toska" id="menu-tampilan-pelanggan">
           <span class="menu-ikon"><svg viewBox="0 0 24 24"><rect x="2.5" y="4" width="19" height="12.5" rx="2"/><path d="M8.5 20.5h7M12 16.5v4"/></svg></span>
-          <span class="menu-teks"><b>TAMPILAN PELANGGAN</b><small>Layar pembeli &amp; katalog online</small></span>
+          <span class="menu-teks"><b>LAYAR PELANGGAN</b><small>Monitor kedua menghadap pembeli</small></span>
         </button>
         <button class="menu-btn coklat" data-buka="layar-catatan" data-peran="pemilik">
           <span class="menu-ikon"><svg viewBox="0 0 24 24"><path d="M5 4.5A2.5 2.5 0 0 1 7.5 2H19v20H7.5A2.5 2.5 0 0 1 5 19.5z"/><path d="M5 17.5h14"/><path d="M9 7h6"/></svg></span>
@@ -227,6 +227,7 @@
           <button class="chip aktif" data-saring="semua">Semua</button>
           <button class="chip" data-saring="menipis">Stok menipis</button>
           <button class="chip" data-saring="habis">Stok habis</button>
+          <button class="chip" data-saring="belum-harga">Belum ada harga</button>
         </div>
       </div>
       <div class="kartu">
@@ -439,19 +440,18 @@
 
       <div class="kartu">
         <h3>Identitas Toko</h3>
-        <p class="lemah kecil">Yang ditulis di sini muncul di struk pembeli dan di katalog online.
-          Sesudah mengubahnya, tekan Terbitkan Katalog agar pembeli ikut melihatnya.</p>
+        <p class="lemah kecil">Yang ditulis di sini muncul di struk pembeli dan di layar pelanggan.</p>
         <div class="form-grid">
           <label>Nama toko <input id="set-nama" class="input" type="text"></label>
           <label>Jenis usaha <span class="lemah kecil">(contoh: Toko Pecah Belah)</span>
             <input id="set-jenis" class="input" type="text"></label>
-          <label class="lebar-penuh">Slogan <span class="lemah kecil">(satu kalimat, tampil di katalog)</span>
+          <label class="lebar-penuh">Slogan <span class="lemah kecil">(satu kalimat, tampil di layar pelanggan)</span>
             <input id="set-slogan" class="input" type="text"
               placeholder="Contoh: Pilihan tepat untuk kebutuhan rumah tangga Anda"></label>
           <label>Nomor telepon <input id="set-telepon" class="input" type="text"></label>
           <label class="lebar-penuh">Alamat <input id="set-alamat" class="input" type="text"
             placeholder="Contoh: Jl. Raya Kubu No. 12"></label>
-          <label>Jam buka <span class="lemah kecil">(dipakai tanda "Buka sekarang")</span>
+          <label>Jam buka <span class="lemah kecil">(tampil di layar pelanggan)</span>
             <input id="set-buka-jam" class="input" type="time"></label>
           <label>Jam tutup <input id="set-tutup-jam" class="input" type="time"></label>
           <div class="lebar-penuh">
@@ -460,18 +460,6 @@
                 berarti buka setiap hari)</span></span>
             <div id="set-hari-libur" class="baris-hari"></div>
           </div>
-          <label>Melayani sejak tahun <span class="lemah kecil">(boleh dikosongkan)</span>
-            <input id="set-sejak" class="input" type="text" inputmode="numeric" maxlength="4"
-              placeholder="Contoh: 2015"></label>
-          <label>Tautan peta <span class="lemah kecil">(salin dari Google Maps)</span>
-            <input id="set-peta" class="input" type="url" placeholder="https://maps.app.goo.gl/..."></label>
-          <label class="lebar-penuh">Wilayah yang bisa diantar
-            <span class="lemah kecil">(pisahkan dengan koma; kosongkan bila toko tidak melayani antar)</span>
-            <input id="set-wilayah" class="input" type="text"
-              placeholder="Contoh: Kubu, Duri, Pinggir, Kandis"></label>
-          <label class="lebar-penuh">Keterangan ongkos antar
-            <input id="set-catatan-antar" class="input" type="text"
-              placeholder="Contoh: Gratis antar dalam Kubu, luar Kubu menyesuaikan jarak"></label>
           <label class="lebar-penuh">Kalimat penutup struk <input id="set-catatan" class="input" type="text"></label>
         </div>
         <button id="btn-simpan-toko" class="tombol tombol-utama">Simpan</button>
@@ -485,39 +473,12 @@
       </div>
 
       <div class="kartu">
-        <h3>Spanduk Promo di Katalog</h3>
-        <p class="lemah">Kalimat berjalan di bagian atas katalog pelanggan. Paling banyak empat,
-          karena lebih dari itu tidak akan terbaca orang. Jangan menaruh keterangan penting
-          hanya di sini — pembeli sering melewatkannya.</p>
+        <h3>Spanduk Promo di Layar Pelanggan</h3>
+        <p class="lemah">Kalimat yang bergantian tampil di monitor kedua saat kasir sedang
+          menganggur, supaya layarnya tidak pernah terlihat mati. Paling banyak empat,
+          karena lebih dari itu tidak akan terbaca orang.</p>
         <div id="daftar-promo" class="daftar-sederhana"></div>
         <button id="btn-tambah-promo" class="tombol tombol-utama">&#65291; Tambah Spanduk</button>
-      </div>
-
-      <div class="kartu">
-        <h3>Katalog untuk Pelanggan</h3>
-        <p class="lemah">Halaman terpisah yang bisa dibuka pelanggan dari HP mereka: nama barang,
-          gambar, harga jual, dan keterangan Tersedia atau Habis. Tidak ada harga beli, untung,
-          stok, atau laporan di sana, dan pelanggan tidak bisa mengubah apa pun.</p>
-        <p class="lemah kecil">Tekan Terbitkan setiap kali harga atau stok berubah, supaya yang
-          dilihat pelanggan selalu yang terbaru.</p>
-        <div class="form-grid">
-          <label>Kode terbit <span class="lemah kecil">(6 angka dari jendela hitam pelayan)</span>
-            <input id="set-kode-terbit" class="input" type="text" inputmode="numeric" maxlength="6" placeholder="123456"></label>
-          <label>Alamat katalog untuk dibagikan
-            <input id="alamat-katalog" class="input" type="text" readonly></label>
-        </div>
-        <label class="pilihan-radio" style="margin-bottom:12px">
-          <input type="checkbox" id="set-katalog-otomatis">
-          <span><b>Perbarui katalog otomatis</b>
-            <span class="lemah kecil">— setiap kali ada penjualan, barang masuk, atau harga berubah,
-            katalog pelanggan ikut diperbarui sendiri dalam beberapa detik.</span></span>
-        </label>
-        <div id="info-katalog" class="lemah kecil" style="margin-bottom:12px"></div>
-        <div class="baris-alat">
-          <button id="btn-terbitkan-katalog" class="tombol tombol-sukses">&#128228; Terbitkan Katalog</button>
-          <button id="btn-buka-katalog" class="tombol tombol-netral">&#128065; Lihat Katalog</button>
-          <button id="btn-salin-alamat" class="tombol tombol-netral">&#128203; Salin Alamat</button>
-        </div>
       </div>
 
       <div class="kartu">

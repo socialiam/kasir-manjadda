@@ -116,7 +116,7 @@ const KUNCI_SIMPAN = 'kasirToko.v1';
    benar-benar yang terbaru: angkanya terlihat di layar Pengaturan paling bawah.
    Kalau angka di layar tidak sama dengan yang disebutkan, berarti browser masih
    memakai simpanan lama dan perlu dimuat ulang dengan Ctrl+Shift+R. */
-const VERSI_APLIKASI = '25 September 2026 - pembaruan 25 (katalog siap merebut pasar sekitar)';
+const VERSI_APLIKASI = '30 September 2026 - pembaruan 26 (kasir saja, barang boleh tanpa harga)';
 
 /** Isi awal saat aplikasi pertama kali dibuka. Semua bisa diubah dari dalam aplikasi. */
 function dataAwal() {
@@ -131,27 +131,18 @@ function dataAwal() {
       slogan: 'Pilihan tepat untuk kebutuhan rumah tangga Anda',
       alamat: 'Jln. Jend Sudirman, Pasar Pelita Kubu', telepon: '0813-7189-7171',
       catatanStruk: 'Terima kasih sudah berbelanja', tema: 'terang',
-      urutBarang: 'nama-az', katalogOtomatis: true,
+      urutBarang: 'nama-az',
 
-      /* Jam buka disimpan sebagai angka, bukan kalimat, supaya katalog dapat
-         memasang tanda "Buka sekarang" yang benar-benar hidup mengikuti jam
-         di HP pembeli. Kalimat jamBuka disusun sendiri dari kedua angka ini,
-         dan itulah yang tercetak di struk. hariLibur berisi angka hari,
+      /* Jam buka disimpan sebagai angka, bukan kalimat, supaya kalimatnya
+         tidak pernah salah ketik. Yang memakainya layar pelanggan, sebagai
+         papan iklan saat menganggur. hariLibur berisi angka hari,
          0 Minggu sampai 6 Sabtu; kosong berarti buka setiap hari. */
       bukaJam: '08:00', tutupJam: '21:00', hariLibur: [],
       jamBuka: 'Setiap hari 08.00 - 21.00',
 
-      /* Wilayah antar, titik peta, dan tahun berdiri. Bagi pembeli daerah
-         inilah tiga pertanyaan pertama, dan jawabannya yang membuat satu
-         toko dipilih daripada toko sebelah. SEMUA ISI DI BAWAH INI PERKIRAAN
-         untuk keperluan uji coba; pemilik membetulkannya lewat Pengaturan
-         tanpa menyentuh kode sama sekali. */
-      wilayahAntar: ['Kubu', 'Duri', 'Pinggir', 'Kandis', 'Ujung Tanjung', 'Dumai'],
-      catatanAntar: 'Ongkos antar menyesuaikan jarak. Hubungi dulu sebelum memesan.',
-      petaTautan: '', sejakTahun: '',
-      /* Spanduk berjalan di katalog. Isinya kalimat, bukan foto: foto milik
-         orang lain tidak boleh dipakai, dan kalimat promo lebih menggerakkan
-         pembeli daripada gambar barang biasa. */
+      /* Spanduk berjalan di layar pelanggan saat menganggur. Isinya kalimat,
+         bukan foto: foto milik orang lain tidak boleh dipakai, dan kalimat
+         promo lebih menggerakkan pembeli daripada gambar barang biasa. */
       promo: [
         { judul: 'Harga Lusinan Lebih Hemat', warna: 'ungu',
           teks: 'Gelas, piring, sendok, baskom, dan gayung tersedia per lusin dan kodi.' },
@@ -275,9 +266,6 @@ function muatData() {
 function simpanData(data = db) {
   try {
     localStorage.setItem(KUNCI_SIMPAN, JSON.stringify(data));
-    // Setiap perubahan data ikut menyegarkan katalog pelanggan. Dibungkus
-    // karena saat aplikasi baru dinyalakan datanya memang belum siap.
-    try { perbaruiKatalogOtomatis(); } catch (e) { /* belum siap, abaikan */ }
     return true;
   } catch (e) {
     pesan('Data GAGAL disimpan: ' + e.message, 'bahaya', 6000);
@@ -561,8 +549,8 @@ let gagalPin = 0;
 /* ----- layar PIN milik tiap petugas -----
    PIN melekat pada orangnya, bukan pada toko. Karyawan yang tahu PIN-nya
    sendiri tetap tidak bisa masuk memakai nama pemilik, karena angkanya
-   berbeda. Halaman katalog dan layar pelanggan tidak pernah meminta PIN,
-   sebab keduanya memang dibuat untuk dilihat pembeli. */
+   berbeda. Layar pelanggan tidak pernah meminta PIN, sebab ia memang
+   dibuat untuk dilihat pembeli. */
 
 let ketikanPin = '';
 let petugasMenunggu = null;       // orang yang sedang diminta PIN-nya
@@ -865,7 +853,7 @@ function gambarBeranda() {
 
 
 /* Pustaka ikon barang ada di berkas terpisah ikon-barang.js, karena
-   dipakai juga oleh pelanggan.html dan katalog.html. */
+   dipakai juga oleh pelanggan.html. */
 
 
 /* ========== 4c. SIARAN KE LAYAR PELANGGAN ==========
@@ -1005,6 +993,15 @@ function tambahKeKeranjang(idBarang, jumlah = 1, cara = null) {
       tutupModal();
       tambahKeKeranjang(idBarang, jumlah, t.dataset.cara);
     });
+    return;
+  }
+
+  /* Penjaga harga. Barang boleh didaftarkan tanpa harga, tetapi tidak boleh
+     terjual tanpa harga -- tanpa penjaga ini ia masuk keranjang seharga Rp 0
+     dan baru ketahuan sesudah uangnya diterima. */
+  const hargaDipakai = cara === 'grosir' ? barang.grosirHarga : barang.hargaJual;
+  if (!(hargaDipakai > 0)) {
+    pesan(`Harga ${barang.nama} belum diisi. Isi dulu lewat Daftar Barang.`, 'peringatan', 5000);
     return;
   }
 
@@ -1388,12 +1385,17 @@ function gambarTabelBarang() {
   if (cari) daftar = daftar.filter(b => b.nama.toLowerCase().includes(cari) || (b.kode || '').toLowerCase().includes(cari));
   if (saringBarang === 'menipis') daftar = daftar.filter(b => b.stok <= (b.stokMinimum ?? 5) && b.stok > 0);
   if (saringBarang === 'habis') daftar = daftar.filter(b => b.stok <= 0);
+  if (saringBarang === 'belum-harga') daftar = daftar.filter(b => !(b.hargaJual > 0));
   daftar.sort(pembandingBarang(db.toko.urutBarang || 'nama-az', posisi));
 
   const jumlahStok = daftar.reduce((j, b) => j + b.stok, 0);
+  // Barang boleh didaftarkan tanpa harga, jadi harus ada yang mengingatkan
+  // berapa yang masih menunggu diberi harga -- kalau tidak, ia tercecer.
+  const belumBerharga = db.barang.filter(b => !(b.hargaJual > 0)).length;
   $('#info-barang').innerHTML = daftar.length
     ? `Menampilkan <b>${angka(daftar.length)}</b> dari ${angka(db.barang.length)} barang,
-       jumlah stok <b>${angka(jumlahStok)}</b>.`
+       jumlah stok <b>${angka(jumlahStok)}</b>.` +
+      (belumBerharga ? ` <span class="lencana lencana-peringatan">${angka(belumBerharga)} belum ada harga</span>` : '')
     : '';
 
   $('#tabel-barang tbody').innerHTML = daftar.map(b => {
@@ -1405,9 +1407,11 @@ function gambarTabelBarang() {
       <td class="lemah">${aman(b.kode || '-')}</td>
       <td><span class="sel-nama">${ikonBarang(b, 'ikon-mini')}<b>${aman(b.nama)}</b></span></td>
       <td class="kanan">${angka(b.hargaBeli)}</td>
-      <td class="kanan"><b>${angka(b.hargaJual)}</b>
-        ${punyaGrosir(b) ? `<br><small class="lemah">${angka(b.grosirHarga)}/${aman(b.grosirSatuan)}</small>` : ''}</td>
-      <td class="kanan" style="color:${untung >= 0 ? 'var(--sukses)' : 'var(--bahaya)'}">${angka(untung)}</td>
+      <td class="kanan">${b.hargaJual > 0
+        ? `<b>${angka(b.hargaJual)}</b>` + (punyaGrosir(b)
+            ? `<br><small class="lemah">${angka(b.grosirHarga)}/${aman(b.grosirSatuan)}</small>` : '')
+        : '<span class="lencana lencana-peringatan">belum ada harga</span>'}</td>
+      <td class="kanan" style="color:${untung >= 0 ? 'var(--sukses)' : 'var(--bahaya)'}">${b.hargaJual > 0 ? angka(untung) : '&mdash;'}</td>
       <td class="tengah">${angka(b.stok)} ${aman(b.satuan)} ${lencana}</td>
       <td class="tengah" style="white-space:nowrap">${bolehPemilik() ? `
         <button class="tombol-ikon" data-ubah-barang="${b.id}" title="Ubah">&#9998;</button>
@@ -1443,7 +1447,7 @@ function formBarang(id = null) {
           <input id="f-minimum" class="input" type="number" min="0" step="1" value="${b ? (b.stokMinimum ?? 5) : 5}"></label>
       </div>
       <p style="margin-top:16px"><b>Harga borongan</b>
-        <span class="lemah kecil">â€” kosongkan kalau barang ini hanya dijual satuan</span></p>
+        <span class="lemah kecil">&mdash; kosongkan kalau barang ini hanya dijual satuan</span></p>
       <div class="form-grid" style="margin:8px 0 0">
         <label>Nama borongan
           <select id="f-grosir-satuan" class="input">
@@ -1462,7 +1466,7 @@ function formBarang(id = null) {
         dan stok berkurang 12 sekaligus.</p>
       <p class="lemah kecil" style="margin-top:12px">Untung per barang dihitung sendiri dari harga jual dikurangi harga beli.</p>
       <p style="margin-top:14px"><b>Gambar barang</b>
-        <span class="lemah kecil">â€” kalau dibiarkan Otomatis, gambar dipilih sendiri dari nama barang</span></p>
+        <span class="lemah kecil">&mdash; kalau dibiarkan Otomatis, gambar dipilih sendiri dari nama barang</span></p>
       <input type="hidden" id="f-gambar" value="${aman(b?.gambar || '')}">
       <div class="pilih-gambar">
         <button type="button" data-pilih-gambar="" class="${b?.gambar ? '' : 'terpilih'}">
@@ -1502,7 +1506,9 @@ function simpanBarang(id) {
     isian.grosirJumlah = 0;
     isian.grosirHarga = 0;
   }
-  if (isian.hargaJual <= 0) { pesan('Harga jual belum diisi.', 'peringatan'); $('#f-jual').focus(); return; }
+  /* Harga sengaja TIDAK diwajibkan. Pemilik boleh mendaftarkan ratusan barang
+     dengan nama dan kode saja lebih dulu, harganya menyusul. Yang menjaga
+     supaya barang tanpa harga tidak terjual gratis ada di tambahKeKeranjang. */
 
   if (id) {
     const lama = cariBarang(id);
@@ -1556,7 +1562,7 @@ function formImporBarang() {
       <p class="lemah kecil">Harga beli dan stok boleh dikosongkan. Kalau nama barang sudah ada di daftar,
         harganya diperbarui dan stoknya diganti, bukan dibuat dua kali.</p>
       <textarea id="impor-teks" class="input" spellcheck="false"
-        placeholder="Contoh â€” hapus tulisan ini, lalu tulis daftar Bapak sendiri:&#10;Lemari pakaian Plastik ; 450000 ; 380000 ; 3&#10;Lemari plastik TwinnPan ; 520000 ; 440000 ; 2&#10;Lemari Plastik BESTPLAST ; 610000 ; 520000 ; 2&#10;Rak piring Aluminium Master ; 185000 ; 150000 ; 6&#10;Ember plastik besar ; 35000 ; 27000 ; 12"></textarea>
+        placeholder="Contoh &mdash; hapus tulisan ini, lalu tulis daftar Bapak sendiri:&#10;Lemari pakaian Plastik ; 450000 ; 380000 ; 3&#10;Lemari plastik TwinnPan ; 520000 ; 440000 ; 2&#10;Lemari Plastik BESTPLAST ; 610000 ; 520000 ; 2&#10;Rak piring Aluminium Master ; 185000 ; 150000 ; 6&#10;Ember plastik besar ; 35000 ; 27000 ; 12"></textarea>
       <p class="lemah kecil" style="margin-top:10px"><b>Angka contoh di atas hanya contoh.</b>
         Isi dengan harga toko Bapak yang sebenarnya.</p>`,
     aksi: [
@@ -1673,7 +1679,7 @@ function gambarTabelPelanggan() {
   $('#pelanggan-kosong').innerHTML = daftar.length ? '' : (db.pelanggan.length
     ? 'Tidak ada pelanggan yang cocok dengan pencarian.'
     : `Belum ada pelanggan terdaftar.<br><span class="kecil">Cukup nama dan satu nomor HP.
-       Pembeli juga bisa mendaftar sendiri dari halaman katalog.</span>`);
+       Cukup dicatat sekali, lalu dipanggil kembali saat berbelanja.</span>`);
   $('#tabel-pelanggan').classList.toggle('tersembunyi', daftar.length === 0);
 }
 
@@ -2295,10 +2301,6 @@ function gambarPengaturan() {
   $('#set-alamat').value = db.toko.alamat || '';
   $('#set-buka-jam').value = db.toko.bukaJam || '';
   $('#set-tutup-jam').value = db.toko.tutupJam || '';
-  $('#set-sejak').value = db.toko.sejakTahun || '';
-  $('#set-peta').value = db.toko.petaTautan || '';
-  $('#set-wilayah').value = (db.toko.wilayahAntar || []).join(', ');
-  $('#set-catatan-antar').value = db.toko.catatanAntar || '';
   gambarHariLibur();
   $('#set-catatan').value = db.toko.catatanStruk || '';
 
@@ -2324,7 +2326,6 @@ function gambarPengaturan() {
   $('#versi-aplikasi').textContent = 'Versi aplikasi: ' + VERSI_APLIKASI;
   gambarPenyimpanan();
   gambarPin();
-  gambarKatalogPengaturan();
   gambarPromoPengaturan();
   $('#info-cadangan').innerHTML = db.terakhirCadangan
     ? `Cadangan terakhir diunduh: <b>${waktuSingkat(db.terakhirCadangan)}</b>.`
@@ -2341,10 +2342,6 @@ function simpanToko() {
   db.toko.tutupJam = $('#set-tutup-jam').value.trim();
   db.toko.hariLibur = $$('#set-hari-libur .chip-hari.aktif').map(t => Number(t.dataset.hari));
   db.toko.jamBuka = kalimatJamBuka(db.toko);
-  db.toko.sejakTahun = $('#set-sejak').value.replace(/\D/g, '').slice(0, 4);
-  db.toko.petaTautan = $('#set-peta').value.trim();
-  db.toko.wilayahAntar = $('#set-wilayah').value.split(',').map(t => t.trim()).filter(Boolean);
-  db.toko.catatanAntar = $('#set-catatan-antar').value.trim();
   db.toko.catatanStruk = $('#set-catatan').value.trim();
   catat('sistem', `Mengubah identitas toko (nama toko sekarang "${db.toko.nama}")`);
   simpanData();
@@ -2497,10 +2494,10 @@ function panduanAwal() {
       <p style="margin-top:18px"><b>Daftar barangnya mau diisi bagaimana?</b></p>
       <label class="pilihan-radio"><input type="radio" name="w-isi" value="contoh" checked>
         <span>Pakai <b>8 barang contoh</b> dulu
-        <span class="lemah kecil">â€” enak untuk mencoba, boleh dihapus kapan saja</span></span></label>
+        <span class="lemah kecil">&mdash; enak untuk mencoba, boleh dihapus kapan saja</span></span></label>
       <label class="pilihan-radio"><input type="radio" name="w-isi" value="kosong">
         <span><b>Kosongkan</b>, saya isi sendiri barang toko saya
-        <span class="lemah kecil">â€” daftar barang mulai dari nol</span></span></label>`,
+        <span class="lemah kecil">&mdash; daftar barang mulai dari nol</span></span></label>`,
     aksi: [{ label: 'Mulai Pakai', kelas: 'tombol-utama', saatKlik: simpanPanduanAwal }]
   });
 }
@@ -2543,66 +2540,6 @@ async function kosongkanDaftarBarang() {
   pesan('Daftar barang dikosongkan. Silakan isi barang toko sendiri.', 'sukses', 4000);
 }
 
-/* ----- katalog untuk pelanggan ----- */
-
-const alamatKatalog = () => new URL('katalog.html', location.href).href;
-
-/** Satu pintu dari kasir menuju dua tampilan yang dilihat pembeli.
-    Arah sebaliknya sengaja tidak ada: alamat katalog dibagikan ke umum,
-    jadi tautan menuju kasir di sana sama saja dengan mengundang orang
-    luar menyentuh laporan dan pengaturan toko. */
-function pintuTampilanPelanggan() {
-  bukaModal({
-    judul: 'Tampilan untuk Pelanggan',
-    isi: `<div class="pilih-tampilan">
-        <button data-tampilan="layar">
-          <span class="ikon-pilih">
-            <svg viewBox="0 0 24 24"><rect x="2.5" y="4" width="19" height="12.5" rx="2"/><path d="M8.5 20.5h7M12 16.5v4"/></svg>
-          </span>
-          <b>Layar Pelanggan</b>
-          <small>Monitor kedua yang menghadap pembeli di meja kasir. Isinya mengikuti
-            keranjang seketika: barang, total, dan kembalian.</small>
-        </button>
-        <button data-tampilan="katalog">
-          <span class="ikon-pilih">
-            <svg viewBox="0 0 24 24"><rect x="6" y="2.5" width="12" height="19" rx="2.5"/><path d="M10.5 18.5h3"/></svg>
-          </span>
-          <b>Katalog Pelanggan</b>
-          <small>Etalase yang dibuka pembeli dari HP mereka: barang, harga, dan
-            pesan lewat WhatsApp.</small>
-        </button>
-      </div>
-      <div class="alamat-bagikan">
-        <span class="lemah kecil">Alamat katalog untuk dibagikan ke pembeli</span>
-        <div class="baris-alamat">
-          <input id="alamat-bagikan" class="input" type="text" readonly value="${aman(alamatKatalog())}">
-          <button class="tombol tombol-netral kecil" id="btn-salin-bagikan">Salin</button>
-        </div>
-      </div>`,
-    aksi: [{ label: 'Tutup', kelas: 'tombol-netral', saatKlik: tutupModal }]
-  });
-
-  $$('#modal-isi [data-tampilan]').forEach(t => t.onclick = () => {
-    if (t.dataset.tampilan === 'layar') {
-      bukaLayarPelanggan();
-    } else {
-      window.open(alamatKatalog(), '_blank', 'noopener');
-    }
-    tutupModal();
-  });
-
-  const salin = $('#btn-salin-bagikan');
-  if (salin) salin.onclick = async () => {
-    try {
-      await navigator.clipboard.writeText(alamatKatalog());
-      pesan('Alamat katalog disalin. Tinggal tempel di WhatsApp.', 'sukses', 4000);
-    } catch (e) {
-      $('#alamat-bagikan').select();
-      pesan('Alamat sudah ditandai, tekan Ctrl+C untuk menyalin.', 'info', 4000);
-    }
-  };
-}
-
 /* ----- spanduk promo ----- */
 
 const WARNA_PROMO = { ungu: 'Ungu', hijau: 'Hijau', jingga: 'Jingga', biru: 'Biru', merah: 'Merah' };
@@ -2618,7 +2555,7 @@ function gambarPromoPengaturan() {
         <button class="tombol-ikon" data-ubah-promo="${urut}" title="Ubah">&#9998;</button>
         <button class="tombol-ikon" data-hapus-promo="${urut}" title="Hapus">&#128465;</button>
       </span>
-    </div>`).join('') : '<div class="kosong">Belum ada spanduk. Katalog akan tampil tanpa spanduk.</div>';
+    </div>`).join('') : '<div class="kosong">Belum ada spanduk. Layar pelanggan akan tampil tanpa spanduk.</div>';
   $('#btn-tambah-promo').disabled = daftar.length >= 4;
 }
 
@@ -2652,7 +2589,7 @@ function formPromo(urut = null) {
           simpanData();
           tutupModal();
           gambarPromoPengaturan();
-          pesan('Spanduk disimpan. Tekan Terbitkan Katalog agar pelanggan melihatnya.', 'sukses', 5000);
+          pesan('Spanduk disimpan. Langsung tampil di layar pelanggan.', 'sukses', 4000);
         }
       }
     ]
@@ -2692,12 +2629,12 @@ function bukaLayarPelanggan() {
   pesan('Geser jendela itu ke monitor kedua, lalu tekan F11 agar penuh layar.', 'info', 6000);
 }
 
-/* ----- jam buka dan sidik katalog ----- */
+/* ----- jam buka ----- */
 
 const NAMA_HARI = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
 
-/** Menyusun kalimat jam buka dari angka yang tersimpan, supaya struk, katalog,
-    dan tanda "Buka sekarang" tidak pernah saling berbeda. */
+/** Menyusun kalimat jam buka dari angka yang tersimpan, supaya kalimatnya
+    tidak pernah salah ketik. Dipakai layar pelanggan saat menganggur. */
 function kalimatJamBuka(toko) {
   const buka = String(toko.bukaJam || '').replace(':', '.');
   const tutup = String(toko.tutupJam || '').replace(':', '.');
@@ -2717,168 +2654,6 @@ function gambarHariLibur() {
   $('#set-hari-libur').innerHTML = NAMA_HARI.map((nama, h) =>
     `<button type="button" class="chip-hari ${libur.includes(h) ? 'aktif' : ''}"
        data-hari="${h}">${aman(nama.slice(0, 3))}</button>`).join('');
-}
-
-/** Sidik jari isi katalog. Gunanya hanya membandingkan apa yang sudah terbit
-    di internet dengan data kasir sekarang, jadi tidak perlu kuat: cukup
-    berubah begitu ada satu huruf yang berbeda. */
-function sidikKatalog(muatan) {
-  const teks = JSON.stringify({ toko: muatan.toko, barang: muatan.barang });
-  let a = 5381;
-  for (let i = 0; i < teks.length; i++) a = ((a << 5) + a + teks.charCodeAt(i)) | 0;
-  return String(a >>> 0);
-}
-
-function gambarKatalogPengaturan() {
-  $('#set-kode-terbit').value = db.toko.kodeTerbit || '';
-  $('#set-katalog-otomatis').checked = db.toko.katalogOtomatis !== false;
-  $('#alamat-katalog').value = alamatKatalog();
-
-  const bagian = [];
-  if (!db.toko.katalogTerbitPada) {
-    bagian.push('Katalog <b>belum pernah diterbitkan</b>. Pelanggan yang membuka alamat di atas akan melihat pesan kosong.');
-  } else if (db.toko.katalogLewatBerkas) {
-    bagian.push(`Berkas katalog terakhir disiapkan <b>${waktuSingkat(db.toko.katalogTerbitPada)}</b>,
-       berisi ${angka(db.toko.katalogJumlah || 0)} barang. Pastikan
-       <b>Perbarui Katalog Online</b> di Desktop sudah dijalankan sesudah itu.`);
-  } else {
-    bagian.push(`Katalog terakhir diterbitkan <b>${waktuSingkat(db.toko.katalogTerbitPada)}</b>,
-       berisi ${angka(db.toko.katalogJumlah || 0)} barang.`);
-  }
-
-  /* Peringatan ini menutup lubang terbesar katalog statis: harga di internet
-     diam-diam tertinggal dari harga di kasir, dan tidak ada yang menyadarinya
-     sampai ada pembeli datang membawa harga lama. */
-  if (db.toko.katalogTerbitPada && sidikKatalog(muatanKatalog()) !== db.toko.katalogSidik) {
-    bagian.push(`<span class="lencana lencana-peringatan">Belum sama</span>
-       Ada perubahan barang, harga, atau keterangan toko yang
-       <b>belum sampai ke katalog pelanggan</b>. Tekan Terbitkan Katalog sekali lagi.`);
-  }
-  $('#info-katalog').innerHTML = bagian.join('<br><br>');
-}
-
-/** Isi katalog: hanya yang boleh dilihat pembeli. Harga beli, untung,
-    jumlah stok, laporan, dan petugas tidak pernah ikut terkirim. */
-function muatanKatalog() {
-  return {
-    waktu: new Date().toISOString(),
-    toko: {
-      nama: db.toko.nama, jenis: db.toko.jenis, slogan: db.toko.slogan || '',
-      alamat: db.toko.alamat, telepon: db.toko.telepon,
-      jamBuka: db.toko.jamBuka || '',
-      // angkanya ikut dikirim supaya katalog bisa menghitung sendiri buka atau tutup
-      bukaJam: db.toko.bukaJam || '', tutupJam: db.toko.tutupJam || '',
-      hariLibur: Array.isArray(db.toko.hariLibur) ? db.toko.hariLibur : [],
-      wilayahAntar: Array.isArray(db.toko.wilayahAntar) ? db.toko.wilayahAntar : [],
-      catatanAntar: db.toko.catatanAntar || '',
-      petaTautan: db.toko.petaTautan || '', sejakTahun: db.toko.sejakTahun || '',
-      promo: Array.isArray(db.toko.promo) ? db.toko.promo : []
-    },
-    barang: db.barang.map(b => ({
-      nama: b.nama, kode: b.kode || '', satuan: b.satuan || 'pcs',
-      hargaJual: b.hargaJual, gambar: b.gambar || '', tersedia: b.stok > 0,
-      grosirJumlah: b.grosirJumlah || 0, grosirSatuan: b.grosirSatuan || '', grosirHarga: b.grosirHarga || 0
-    }))
-  };
-}
-
-/* Pembaruan otomatis setelah penjualan, barang masuk, atau perubahan harga.
-   Dikumpulkan tiga detik dulu supaya sepuluh perubahan beruntun hanya jadi
-   satu kiriman. Kalau pelayan halaman tidak ada -- misalnya aplikasi dibuka
-   dari GitHub Pages -- ia diam saja, tanpa mengganggu kasir yang sedang
-   melayani pembeli. */
-let janjiKatalog = null;
-let sedangMenyegarkanKatalog = false;   // penjaga supaya tidak berputar sendiri
-
-function perbaruiKatalogOtomatis() {
-  if (sedangMenyegarkanKatalog) return;
-  if (db.toko.katalogOtomatis === false) return;
-  if (!db.toko.katalogTerbitPada) return;   // belum pernah diterbitkan manual
-  if (!db.barang.length) return;
-  clearTimeout(janjiKatalog);
-  janjiKatalog = setTimeout(async () => {
-    const muatan = muatanKatalog();
-    try {
-      const jawaban = await fetch('terbitkan-katalog', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-kunci-terbit': db.toko.kodeTerbit || '' },
-        body: JSON.stringify(muatan)
-      });
-      if (!jawaban.ok) return;
-      db.toko.katalogTerbitPada = muatan.waktu;
-      db.toko.katalogJumlah = muatan.barang.length;
-      db.toko.katalogSidik = sidikKatalog(muatan);
-      db.toko.katalogLewatBerkas = false;
-      sedangMenyegarkanKatalog = true;
-      simpanData();
-      sedangMenyegarkanKatalog = false;
-      if ($('#layar-pengaturan').classList.contains('aktif')) gambarKatalogPengaturan();
-    } catch (e) { /* pelayan tidak ada, katalog cukup diperbarui manual nanti */ }
-  }, 3000);
-}
-
-async function terbitkanKatalog() {
-  if (!bolehPemilik()) { pesan('Hanya pemilik yang boleh menerbitkan katalog.', 'peringatan'); return; }
-  if (!db.barang.length) { pesan('Daftar barang masih kosong.', 'peringatan'); return; }
-
-  db.toko.kodeTerbit = $('#set-kode-terbit').value.replace(/\D/g, '');
-  const muatan = muatanKatalog();
-
-  const tombol = $('#btn-terbitkan-katalog');
-  tombol.disabled = true;
-  try {
-    const jawaban = await fetch('terbitkan-katalog', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-kunci-terbit': db.toko.kodeTerbit || '' },
-      body: JSON.stringify(muatan)
-    });
-    const hasil = await jawaban.json().catch(() => ({}));
-    if (!jawaban.ok) throw new Error(hasil.pesan || ('ditolak dengan kode ' + jawaban.status));
-
-    db.toko.katalogTerbitPada = muatan.waktu;
-    db.toko.katalogJumlah = muatan.barang.length;
-    db.toko.katalogSidik = sidikKatalog(muatan);
-    db.toko.katalogLewatBerkas = false;
-    catat('sistem', `Menerbitkan katalog pelanggan berisi ${muatan.barang.length} barang`);
-    simpanData();
-    gambarKatalogPengaturan();
-  gambarPromoPengaturan();
-    pesan(`Katalog terbit: ${muatan.barang.length} barang.`, 'sukses', 4000);
-  } catch (galat) {
-    /* Kasir ini dibuka dari GitHub Pages, dan di sana memang tidak ada pelayan
-       halaman yang bisa menerima kiriman. Jadi jalan lewat berkas inilah yang
-       normal, bukan kegagalan. Karena itu tidak ada peringatan merah di sini:
-       yang muncul dua langkah yang harus dikerjakan, itu saja. */
-    bukaModal({
-      judul: 'Katalog siap diterbitkan',
-      isi: `<p>Katalog berisi <b>${angka(muatan.barang.length)} barang</b> sudah disiapkan.
-          Tinggal dua langkah:</p>
-        <ol style="margin:10px 0 0 20px;line-height:1.9">
-          <li>Tekan <b>Simpan berkas katalog</b> di bawah.</li>
-          <li>Klik dua kali <b>Perbarui Katalog Online</b> di Desktop.</li>
-        </ol>
-        <p class="lemah kecil" style="margin-top:14px">Keterangan teknis: ${aman(galat.message)}</p>`,
-      aksi: [
-        { label: 'Nanti saja', kelas: 'tombol-netral', saatKlik: tutupModal },
-        {
-          label: 'Simpan berkas katalog', kelas: 'tombol-sukses', saatKlik: () => {
-            unduhBerkas('katalog.json', JSON.stringify(muatan, null, 2), 'application/json');
-            db.toko.katalogTerbitPada = muatan.waktu;
-            db.toko.katalogJumlah = muatan.barang.length;
-            db.toko.katalogSidik = sidikKatalog(muatan);
-            db.toko.katalogLewatBerkas = true;
-            catat('sistem', `Menyiapkan berkas katalog berisi ${muatan.barang.length} barang`);
-            simpanData();
-            gambarKatalogPengaturan();
-            pesan('Berkas tersimpan. Sekarang jalankan Perbarui Katalog Online di Desktop.', 'sukses', 8000);
-            tutupModal();
-          }
-        }
-      ]
-    });
-  } finally {
-    tombol.disabled = false;
-  }
 }
 
 function terapkanTema() {
@@ -3143,7 +2918,7 @@ function pasangPendengar() {
   };
   $('#btn-lupa-pin').onclick = petunjukLupaPin;
 
-  /* --- katalog pelanggan --- */
+  /* --- spanduk promo --- */
   $('#btn-tambah-promo').onclick = () => formPromo();
   $('#daftar-promo').addEventListener('click', async e => {
     const ubah = e.target.closest('[data-ubah-promo]');
@@ -3152,7 +2927,7 @@ function pasangPendengar() {
     if (hapus) {
       const urut = Number(hapus.dataset.hapusPromo);
       const judul = (db.toko.promo || [])[urut]?.judul || '';
-      if (await konfirmasi('Hapus spanduk', `Hapus spanduk <b>${aman(judul)}</b> dari katalog?`, 'Ya, hapus')) {
+      if (await konfirmasi('Hapus spanduk', `Hapus spanduk <b>${aman(judul)}</b> dari layar pelanggan?`, 'Ya, hapus')) {
         db.toko.promo.splice(urut, 1);
         catat('sistem', `Menghapus spanduk promo "${judul}"`);
         simpanData(); gambarPromoPengaturan();
@@ -3160,32 +2935,10 @@ function pasangPendengar() {
       }
     }
   });
-  $('#btn-terbitkan-katalog').onclick = terbitkanKatalog;
-  $('#set-katalog-otomatis').addEventListener('change', e => {
-    db.toko.katalogOtomatis = e.target.checked;
-    simpanData();
-    pesan(e.target.checked ? 'Katalog akan ikut diperbarui sendiri.' : 'Katalog hanya diperbarui saat tombol Terbitkan ditekan.', 'info', 4000);
-  });
-  $('#btn-buka-katalog').onclick = () => window.open(alamatKatalog(), '_blank', 'noopener');
-  $('#btn-salin-alamat').onclick = async () => {
-    try {
-      await navigator.clipboard.writeText(alamatKatalog());
-      pesan('Alamat katalog disalin. Tinggal tempel di WhatsApp.', 'sukses', 4000);
-    } catch (e) {
-      $('#alamat-katalog').select();
-      pesan('Alamat sudah ditandai, tekan Ctrl+C untuk menyalin.', 'info', 4000);
-    }
-  };
-  $('#set-kode-terbit').addEventListener('change', e => {
-    db.toko.kodeTerbit = e.target.value.replace(/\D/g, '');
-    e.target.value = db.toko.kodeTerbit;
-    simpanData();
-  });
-
   /* --- layar pelanggan --- */
   $('#btn-layar-pelanggan').onclick = bukaLayarPelanggan;
-  $('#btn-tampilan-pelanggan').onclick = pintuTampilanPelanggan;
-  $('#menu-tampilan-pelanggan').onclick = pintuTampilanPelanggan;
+  $('#btn-tampilan-pelanggan').onclick = bukaLayarPelanggan;
+  $('#menu-tampilan-pelanggan').onclick = bukaLayarPelanggan;
   $('#btn-cadangan').onclick = unduhCadangan;
   $('#btn-pulihkan').onclick = () => $('#berkas-pulih').click();
   $('#berkas-pulih').onchange = e => {
