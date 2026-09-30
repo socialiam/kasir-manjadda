@@ -68,7 +68,7 @@ function lewatJaringanDulu(permintaan) {
 self.addEventListener('fetch', peristiwa => {
   const permintaan = peristiwa.request;
 
-  // Pengiriman katalog dan permintaan selain GET tidak pernah disentuh.
+  // Permintaan selain GET tidak pernah disentuh.
   if (permintaan.method !== 'GET') return;
 
   const alamat = new URL(permintaan.url);

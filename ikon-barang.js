@@ -1,6 +1,6 @@
 /* ============================================================
    IKON BARANG - dipakai bersama oleh tiga halaman:
-   index.html (kasir), pelanggan.html (layar pembeli), katalog.html.
+   index.html (kasir) dan pelanggan.html (layar pembeli).
 
    Gambar digambar sendiri sebagai SVG, bukan foto. Alasannya: foto milik
    orang lain tidak boleh dipakai, dan satu foto memakan jatah penyimpanan
@@ -120,7 +120,7 @@ function ikonBarang(barang, kelasTambahan = '') {
   return `<span class="ikon-barang ${kelasTambahan}">${bingkaiSvg(GAMBAR_BARANG[kunci] || GAMBAR_BARANG.kardus)}</span>`;
 }
 
-/* Kategori untuk katalog pelanggan. Diambil dari ikon barang, jadi pemilik
+/* Kategori untuk layar Jual Barang. Diambil dari ikon barang, jadi pemilik
    tidak perlu mengisi kategori satu per satu: begitu ikonnya benar,
    kategorinya ikut benar dengan sendirinya. */
 const KATEGORI_GAMBAR = {

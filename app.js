@@ -163,7 +163,7 @@ function dataAwal() {
       { id: idBaru(), nama: 'Bpk Kamal', peran: 'pemilik', pin: acakPin('123456') },
       { id: idBaru(), nama: 'Vidal', peran: 'karyawan', pin: '' }
     ],
-    /* Daftar awal: lima barang pertama diambil dari katalog WhatsApp toko,
+    /* Daftar awal: lima barang pertama diambil dari daftar WhatsApp toko,
        sisanya barang pecah belah yang umum. SEMUA HARGA DI SINI PERKIRAAN
        untuk keperluan uji coba; pemilik membetulkannya lewat Daftar Barang. */
     barang: [
@@ -209,6 +209,14 @@ function lengkapi(data) {
     'pelanggan'].forEach(k => {
     if (!Array.isArray(hasil[k])) hasil[k] = [];
   });
+
+  /* Toko online dibuang pada pembaruan 26. Sepuluh bidang di bawah ini ikut
+     mati, tetapi data yang sudah tersimpan di browser pemilik masih
+     membawanya. Dibersihkan sekali di sini, supaya cadangan yang diunduh
+     dan hitungan penyimpanan tidak memuat sampah yang tidak dipakai. */
+  ['katalogOtomatis', 'katalogTerbitPada', 'katalogJumlah', 'katalogSidik',
+    'katalogLewatBerkas', 'kodeTerbit', 'wilayahAntar', 'catatanAntar',
+    'petaTautan', 'sejakTahun'].forEach(mati => { delete hasil.toko[mati]; });
   // Peran disimpan sebagai dua nilai tetap. Data lama memakai tulisan bebas,
   // jadi apa pun yang bukan "pemilik" dianggap karyawan.
   hasil.petugas.forEach(p => {
