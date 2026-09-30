@@ -123,6 +123,9 @@
             <kbd class="kunci hanya-besar">F2</kbd>
           </div>
           <div id="kategori-jual" class="chip-geser"></div>
+          <!-- Jejak langkah penelusuran barang. Kosong dan tersembunyi
+               selama kasir masih di tingkat paling atas. -->
+          <div id="jejak-barang" class="jejak-barang tersembunyi"></div>
           <div id="grid-barang-jual" class="grid-barang"></div>
         </div>
 
@@ -213,7 +216,8 @@
         <div class="tabel-bungkus">
           <table class="tabel" id="tabel-barang">
             <thead><tr>
-              <th>Kode</th><th>Nama Barang</th><th class="kanan">Harga Beli</th>
+              <th>Kode</th><th>Nama Barang</th><th>Merek</th><th>Tipe/Ukuran</th>
+              <th class="kanan">Harga Beli</th>
               <th class="kanan">Harga Jual</th><th class="kanan">Untung</th>
               <th class="tengah">Stok</th><th class="tengah">Aksi</th>
             </tr></thead>

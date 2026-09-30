@@ -143,18 +143,57 @@ pencarian sedang aktif — barang langsung masuk keranjang.
 **Menambah barang baru:** Daftar Barang → **＋ Tambah Barang**.
 Tidak perlu lagi membuka berkas `app.js`.
 
+### Satu barang dikenali dari tiga tingkat
+
+Sama seperti buku induk toko:
+
+| Nama produk | Merek | Tipe / Ukuran |
+| --- | --- | --- |
+| BASKOM STAINLESS | DALAM | 24 CM |
+| BASKOM STAINLESS | DALAM | 26 CM |
+| BASKOM STAINLESS | NOMURI | 24 CM |
+
+**Merek dan tipe boleh dikosongkan.** Barang yang hanya punya nama tetap
+bekerja seperti dulu, jadi daftar lama tidak perlu diubah apa-apa.
+
+Gunanya terasa di layar **Jual**. Barang yang bersaudara tidak lagi berderet
+satu per satu; ia menjadi satu pintu, dan memilihnya cukup tiga ketukan pendek:
+
+```
+BASKOM STAINLESS (5 pilihan)  →  DALAM (3)  →  24 CM  →  masuk keranjang
+```
+
+Yang sudah hafal barangnya tidak perlu menelusuri sama sekali: mengetik di
+kotak pencarian langsung melompati semuanya, dan sekarang merek serta ukuran
+ikut dicari, bukan cuma nama dan kode.
+
+**Harga boleh menyusul.** Barang bisa didaftarkan dengan nama saja lebih dulu.
+Yang belum berharga ditandai di Daftar Barang, bisa disaring dengan tombol
+**Belum ada harga**, dan tidak akan bisa masuk keranjang sampai harganya diisi
+— jadi tidak ada yang terjual nol rupiah karena terlupa.
+
 **Mengisi banyak barang sekaligus:** Daftar Barang → **📋 Isi Cepat Banyak
 Barang**. Tulis satu barang per baris:
 
 ```
-Lemari pakaian Plastik ; 450000 ; 380000 ; 3
-Rak piring Aluminium Master ; 185000 ; 150000 ; 6
+BASKOM STAINLESS ; DALAM ; 24 CM ; BSD24 ; 35000 ; 27000 ; 12
+BASKOM STAINLESS ; NOMURI ; 24 CM ; ; 38000 ; 30000 ; 6
+Ember plastik besar ; ; ; ; 35000 ; 27000 ; 12
 ```
 
-Urutannya: nama ; harga jual ; harga beli ; stok. Harga beli dan stok boleh
-dikosongkan. Nama yang sudah ada tidak dibuat dua kali — harga dan stoknya
-diperbarui. Sebelum disimpan, aplikasi menampilkan dulu berapa yang ditambah,
-berapa yang diperbarui, dan baris mana yang dilewati beserta alasannya.
+Urutannya: nama ; merek ; tipe/ukuran ; kode ; harga jual ; harga beli ; stok.
+Semua kolom sesudah nama boleh dikosongkan — tanda titik komanya tetap ditulis
+supaya kolomnya tidak bergeser.
+
+**Bisa ditempel langsung dari Excel:** sorot kolomnya dengan urutan di atas,
+salin, tempel. Hasil **⭳ Unduh Daftar** juga memakai urutan kolom yang sama,
+jadi daftarnya bisa dibetulkan di Excel lalu ditempel balik.
+
+Barang dianggap sama kalau **nama, merek, dan tipenya** sama, jadi 24 CM dan
+26 CM tetap dua barang berbeda. Yang sudah ada diperbarui, bukan dibuat dua
+kali, dan kolom yang dikosongkan tidak menghapus isi lama. Sebelum disimpan,
+aplikasi menampilkan dulu berapa yang ditambah, berapa yang diperbarui, berapa
+yang belum berharga, dan baris mana yang dilewati beserta alasannya.
 
 **Salah input?** Laporan → cari notanya → tombol ↺ **Batalkan**.
 Stoknya dikembalikan dan nota itu tidak lagi dihitung di laporan, tetapi

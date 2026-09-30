@@ -511,6 +511,33 @@ label .input, label select{ margin-top:6px; font-weight:500; color:var(--teks); 
 
 .kartu-barang .stok.menipis{ color:var(--peringatan); }
 .kartu-barang .stok.habis{ color:var(--bahaya); }
+.kartu-barang .belum-harga{
+  color:var(--peringatan); font-weight:700; font-size:12px;
+}
+
+/* ---------- penelusuran tiga tingkat ----------
+   Kartu kelompok harus terlihat sebagai PINTU, bukan sebagai barang.
+   Kalau keduanya sama rupa, kasir akan mengira sudah menekan barang
+   padahal baru membuka rak. */
+.kartu-barang.kartu-kelompok{
+  background:var(--sorot);
+  border-color:color-mix(in srgb, var(--utama) 40%, var(--garis));
+  border-style:dashed;
+}
+.kartu-barang.kartu-kelompok:hover{ border-style:solid; }
+.kartu-barang .lanjut{
+  color:var(--utama-gelap); font-weight:800; font-size:13px;
+}
+[data-tema="gelap"] .kartu-barang .lanjut{ color:#c7d2fe; }
+
+.jejak-barang{
+  display:flex; align-items:center; gap:10px; flex-wrap:wrap;
+  margin:0 0 10px; min-width:0;
+}
+.jejak-barang .jalur{
+  font-weight:800; font-size:14px; color:var(--teks);
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap; min-width:0;
+}
 
 /* ---------- ikon barang ---------- */
 .ikon-barang{ display:inline-flex; width:42px; height:42px; color:var(--utama); flex:none; }

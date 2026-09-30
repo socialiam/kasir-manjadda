@@ -116,7 +116,7 @@ const KUNCI_SIMPAN = 'kasirToko.v1';
    benar-benar yang terbaru: angkanya terlihat di layar Pengaturan paling bawah.
    Kalau angka di layar tidak sama dengan yang disebutkan, berarti browser masih
    memakai simpanan lama dan perlu dimuat ulang dengan Ctrl+Shift+R. */
-const VERSI_APLIKASI = '30 September 2026 - pembaruan 28 (kasir polos)';
+const VERSI_APLIKASI = '1 Oktober 2026 - pembaruan 29 (tiga tingkat barang)';
 
 /** Isi awal saat aplikasi pertama kali dibuka. Semua bisa diubah dari dalam aplikasi. */
 function dataAwal() {
@@ -217,6 +217,10 @@ function lengkapi(data) {
   hasil.barang.forEach(b => {
     b.id ??= idBaru();
     b.satuan ??= 'pcs';
+    // Tiga tingkat pengenalan barang. Data lama hanya punya nama, dan itu
+    // tetap sah: ia jadi barang bertingkat satu.
+    b.merek ??= '';
+    b.tipe ??= '';
     b.gambar ??= '';   // kosong berarti ikon ditebak dari nama barang
     // Harga borongan dibuang pada pembaruan 27. Sisa bidangnya di data lama
     // dibersihkan supaya cadangan tidak membawa yang tidak dipakai lagi.
@@ -260,6 +264,38 @@ function simpanData(data = db) {
 }
 
 const cariBarang = id => db.barang.find(b => b.id === id);
+
+/* ========== TIGA TINGKAT PENGENALAN BARANG ==========
+   Berkas induk toko mengenali barang dari tiga kolom, bukan satu nama:
+
+       NAMA PRODUK        MEREK      TIPE/UKURAN
+       BASKOM STAINLESS   DALAM      24 CM
+
+   Itu memang cara orang pecah belah berpikir, dan itu pula yang membuat
+   memilih barang di depan pembeli jadi tiga ketukan pendek, bukan
+   menggulir dua ribu baris yang awalnya sama semua.
+
+   Merek dan tipe BOLEH KOSONG. Barang yang hanya punya nama tetap bekerja
+   seperti dulu: ia langsung masuk keranjang tanpa ditanya apa-apa. */
+
+/** Saran isian dari barang yang sudah ada di toko ini. Dengan ribuan
+    barang, mengetik ulang "GM PLASTICK" berkali-kali adalah cara tercepat
+    melahirkan tiga merek berbeda yang sebenarnya satu. */
+function daftarSaranBarang() {
+  const unik = ambil => [...new Set(db.barang.map(ambil).filter(Boolean))]
+    .sort((a, b) => a.localeCompare(b, 'id', { numeric: true }));
+  const pilihan = daftar => daftar.map(x => `<option value="${aman(x)}">`).join('');
+  return `<datalist id="daftar-nama">${pilihan(unik(b => b.nama))}</datalist>
+    <datalist id="daftar-merek">${pilihan(unik(b => b.merek))}</datalist>
+    <datalist id="daftar-tipe">${pilihan(unik(b => b.tipe))}</datalist>
+    <datalist id="daftar-kode">${pilihan(unik(b => b.kode))}</datalist>`;
+}
+
+/** Nama utuh satu barang, untuk struk, laporan, dan pencarian. */
+const namaLengkap = b => [b.nama, b.merek, b.tipe].filter(Boolean).join(' ');
+
+/** Bagian yang membedakan satu barang dari saudaranya satu merek. */
+const namaPembeda = b => b.tipe || b.merek || b.nama;
 const barangMenipis = () => db.barang.filter(b => b.stok <= (b.stokMinimum ?? 5));
 
 
@@ -796,29 +832,120 @@ function gambarKategoriJual() {
   $('#kategori-jual').classList.toggle('tersembunyi', ada.length < 2);
 }
 
+/* ----- penelusuran tiga tingkat di layar Jual -----
+   Tanpa ini, dua ribu barang yang namanya berawalan sama harus digulir
+   satu per satu di depan pembeli. Dengan ini: ketuk nama, ketuk merek,
+   ketuk ukuran. Tiga ketukan pendek, tidak ada yang perlu dibaca sampai
+   ujung baris. */
+
+const TANPA_MEREK = '(tanpa merek)';
+let pilihNama = null;    // NAMA PRODUK yang sedang dibuka
+let pilihMerek = null;   // MEREK yang sedang dibuka
+
+function lupakanPenelusuran() { pilihNama = null; pilihMerek = null; }
+
+function kembaliSatuTingkat() {
+  if (pilihMerek !== null) pilihMerek = null; else pilihNama = null;
+  gambarPilihanBarang();
+}
+
+/** Kartu satu barang: sekali ketuk langsung masuk keranjang. */
+function kartuBarang(b, label) {
+  const sisa = stokTersedia(b);
+  const kelas = sisa <= 0 ? 'habis' : (sisa <= (b.stokMinimum ?? 5) ? 'menipis' : '');
+  return `<button class="kartu-barang" data-tambah="${b.id}" ${sisa <= 0 ? 'disabled' : ''}>
+    ${ikonBarang(b)}
+    <span class="nama">${aman(label)}</span>
+    <span class="harga">${b.hargaJual > 0 ? rupiah(b.hargaJual)
+      : '<span class="belum-harga">belum ada harga</span>'}</span>
+    <span class="stok ${kelas}">${sisa <= 0 ? 'Stok habis' : 'Sisa ' + angka(sisa) + ' ' + aman(b.satuan)}</span>
+  </button>`;
+}
+
+/** Kartu kelompok: sekali ketuk membuka isinya, belum masuk keranjang. */
+function kartuKelompok(label, isi, tingkat) {
+  const sisa = isi.reduce((j, b) => j + stokTersedia(b), 0);
+  return `<button class="kartu-barang kartu-kelompok" data-buka-${tingkat}="${aman(label)}">
+    ${ikonBarang(isi[0])}
+    <span class="nama">${aman(label)}</span>
+    <span class="lanjut">${angka(isi.length)} pilihan &rsaquo;</span>
+    <span class="stok ${sisa <= 0 ? 'habis' : ''}">${sisa <= 0 ? 'Semua habis' : 'Sisa ' + angka(sisa)}</span>
+  </button>`;
+}
+
 function gambarPilihanBarang() {
   const cari = $('#cari-barang-jual').value.trim().toLowerCase();
-  const daftar = db.barang
-    .filter(b => kategoriJual === 'Semua' || kategoriBarang(b) === kategoriJual)
-    .filter(b => !cari || b.nama.toLowerCase().includes(cari) || (b.kode || '').toLowerCase().includes(cari))
-    .sort((a, b) => a.nama.localeCompare(b.nama, 'id'));
-
   const kotak = $('#grid-barang-jual');
-  if (!daftar.length) {
-    kotak.innerHTML = `<div class="kosong">Barang tidak ditemukan.<br>
-      Tambahkan lewat menu <b>Daftar Barang</b>.</div>`;
-    return;
+  const jejak = $('#jejak-barang');
+
+  /* Mencari selalu melompati penelusuran. Kasir yang sudah hafal barangnya
+     tidak boleh dipaksa menekan tiga kali untuk sampai ke sana. */
+  if (cari) lupakanPenelusuran();
+
+  const cocok = b => !cari
+    || namaLengkap(b).toLowerCase().includes(cari)
+    || (b.kode || '').toLowerCase().includes(cari);
+  const sekategori = b => kategoriJual === 'Semua' || kategoriBarang(b) === kategoriJual;
+  const semua = db.barang.filter(b => sekategori(b) && cocok(b));
+
+  // Angka diurutkan sebagai angka, supaya 9 CM tidak mendahului 20 CM.
+  const urut = (a, b) => String(a).localeCompare(String(b), 'id', { numeric: true });
+  const kelompokkan = (daftar, ambil) => {
+    const peta = new Map();
+    daftar.forEach(b => {
+      const kunci = ambil(b);
+      if (!peta.has(kunci)) peta.set(kunci, []);
+      peta.get(kunci).push(b);
+    });
+    return peta;
+  };
+
+  let kartu, jalur = '';
+
+  if (cari) {
+    kartu = semua.sort((a, b) => urut(namaLengkap(a), namaLengkap(b)))
+      .map(b => kartuBarang(b, namaLengkap(b)));
+
+  } else if (pilihNama === null) {
+    const peta = kelompokkan(semua, b => b.nama);
+    kartu = [...peta.keys()].sort(urut).map(nama => {
+      const isi = peta.get(nama);
+      // Satu isi berarti tidak ada yang perlu dipilih: langsung barangnya.
+      return isi.length === 1 ? kartuBarang(isi[0], namaLengkap(isi[0]))
+        : kartuKelompok(nama, isi, 'nama');
+    });
+
+  } else {
+    const seNama = semua.filter(b => b.nama === pilihNama);
+    const merekAda = [...new Set(seNama.map(b => b.merek || TANPA_MEREK))];
+
+    if (pilihMerek === null && merekAda.length > 1) {
+      jalur = pilihNama;
+      const peta = kelompokkan(seNama, b => b.merek || TANPA_MEREK);
+      kartu = [...peta.keys()].sort(urut).map(merek => {
+        const isi = peta.get(merek);
+        return isi.length === 1 ? kartuBarang(isi[0], namaPembeda(isi[0]))
+          : kartuKelompok(merek, isi, 'merek');
+      });
+    } else {
+      // Satu merek saja: tingkat merek dilewati, langsung ke ukurannya.
+      const isi = pilihMerek === null ? seNama
+        : seNama.filter(b => (b.merek || TANPA_MEREK) === pilihMerek);
+      jalur = [pilihNama, pilihMerek].filter(Boolean).join(' &rsaquo; ');
+      kartu = isi.sort((a, b) => urut(namaPembeda(a), namaPembeda(b)))
+        .map(b => kartuBarang(b, namaPembeda(b)));
+    }
   }
-  kotak.innerHTML = daftar.map(b => {
-    const sisa = stokTersedia(b);
-    const kelas = sisa <= 0 ? 'habis' : (sisa <= (b.stokMinimum ?? 5) ? 'menipis' : '');
-    return `<button class="kartu-barang" data-tambah="${b.id}" ${sisa <= 0 ? 'disabled' : ''}>
-      ${ikonBarang(b)}
-      <span class="nama">${aman(b.nama)}</span>
-      <span class="harga">${rupiah(b.hargaJual)}</span>
-      <span class="stok ${kelas}">${sisa <= 0 ? 'Stok habis' : 'Sisa ' + angka(sisa) + ' ' + aman(b.satuan)}</span>
-    </button>`;
-  }).join('');
+
+  jejak.innerHTML = jalur
+    ? `<button class="tombol tombol-netral kecil" id="btn-jejak-kembali">&larr; Kembali</button>
+       <span class="jalur">${jalur}</span>`
+    : '';
+  jejak.classList.toggle('tersembunyi', !jalur);
+
+  kotak.innerHTML = kartu.length ? kartu.join('')
+    : `<div class="kosong">Barang tidak ditemukan.<br>
+        Tambahkan lewat menu <b>Daftar Barang</b>.</div>`;
 }
 
 /** Menambahkan satu barang ke keranjang. Selalu per satuan barang itu. */
@@ -830,12 +957,12 @@ function tambahKeKeranjang(idBarang, jumlah = 1) {
      terjual tanpa harga -- tanpa penjaga ini ia masuk keranjang seharga Rp 0
      dan baru ketahuan sesudah uangnya diterima. */
   if (!(barang.hargaJual > 0)) {
-    pesan(`Harga ${barang.nama} belum diisi. Isi dulu lewat Daftar Barang.`, 'peringatan', 5000);
+    pesan(`Harga ${namaLengkap(barang)} belum diisi. Isi dulu lewat Daftar Barang.`, 'peringatan', 5000);
     return;
   }
 
   if (stokTersedia(barang) < jumlah) {
-    pesan(`Stok ${barang.nama} tinggal ${stokTersedia(barang)} ${barang.satuan}.`, 'peringatan', 4000);
+    pesan(`Stok ${namaLengkap(barang)} tinggal ${stokTersedia(barang)} ${barang.satuan}.`, 'peringatan', 4000);
     return;
   }
 
@@ -845,7 +972,7 @@ function tambahKeKeranjang(idBarang, jumlah = 1) {
     barisTerakhirDitambah = keranjang.indexOf(adaDiKeranjang);
   } else {
     keranjang.push({
-      idBarang, kode: barang.kode, nama: barang.nama,
+      idBarang, kode: barang.kode, nama: namaLengkap(barang),
       satuan: barang.satuan,
       hargaJual: barang.hargaJual,
       hargaBeli: barang.hargaBeli,
@@ -946,6 +1073,7 @@ function hitungTotal() {
 
 function kosongkanKeranjang() {
   keranjang = [];
+  lupakanPenelusuran();
   $('#diskon').value = '';
   $('#bayar').value = '';
   gambarKeranjang();
@@ -1127,7 +1255,9 @@ let saringBarang = 'semua';
     `posisi` menyimpan urutan asli pemasukan barang, dipakai untuk
     "paling baru" dan "paling lama" tanpa perlu menyimpan tanggal. */
 function pembandingBarang(cara, posisi) {
-  const abjad = (a, b) => a.nama.localeCompare(b.nama, 'id');
+  // Nama utuh, supaya saudara satu merek berderet rapi; numeric, supaya
+  // ukuran 9 CM tidak mendahului 20 CM seperti pada urutan huruf biasa.
+  const abjad = (a, b) => namaLengkap(a).localeCompare(namaLengkap(b), 'id', { numeric: true });
   const untung = b => b.hargaJual - b.hargaBeli;
   switch (cara) {
     case 'nama-za': return (a, b) => abjad(b, a);
@@ -1147,7 +1277,8 @@ function gambarTabelBarang() {
   $('#urut-barang').value = db.toko.urutBarang || 'nama-az';
   const posisi = new Map(db.barang.map((b, i) => [b.id, i]));
   let daftar = db.barang.slice();
-  if (cari) daftar = daftar.filter(b => b.nama.toLowerCase().includes(cari) || (b.kode || '').toLowerCase().includes(cari));
+  if (cari) daftar = daftar.filter(b => namaLengkap(b).toLowerCase().includes(cari)
+    || (b.kode || '').toLowerCase().includes(cari));
   if (saringBarang === 'menipis') daftar = daftar.filter(b => b.stok <= (b.stokMinimum ?? 5) && b.stok > 0);
   if (saringBarang === 'habis') daftar = daftar.filter(b => b.stok <= 0);
   if (saringBarang === 'belum-harga') daftar = daftar.filter(b => !(b.hargaJual > 0));
@@ -1171,6 +1302,8 @@ function gambarTabelBarang() {
     return `<tr>
       <td class="lemah">${aman(b.kode || '-')}</td>
       <td><span class="sel-nama">${ikonBarang(b, 'ikon-mini')}<b>${aman(b.nama)}</b></span></td>
+      <td class="lemah">${aman(b.merek || '-')}</td>
+      <td class="lemah">${aman(b.tipe || '-')}</td>
       <td class="kanan">${angka(b.hargaBeli)}</td>
       <td class="kanan">${b.hargaJual > 0
         ? `<b>${angka(b.hargaJual)}</b>`
@@ -1196,9 +1329,17 @@ function formBarang(id = null) {
     judul: b ? 'Ubah Barang' : 'Tambah Barang Baru',
     isi: `<div class="form-grid" style="margin:0">
         <label class="lebar-penuh">Nama barang
-          <input id="f-nama" class="input" type="text" value="${aman(b?.nama || '')}" placeholder="Contoh: Sapu lidi"></label>
+          <input id="f-nama" class="input" type="text" value="${aman(b?.nama || '')}"
+                 list="daftar-nama" placeholder="Contoh: Baskom Stainless"></label>
+        <label>Merek <span class="lemah kecil">(boleh kosong)</span>
+          <input id="f-merek" class="input" type="text" value="${aman(b?.merek || '')}"
+                 list="daftar-merek" placeholder="Contoh: Dalam"></label>
+        <label>Tipe / Ukuran <span class="lemah kecil">(boleh kosong)</span>
+          <input id="f-tipe" class="input" type="text" value="${aman(b?.tipe || '')}"
+                 list="daftar-tipe" placeholder="Contoh: 24 CM"></label>
         <label>Kode <span class="lemah kecil">(boleh kosong)</span>
-          <input id="f-kode" class="input" type="text" value="${aman(b?.kode || '')}"></label>
+          <input id="f-kode" class="input" type="text" value="${aman(b?.kode || '')}"
+                 list="daftar-kode"></label>
         <label>Satuan
           <input id="f-satuan" class="input" type="text" value="${aman(b?.satuan || 'pcs')}" placeholder="pcs / lusin / kg"></label>
         <label>Harga beli (modal)
@@ -1210,7 +1351,10 @@ function formBarang(id = null) {
         <label>Ingatkan bila stok tinggal
           <input id="f-minimum" class="input" type="number" min="0" step="1" value="${b ? (b.stokMinimum ?? 5) : 5}"></label>
       </div>
-      <p class="lemah kecil" style="margin-top:12px">Untung per barang dihitung sendiri dari harga jual dikurangi harga beli.</p>
+      <p class="lemah kecil" style="margin-top:12px">Nama, merek, dan tipe adalah tiga tingkat
+        pengenalan barang &mdash; sama seperti buku induk toko. Merek dan tipe boleh dikosongkan.
+        Untung dihitung sendiri dari harga jual dikurangi harga beli.</p>
+      ${daftarSaranBarang()}
       <p style="margin-top:14px"><b>Gambar barang</b>
         <span class="lemah kecil">&mdash; kalau dibiarkan Otomatis, gambar dipilih sendiri dari nama barang</span></p>
       <input type="hidden" id="f-gambar" value="${aman(b?.gambar || '')}">
@@ -1236,6 +1380,8 @@ function simpanBarang(id) {
   if (!nama) { pesan('Nama barang belum diisi.', 'peringatan'); $('#f-nama').focus(); return; }
   const isian = {
     nama,
+    merek: $('#f-merek').value.trim(),
+    tipe: $('#f-tipe').value.trim(),
     kode: $('#f-kode').value.trim(),
     satuan: $('#f-satuan').value.trim() || 'pcs',
     hargaBeli: nilaiAngka($('#f-beli')),
@@ -1252,7 +1398,9 @@ function simpanBarang(id) {
     const lama = cariBarang(id);
     // Yang dicatat hanya yang benar-benar berubah, supaya buku catatan tetap terbaca.
     const ubahan = [];
-    if (lama.nama !== isian.nama) ubahan.push(`nama "${lama.nama}" jadi "${isian.nama}"`);
+    if (namaLengkap(lama) !== namaLengkap(isian)) {
+      ubahan.push(`nama "${namaLengkap(lama)}" jadi "${namaLengkap(isian)}"`);
+    }
     if (lama.hargaJual !== isian.hargaJual) ubahan.push(`harga jual ${angka(lama.hargaJual)} jadi ${angka(isian.hargaJual)}`);
     if (lama.hargaBeli !== isian.hargaBeli) ubahan.push(`harga beli ${angka(lama.hargaBeli)} jadi ${angka(isian.hargaBeli)}`);
     if (lama.stok !== isian.stok) ubahan.push(`stok ${angka(lama.stok)} jadi ${angka(isian.stok)}`);
@@ -1260,7 +1408,7 @@ function simpanBarang(id) {
     Object.assign(lama, isian);
   } else {
     db.barang.push({ id: idBaru(), ...isian });
-    catat('barang', `Menambah barang baru "${isian.nama}", jual ${angka(isian.hargaJual)}, stok awal ${angka(isian.stok)}`);
+    catat('barang', `Menambah barang baru "${namaLengkap(isian)}", jual ${angka(isian.hargaJual)}, stok awal ${angka(isian.stok)}`);
   }
 
   simpanData();
@@ -1295,12 +1443,16 @@ function formImporBarang() {
   bukaModal({
     judul: 'Isi Cepat Banyak Barang',
     isi: `<p class="lemah">Tulis satu barang per baris dengan urutan:</p>
-      <p style="font-family:monospace;background:var(--sorot);padding:10px;border-radius:8px;font-size:14px">
-        nama barang ; harga jual ; harga beli ; stok</p>
-      <p class="lemah kecil">Harga beli dan stok boleh dikosongkan. Kalau nama barang sudah ada di daftar,
-        harganya diperbarui dan stoknya diganti, bukan dibuat dua kali.</p>
+      <p style="font-family:monospace;background:var(--sorot);padding:10px;border-radius:8px;font-size:13.5px">
+        nama ; merek ; tipe/ukuran ; kode ; harga jual ; harga beli ; stok</p>
+      <p class="lemah kecil">Semua kolom sesudah nama boleh dikosongkan &mdash; kosongkan saja
+        tanda titik komanya tetap ada. Harga pun boleh menyusul.
+        Barang dianggap sama kalau <b>nama, merek, dan tipenya</b> sama; yang sudah ada
+        diperbarui, bukan dibuat dua kali. Kolom yang dikosongkan tidak menghapus isi lama.</p>
+      <p class="lemah kecil"><b>Dari Excel:</b> sorot kolomnya dengan urutan di atas, salin, lalu tempel
+        langsung ke kotak ini. Hasil unduhan daftar barang juga bisa ditempel balik ke sini.</p>
       <textarea id="impor-teks" class="input" spellcheck="false"
-        placeholder="Contoh &mdash; hapus tulisan ini, lalu tulis daftar Bapak sendiri:&#10;Lemari pakaian Plastik ; 450000 ; 380000 ; 3&#10;Lemari plastik TwinnPan ; 520000 ; 440000 ; 2&#10;Lemari Plastik BESTPLAST ; 610000 ; 520000 ; 2&#10;Rak piring Aluminium Master ; 185000 ; 150000 ; 6&#10;Ember plastik besar ; 35000 ; 27000 ; 12"></textarea>
+        placeholder="Contoh &mdash; hapus tulisan ini, lalu tulis daftar Bapak sendiri:&#10;Baskom Stainless ; Dalam ; 24 CM ; BSD24 ; 35000 ; 27000 ; 12&#10;Baskom Stainless ; Dalam ; 26 CM ; BSD26 ; 42000 ; 33000 ; 8&#10;Baskom Stainless ; Nomuri ; 24 CM ; ; 38000 ; 30000 ; 6&#10;Lemari pakaian ; TwinnPan ; 4 Pintu ; ; 520000 ; 440000 ; 2&#10;Ember plastik besar ; ; ; ; 35000 ; 27000 ; 12"></textarea>
       <p class="lemah kecil" style="margin-top:10px"><b>Angka contoh di atas hanya contoh.</b>
         Isi dengan harga toko Bapak yang sebenarnya.</p>`,
     aksi: [
@@ -1314,19 +1466,38 @@ async function imporBarang() {
   const baris = $('#impor-teks').value.split('\n');
   const tambah = [], perbarui = [], lewat = [];
 
+  /* Excel menyalin dengan tanda tab, orang mengetik dengan titik koma, dan
+     hasil unduhan CSV membungkus tiap sel dengan tanda kutip. Ketiganya
+     harus diterima, kalau tidak "tempel dari Excel" cuma janji. */
+  const belahBaris = t => t.split(/[;\t]/)
+    .map(x => x.trim().replace(/^"(.*)"$/s, '$1').replace(/""/g, '"').trim());
+  const keAngka = t => parseInt(String(t ?? '').replace(/\D/g, ''), 10) || 0;
+  const angkaMurni = t => t !== undefined && /^[\d.,]*$/.test(t);
+
   baris.forEach((b, nomorBaris) => {
     if (!b.trim()) return;
-    const bagian = b.split(/[;\t]/).map(x => x.trim());
-    const nama = bagian[0];
-    const hargaJual = parseInt(String(bagian[1] ?? '').replace(/\D/g, ''), 10) || 0;
-    const hargaBeli = parseInt(String(bagian[2] ?? '').replace(/\D/g, ''), 10) || 0;
-    const stok = parseInt(String(bagian[3] ?? '').replace(/\D/g, ''), 10) || 0;
+    let [nama, merek, tipe, kode, jual, beli, stok] = belahBaris(b);
+
+    /* Urutan lama hanya punya empat kolom: nama ; jual ; beli ; stok.
+       Kalau ketiga kolom sesudah nama semuanya angka, itu pasti bentuk lama,
+       sebab merek toko tidak pernah berupa angka telanjang. Tanpa penjagaan
+       ini, 450000 akan tersimpan sebagai nama merek tanpa ada yang tahu. */
+    if (jual === undefined && angkaMurni(merek) && angkaMurni(tipe) && angkaMurni(kode)) {
+      [jual, beli, stok] = [merek, tipe, kode];
+      merek = tipe = kode = '';
+    }
 
     if (!nama) { lewat.push(`Baris ${nomorBaris + 1}: nama kosong`); return; }
-    if (hargaJual <= 0) { lewat.push(`Baris ${nomorBaris + 1}: "${nama}" tidak ada harga jual`); return; }
+    const isian = {
+      nama, merek: merek || '', tipe: tipe || '', kode: kode || '',
+      hargaJual: keAngka(jual), hargaBeli: keAngka(beli), stok: keAngka(stok)
+    };
 
-    const sudahAda = db.barang.find(x => x.nama.toLowerCase() === nama.toLowerCase());
-    (sudahAda ? perbarui : tambah).push({ nama, hargaJual, hargaBeli, stok, lama: sudahAda });
+    // Yang membedakan satu barang dari yang lain adalah ketiga tingkatnya,
+    // bukan namanya saja. Tanpa ini, semua ukuran baskom jadi satu barang.
+    const kunci = namaLengkap(isian).toLowerCase();
+    const sudahAda = db.barang.find(x => namaLengkap(x).toLowerCase() === kunci);
+    (sudahAda ? perbarui : tambah).push({ ...isian, lama: sudahAda });
   });
 
   if (!tambah.length && !perbarui.length) {
@@ -1334,20 +1505,26 @@ async function imporBarang() {
     return;
   }
 
+  const tanpaHarga = [...tambah, ...perbarui].filter(x => !(x.hargaJual > 0)).length;
   const ya = await konfirmasi('Periksa dulu',
     `<b>${tambah.length}</b> barang baru akan ditambahkan.<br>
-     <b>${perbarui.length}</b> barang yang sudah ada akan diperbarui harga dan stoknya.<br>
+     <b>${perbarui.length}</b> barang yang sudah ada akan diperbarui.<br>
+     ${tanpaHarga ? `<span class="lencana lencana-peringatan">${tanpaHarga} baris belum ada harga jual</span>
+       <span class="kecil">&mdash; tetap dimasukkan, harganya bisa diisi menyusul.</span><br>` : ''}
      ${lewat.length ? `<b style="color:var(--bahaya)">${lewat.length} baris dilewati:</b><br>
        <span class="kecil">${lewat.slice(0, 5).map(aman).join('<br>')}${lewat.length > 5 ? '<br>dan lainnya' : ''}</span>` : ''}`,
     'Ya, masukkan', false);
   if (!ya) return;
 
   tambah.forEach(x => db.barang.push({
-    id: idBaru(), kode: '', nama: x.nama, satuan: 'pcs',
+    id: idBaru(), kode: x.kode, nama: x.nama, merek: x.merek, tipe: x.tipe, satuan: 'pcs',
     hargaBeli: x.hargaBeli, hargaJual: x.hargaJual, stok: x.stok, stokMinimum: 5
   }));
+  // Kolom yang dikosongkan berarti "jangan diubah", bukan "jadikan nol".
+  // Sekali saja harga tergantikan nol, angkanya tidak bisa dikembalikan.
   perbarui.forEach(x => Object.assign(x.lama, {
-    hargaJual: x.hargaJual,
+    kode: x.kode || x.lama.kode,
+    hargaJual: x.hargaJual || x.lama.hargaJual,
     hargaBeli: x.hargaBeli || x.lama.hargaBeli,
     stok: x.stok
   }));
@@ -1363,12 +1540,16 @@ async function imporBarang() {
 function unduhDaftarBarang() {
   if (!db.barang.length) { pesan('Daftar barang masih kosong.', 'peringatan'); return; }
   const sel = n => `"${String(n).replace(/"/g, '""')}"`;
-  const baris = [['Kode', 'Nama Barang', 'Satuan', 'Harga Beli', 'Harga Jual', 'Untung', 'Stok', 'Stok Minimum']
-    .map(sel).join(';')];
-  db.barang.slice().sort((a, b) => a.nama.localeCompare(b.nama, 'id')).forEach(b => {
-    baris.push([b.kode || '', b.nama, b.satuan, b.hargaBeli, b.hargaJual,
-      b.hargaJual - b.hargaBeli, b.stok, b.stokMinimum ?? 5].map(sel).join(';'));
-  });
+  // Tujuh kolom pertama sengaja persis seurutan dengan Isi Cepat, supaya
+  // berkas ini bisa dibetulkan di Excel lalu ditempel balik apa adanya.
+  const baris = [['Nama Barang', 'Merek', 'Tipe/Ukuran', 'Kode', 'Harga Jual', 'Harga Beli', 'Stok',
+    'Satuan', 'Untung', 'Stok Minimum'].map(sel).join(';')];
+  db.barang.slice()
+    .sort((a, b) => namaLengkap(a).localeCompare(namaLengkap(b), 'id', { numeric: true }))
+    .forEach(b => {
+      baris.push([b.nama, b.merek || '', b.tipe || '', b.kode || '', b.hargaJual, b.hargaBeli, b.stok,
+        b.satuan, b.hargaJual - b.hargaBeli, b.stokMinimum ?? 5].map(sel).join(';'));
+    });
   unduhBerkas(`daftar-barang-${slugToko()}-${kunciTanggal()}.csv`, 'ï»¿' + baris.join('\r\n'), 'text/csv;charset=utf-8');
   pesan('Daftar barang diunduh. Bisa dibuka dengan Excel.', 'sukses');
 }
@@ -1379,9 +1560,10 @@ function unduhDaftarBarang() {
 function gambarPilihanMasuk() {
   const pilih = $('#masuk-barang');
   const terpilih = pilih.value;
-  const daftar = db.barang.slice().sort((a, b) => a.nama.localeCompare(b.nama, 'id'));
+  const daftar = db.barang.slice()
+    .sort((a, b) => namaLengkap(a).localeCompare(namaLengkap(b), 'id', { numeric: true }));
   pilih.innerHTML = '<option value="">-- Pilih barang --</option>' +
-    daftar.map(b => `<option value="${b.id}">${aman(b.nama)} (stok ${angka(b.stok)})</option>`).join('');
+    daftar.map(b => `<option value="${b.id}">${aman(namaLengkap(b))} (stok ${angka(b.stok)})</option>`).join('');
   if (terpilih) pilih.value = terpilih;
 }
 
@@ -2202,7 +2384,14 @@ function pasangPendengar() {
 
   $('#grid-barang-jual').addEventListener('click', e => {
     const tombol = e.target.closest('[data-tambah]');
-    if (tombol) tambahKeKeranjang(tombol.dataset.tambah);
+    if (tombol) { tambahKeKeranjang(tombol.dataset.tambah); return; }
+    const bukaNama = e.target.closest('[data-buka-nama]');
+    if (bukaNama) { pilihNama = bukaNama.dataset.bukaNama; pilihMerek = null; gambarPilihanBarang(); return; }
+    const bukaMerek = e.target.closest('[data-buka-merek]');
+    if (bukaMerek) { pilihMerek = bukaMerek.dataset.bukaMerek; gambarPilihanBarang(); }
+  });
+  $('#jejak-barang').addEventListener('click', e => {
+    if (e.target.closest('#btn-jejak-kembali')) kembaliSatuTingkat();
   });
 
   $('#daftar-keranjang').addEventListener('click', e => {
