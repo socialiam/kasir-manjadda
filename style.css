@@ -290,6 +290,14 @@ label .input, label select{ margin-top:6px; font-weight:500; color:var(--teks); 
 .papan-angka button:hover{ background:var(--sorot); border-color:var(--utama); }
 .papan-angka button:active{ transform:scale(.96); background:var(--utama); color:#fff; }
 .papan-angka button.kecil-teks{ font-size:14px; font-weight:800; color:var(--lemah); }
+/* Padam selagi gembok PIN berjalan. Harus terlihat benar-benar mati, bukan
+   samar, supaya orang tidak mengira tombolnya rusak lalu menekan berkali-kali. */
+.papan-angka button:disabled{
+  opacity:.3; cursor:not-allowed; background:var(--kartu-2);
+  color:var(--lemah); border-color:var(--garis); border-style:dashed;
+}
+.papan-angka button:disabled:hover{ background:var(--kartu-2); border-color:var(--garis); }
+.papan-angka button:disabled:active{ transform:none; background:var(--kartu-2); color:var(--lemah); }
 
 /* ---------- sapaan di beranda ---------- */
 .sapaan{

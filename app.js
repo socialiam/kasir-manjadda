@@ -116,7 +116,7 @@ const KUNCI_SIMPAN = 'kasirToko.v1';
    benar-benar yang terbaru: angkanya terlihat di layar Pengaturan paling bawah.
    Kalau angka di layar tidak sama dengan yang disebutkan, berarti browser masih
    memakai simpanan lama dan perlu dimuat ulang dengan Ctrl+Shift+R. */
-const VERSI_APLIKASI = '1 Oktober 2026 - pembaruan 29 (tiga tingkat barang)';
+const VERSI_APLIKASI = '1 Oktober 2026 - pembaruan 30 (PIN diperkuat)';
 
 /** Isi awal saat aplikasi pertama kali dibuka. Semua bisa diubah dari dalam aplikasi. */
 function dataAwal() {
@@ -138,8 +138,10 @@ function dataAwal() {
        yang tahu PIN-nya sendiri tetap tidak bisa masuk memakai nama
        pemilik. PIN karyawan diberikan oleh pemilik lewat Pengaturan. */
     petugas: [
-      { id: idBaru(), nama: 'Bpk Kamal', peran: 'pemilik', pin: acakPin('123456') },
-      { id: idBaru(), nama: 'Vidal', peran: 'karyawan', pin: '' }
+      { id: idBaru(), nama: 'Bpk Kamal', peran: 'pemilik', pin: acakPin('123456'),
+        panjangPin: 6, pinBawaan: true, gagalPin: 0, kunciSampai: 0 },
+      { id: idBaru(), nama: 'Vidal', peran: 'karyawan', pin: '',
+        panjangPin: 0, pinBawaan: false, gagalPin: 0, kunciSampai: 0 }
     ],
     /* Daftar awal: lima barang pertama diambil dari daftar WhatsApp toko,
        sisanya barang pecah belah yang umum. SEMUA HARGA DI SINI PERKIRAAN
@@ -202,6 +204,12 @@ function lengkapi(data) {
     p.id ??= idBaru();
     p.peran = String(p.peran || '').toLowerCase().includes('pemilik') ? 'pemilik' : 'karyawan';
     p.pin = p.pin || '';
+    p.gagalPin ??= 0;
+    p.kunciSampai ??= 0;
+    p.panjangPin ??= 0;
+    /* Catatan lama tidak punya penanda ini, jadi dihitung sekali saja dari
+       sidik lamanya -- sesudah itu ia berdiri sendiri. */
+    if (p.pinBawaan === undefined) p.pinBawaan = !!p.pin && p.pin === acakPin('123456');
   });
   /* Dulu PIN hanya satu untuk seluruh toko. Sekarang melekat pada orangnya,
      jadi PIN lama itu dipindahkan ke akun pemilik, sekali saja. */
@@ -486,12 +494,18 @@ function gambarLayarMasuk() {
   }
 }
 
-/* ----- PIN pemilik -----
-   Pagar ketertiban, bukan brankas: orang yang paham alat pengembang browser
-   tetap bisa menembusnya. Gunanya menahan karyawan membuka laporan untung
-   dan pengaturan toko, dan itu sudah cukup untuk sebuah toko. */
+/* ----- PIN petugas -----
+   Tetap pagar ketertiban, bukan brankas: orang yang bisa menjalankan kode di
+   alat pengembang browser tetap dapat melewatinya, dan itu memang disengaja
+   supaya PIN yang terlupa tidak pernah mengunci data toko (lihat
+   petunjukLupaPin). Yang dijaga di sini adalah dua hal yang nyata:
+   orang yang menebak-nebak di papan angka, dan orang yang mengintip isi
+   penyimpanan browser. */
 
-/** Pengacak sederhana, supaya PIN tidak terbaca telanjang di penyimpanan. */
+/** Sidik lama, djb2. Dipertahankan HANYA untuk memeriksa PIN yang tersimpan
+    sebelum pembaruan ini. Jangan dipakai membuat sidik baru: hasilnya cuma
+    32 bit dan rumusnya ada di berkas ini juga, jadi seluruh sejuta
+    kemungkinan PIN enam angka bisa dicoba dalam sekejap. */
 function acakPin(pin) {
   let nilai = 5381;
   const bahan = 'manjadda' + pin + 'kubu';
@@ -499,7 +513,149 @@ function acakPin(pin) {
   return nilai.toString(36);
 }
 
-let gagalPin = 0;
+/* Sidik baru. Tiap orang punya garam acak sendiri, jadi dua orang ber-PIN
+   sama tidak terlihat sama, dan daftar sidik siap pakai tidak berguna.
+   Putarannya banyak, supaya mencoba sejuta kemungkinan menjadi pekerjaan
+   berhari-hari, bukan sekejap. */
+const PIN_PUTARAN = 200000;
+const PIN_PUTARAN_SEDERHANA = 120000;
+
+const adaCryptoKuat = () => typeof crypto !== 'undefined'
+  && crypto.subtle && typeof crypto.subtle.deriveBits === 'function';
+
+const keHeks = larik => Array.from(larik, b => b.toString(16).padStart(2, '0')).join('');
+
+function garamBaru() {
+  const b = new Uint8Array(16);
+  crypto.getRandomValues(b);          // tersedia juga di luar sambungan aman
+  return keHeks(b);
+}
+
+async function sidikPbkdf2(pin, garamHeks, putaran) {
+  const teks = new TextEncoder();
+  const garam = Uint8Array.from(garamHeks.match(/../g).map(h => parseInt(h, 16)));
+  const kunci = await crypto.subtle.importKey('raw', teks.encode(pin), 'PBKDF2', false, ['deriveBits']);
+  const bit = await crypto.subtle.deriveBits(
+    { name: 'PBKDF2', salt: garam, iterations: putaran, hash: 'SHA-256' }, kunci, 256);
+  return keHeks(new Uint8Array(bit));
+}
+
+/* Jalan cadangan untuk halaman yang dibuka langsung dari berkas (file://),
+   karena di sana crypto.subtle tidak ada sama sekali. Ini JELAS lebih lemah
+   daripada PBKDF2 -- tujuannya hanya supaya tidak ada yang gagal masuk, dan
+   supaya membalikkannya tetap mahal, bukan sekejap. */
+function sidikSederhana(pin, garamHeks, putaran) {
+  let a = 0x811c9dc5, b = 0x1b873593;
+  const bahan = garamHeks + '|' + pin + '|manjadda';
+  for (let i = 0; i < bahan.length; i++) {
+    a = Math.imul(a ^ bahan.charCodeAt(i), 16777619) >>> 0;
+    b = Math.imul(b + bahan.charCodeAt(i), 2654435761) >>> 0;
+  }
+  for (let i = 0; i < putaran; i++) {
+    a = Math.imul(a ^ (b >>> 13), 2246822519) >>> 0;
+    b = Math.imul(b ^ (a >>> 7), 3266489917) >>> 0;
+    a = (a + i) >>> 0;
+  }
+  return a.toString(16).padStart(8, '0') + b.toString(16).padStart(8, '0');
+}
+
+/** Membuat sidik baru dari sebuah PIN. Hasilnya bertanda cara pembuatannya,
+    supaya catatan lama dan baru bisa hidup berdampingan tanpa menebak-nebak. */
+async function buatSidikPin(pin) {
+  const garam = garamBaru();
+  if (adaCryptoKuat()) return `v2$${garam}$${PIN_PUTARAN}$${await sidikPbkdf2(pin, garam, PIN_PUTARAN)}`;
+  return `v2s$${garam}$${PIN_PUTARAN_SEDERHANA}$${sidikSederhana(pin, garam, PIN_PUTARAN_SEDERHANA)}`;
+}
+
+/** Mencocokkan PIN yang diketik dengan sidik tersimpan, cara lama atau baru. */
+async function sidikCocok(pin, tersimpan) {
+  if (!tersimpan) return false;
+  const bagian = String(tersimpan).split('$');
+  if (bagian.length !== 4) return acakPin(pin) === tersimpan;   // catatan lama
+  const [cara, garam, putaran, sidik] = bagian;
+  if (cara === 'v2') {
+    if (!adaCryptoKuat()) throw new Error('perlu sambungan aman');
+    return await sidikPbkdf2(pin, garam, Number(putaran)) === sidik;
+  }
+  return sidikSederhana(pin, garam, Number(putaran)) === sidik;
+}
+
+/** Catatan lama diperbarui diam-diam begitu pemiliknya berhasil masuk, sebab
+    hanya pada saat itulah aplikasi tahu angka aslinya. */
+async function perbaruiSidikPin(p, pin) {
+  if (String(p.pin).includes('$')) return;
+  p.pin = await buatSidikPin(pin);
+  p.panjangPin = pin.length;
+  simpanData();
+}
+
+/* ----- gembok berjenjang -----
+   Inilah pagar yang sebenarnya. Hitungan gagal menempel pada orangnya dan
+   ikut tersimpan, jadi menekan "Pilih petugas lain", menutup halaman, atau
+   memuat ulang tidak menghapusnya. Lima kali salah masih dimaafkan, sesudah
+   itu jedanya berlipat dua setiap kali sampai seperempat jam.
+
+   Batas seperempat jam itu disengaja: gembok ini harus bisa ditunggu.
+   Pemilik yang salah ketik berkali-kali tidak boleh terkunci selamanya dari
+   tokonya sendiri. */
+const PIN_GAGAL_DIMAAFKAN = 5;
+const PIN_JEDA_AWAL_DETIK = 30;
+const PIN_JEDA_MAKS_DETIK = 900;
+
+let pencacahKunci = null;          // penghitung mundur di layar kunci
+let sedangMemeriksaPin = false;    // menahan ketukan selagi sidik dihitung
+
+/** Sisa gembok dalam detik; 0 berarti tidak terkunci. */
+function sisaKunciPin(p) {
+  if (!p || !p.kunciSampai) return 0;
+  return Math.max(0, Math.ceil((p.kunciSampai - Date.now()) / 1000));
+}
+
+function katakanSisaKunci(detik) {
+  if (detik >= 60) {
+    const menit = Math.floor(detik / 60), sisa = detik % 60;
+    return `${menit} menit${sisa ? ' ' + sisa + ' detik' : ''}`;
+  }
+  return `${detik} detik`;
+}
+
+function catatGagalPin(p) {
+  p.gagalPin = (p.gagalPin || 0) + 1;
+  const lewat = p.gagalPin - PIN_GAGAL_DIMAAFKAN;
+  if (lewat > 0) {
+    const detik = Math.min(PIN_JEDA_AWAL_DETIK * Math.pow(2, lewat - 1), PIN_JEDA_MAKS_DETIK);
+    p.kunciSampai = Date.now() + detik * 1000;
+  }
+  simpanData();
+}
+
+function bersihkanGagalPin(p) {
+  if (!p) return;
+  p.gagalPin = 0;
+  p.kunciSampai = 0;
+  simpanData();
+}
+
+function hentikanPencacahKunci() {
+  if (pencacahKunci) { clearInterval(pencacahKunci); pencacahKunci = null; }
+}
+
+/** Menyalakan atau memadamkan papan angka sesuai keadaan gembok. */
+function gambarKeadaanKunci() {
+  const sisa = sisaKunciPin(petugasMenunggu);
+  const papan = $('#papan-angka');
+  if (!papan) return;
+  papan.querySelectorAll('button').forEach(b => { b.disabled = sisa > 0; });
+  if (sisa > 0) {
+    $('#kunci-pesan').textContent = `Terlalu banyak salah. Tunggu ${katakanSisaKunci(sisa)}.`;
+    if (!pencacahKunci) pencacahKunci = setInterval(gambarKeadaanKunci, 1000);
+  } else {
+    hentikanPencacahKunci();
+    if (($('#kunci-pesan').textContent || '').startsWith('Terlalu banyak salah')) {
+      $('#kunci-pesan').textContent = 'Gembok terbuka. Silakan coba lagi.';
+    }
+  }
+}
 
 /* ----- layar PIN milik tiap petugas -----
    PIN melekat pada orangnya, bukan pada toko. Karyawan yang tahu PIN-nya
@@ -509,13 +665,17 @@ let gagalPin = 0;
 let ketikanPin = '';
 let petugasMenunggu = null;       // orang yang sedang diminta PIN-nya
 
-const pinBawaanMasih = p => !!p && p.pin === acakPin('123456');
+/* Dulu ini dihitung dengan membandingkan sidik PIN terhadap sidik 123456.
+   Sidik sekarang bergaram, jadi dua orang ber-PIN sama pun berbeda sidiknya
+   -- justru itu gunanya. Maka penandanya disimpan sendiri, dan dipadamkan
+   begitu PIN benar-benar diganti. */
+const pinBawaanMasih = p => !!p && !!p.pin && p.pinBawaan === true;
 
 function mintaPinPetugas(p) {
   petugasMenunggu = p;
-  gagalPin = 0;
   gambarLayarKunci();
   gantiLayar('layar-kunci');
+  gambarKeadaanKunci();
 }
 
 function gambarLayarKunci() {
@@ -523,8 +683,12 @@ function gambarLayarKunci() {
   $('#kunci-logo').textContent = inisial(p?.nama || 'P');
   $('#kunci-nama').textContent = p?.nama || '';
   $('#kunci-jenis').textContent = p ? `${labelPeran(p)} · ${db.toko.nama || ''}` : '';
+  /* Sengaja TIDAK menuliskan angkanya. Dulu baris ini mengumumkan 123456
+     kepada siapa pun yang berdiri di depan kasir, termasuk orang yang
+     justru sedang ditahan olehnya. Pemilik tetap diberi tahu di Pengaturan,
+     yang hanya terbuka sesudah masuk. */
   $('#kunci-catatan').innerHTML = pinBawaanMasih(p)
-    ? 'PIN ini masih bawaan: <b>123456</b>. Gantilah lewat Pengaturan.'
+    ? 'PIN ini masih bawaan pabrik. Gantilah lewat Pengaturan.'
     : '';
 
   $('#papan-angka').innerHTML =
@@ -542,27 +706,55 @@ function gambarTitikPin() {
     (v, i) => `<i class="${i < ketikanPin.length ? 'isi' : ''}"></i>`).join('');
 }
 
-const pinCocok = () => !!petugasMenunggu &&
-  ketikanPin.length >= 4 && acakPin(ketikanPin) === petugasMenunggu.pin;
+const pinCocok = async () => !!petugasMenunggu
+  && ketikanPin.length >= 4 && await sidikCocok(ketikanPin, petugasMenunggu.pin);
 
-function ketikPin(angka) {
+async function ketikPin(angka) {
+  if (sedangMemeriksaPin || sisaKunciPin(petugasMenunggu) > 0) return;
   if (ketikanPin.length >= 6) return;
   ketikanPin += angka;
   $('#kunci-pesan').textContent = '';
   gambarTitikPin();
-  // Dicoba sendiri mulai angka keempat, supaya PIN pendek tidak perlu menekan MASUK.
-  if (pinCocok()) bukaKunci();
-  else if (ketikanPin.length === 6) cobaBukaKunci();
+  /* Dicoba sendiri begitu panjangnya pas, supaya PIN pendek tidak perlu
+     menekan MASUK. Panjangnya diingat justru supaya tiap kali masuk hanya
+     terhitung SATU percobaan; kalau dicoba di tiap ketukan, mengetik PIN
+     sendiri dengan benar pun akan menghabiskan jatah gembok. */
+  const panjang = petugasMenunggu?.panjangPin || 0;
+  if (ketikanPin.length === panjang || ketikanPin.length === 6) await cobaBukaKunci();
 }
 
-function cobaBukaKunci() {
-  if (pinCocok()) { bukaKunci(); return; }
-  gagalPin += 1;
+async function cobaBukaKunci() {
+  if (sedangMemeriksaPin) return;
+  if (sisaKunciPin(petugasMenunggu) > 0) { gambarKeadaanKunci(); return; }
+  if (ketikanPin.length < 4) { $('#kunci-pesan').textContent = 'PIN paling sedikit empat angka.'; return; }
+
+  sedangMemeriksaPin = true;
+  let cocok = false;
+  try { cocok = await pinCocok(); }
+  catch (e) {
+    $('#kunci-pesan').textContent = 'PIN ini dibuat di halaman yang aman. Bukalah lewat alamat https.';
+    sedangMemeriksaPin = false;
+    return;
+  }
+  sedangMemeriksaPin = false;
+
+  if (cocok) {
+    await perbaruiSidikPin(petugasMenunggu, ketikanPin);
+    bukaKunci();
+    return;
+  }
+
+  catatGagalPin(petugasMenunggu);
+  const sisa = sisaKunciPin(petugasMenunggu);
+  const tersisa = PIN_GAGAL_DIMAAFKAN - petugasMenunggu.gagalPin;
   ketikanPin = '';
   gambarTitikPin();
-  $('#kunci-pesan').textContent = gagalPin >= 3
-    ? `PIN salah ${gagalPin} kali. Mintalah PIN kepada pemilik toko.`
-    : 'PIN salah. Coba lagi.';
+  $('#kunci-pesan').textContent = sisa > 0
+    ? `Terlalu banyak salah. Tunggu ${katakanSisaKunci(sisa)}.`
+    : (tersisa <= 2 ? `PIN salah. Sisa ${tersisa} percobaan sebelum terkunci sementara.`
+      : 'PIN salah. Coba lagi.');
+  gambarKeadaanKunci();
+
   const kotak = $('.kunci-kotak');
   kotak.classList.remove('salah');
   void kotak.offsetWidth;          // memaksa gambar ulang supaya goyangnya terulang
@@ -571,7 +763,8 @@ function cobaBukaKunci() {
 
 function bukaKunci() {
   const p = petugasMenunggu;
-  gagalPin = 0;
+  bersihkanGagalPin(p);
+  hentikanPencacahKunci();
   ketikanPin = '';
   petugasMenunggu = null;
   $('#kunci-pesan').textContent = '';
@@ -579,6 +772,7 @@ function bukaKunci() {
 }
 
 function batalPin() {
+  hentikanPencacahKunci();
   petugasMenunggu = null;
   ketikanPin = '';
   gambarLayarMasuk();
@@ -591,6 +785,7 @@ function batalPin() {
    harus mengetik PIN miliknya. Tiga hal wajib ikut dibersihkan, kalau tidak
    sisa giliran sebelumnya terbawa ke giliran berikutnya. */
 function keluarDariGiliran() {
+  hentikanPencacahKunci();
   petugasSekarang = null;
   petugasMenunggu = null;
   kosongkanKeranjang();          // ikut mengosongkan diskon dan bayar
@@ -629,38 +824,10 @@ function gantiPetugas() {
   });
 }
 
-function mintaPinLama(p) {
-  bukaModal({
-    judul: 'Masuk sebagai ' + p.nama,
-    isi: `<p class="lemah">Masukkan PIN, lalu tekan Enter.</p>
-      <input id="isian-pin" class="input input-besar" type="password" inputmode="numeric"
-             maxlength="6" autocomplete="off" placeholder="••••••"
-             style="letter-spacing:.5em;text-align:center;font-size:26px;margin-top:14px">
-      <p id="pesan-pin" class="kecil" style="color:var(--bahaya);margin-top:10px;min-height:18px"></p>`,
-    aksi: [
-      { label: 'Batal', kelas: 'tombol-netral', saatKlik: tutupModal },
-      { label: 'Masuk', kelas: 'tombol-utama', saatKlik: cobaPin }
-    ]
-  });
-  const isian = $('#isian-pin');
-  isian.addEventListener('input', () => { isian.value = isian.value.replace(/\D/g, ''); });
-  isian.addEventListener('keydown', e => { if (e.key === 'Enter') cobaPin(); });
-
-  function cobaPin() {
-    if (acakPin(isian.value) === p.pin) {
-      gagalPin = 0;
-      tutupModal();
-      lanjutkanMasuk(p);
-      return;
-    }
-    gagalPin += 1;
-    isian.value = '';
-    $('#pesan-pin').textContent = gagalPin >= 3
-      ? `PIN salah ${gagalPin} kali. Mintalah PIN kepada pemilik toko.`
-      : 'PIN salah. Coba lagi.';
-    isian.focus();
-  }
-}
+/* Dulu ada pintu masuk kedua di sini, mintaPinLama, berupa kotak isian.
+   Tidak ada yang memanggilnya lagi sejak layar kunci dengan papan angka
+   dibuat, dan ia tidak ikut berpagar. Satu pintu lebih mudah dijaga daripada
+   dua; riwayat git tetap menyimpan kodenya. */
 
 function masukSebagai(p) {
   if (p.pin) { mintaPinPetugas(p); return; }
@@ -2023,18 +2190,33 @@ function formPinPetugas(id) {
   });
 }
 
-function pinLamaSah(p, diriSendiri) {
+/* Pintu ini memakai gembok yang sama dengan layar kunci. Tanpa itu, ia
+   menjadi tempat menebak PIN tanpa batas bagi siapa pun yang menemukan
+   kasir dalam keadaan terbuka. */
+async function pinLamaSah(p, diriSendiri) {
   if (!diriSendiri || !p.pin) return true;
-  const lama = ($('#pp-lama')?.value || '').replace(/\D/g, '');
-  if (acakPin(lama) !== p.pin) {
-    $('#pp-pesan').textContent = 'PIN Anda sekarang salah.';
+  const sisa = sisaKunciPin(p);
+  if (sisa > 0) {
+    $('#pp-pesan').textContent = `Terlalu banyak salah. Tunggu ${katakanSisaKunci(sisa)}.`;
     return false;
   }
+  const lama = ($('#pp-lama')?.value || '').replace(/\D/g, '');
+  let cocok = false;
+  try { cocok = await sidikCocok(lama, p.pin); } catch (e) { cocok = false; }
+  if (!cocok) {
+    catatGagalPin(p);
+    const baru = sisaKunciPin(p);
+    $('#pp-pesan').textContent = baru > 0
+      ? `Terlalu banyak salah. Tunggu ${katakanSisaKunci(baru)}.`
+      : 'PIN Anda sekarang salah.';
+    return false;
+  }
+  bersihkanGagalPin(p);
   return true;
 }
 
-function simpanPinPetugas(p, diriSendiri) {
-  if (!pinLamaSah(p, diriSendiri)) return;
+async function simpanPinPetugas(p, diriSendiri) {
+  if (!await pinLamaSah(p, diriSendiri)) return;
   const baru = $('#pp-baru').value.replace(/\D/g, '');
   const ulang = $('#pp-ulang').value.replace(/\D/g, '');
   if (baru.length < 4 || baru.length > 6) {
@@ -2046,7 +2228,10 @@ function simpanPinPetugas(p, diriSendiri) {
     $('#pp-pesan').textContent = 'Pilih angka yang tidak mudah ditebak, bukan 123456 atau 0000.';
     return;
   }
-  p.pin = acakPin(baru);
+  p.pin = await buatSidikPin(baru);
+  p.panjangPin = baru.length;
+  p.pinBawaan = false;
+  bersihkanGagalPin(p);
   catat('sistem', `Memberi atau mengganti PIN untuk ${p.nama}`);
   simpanData();
   tutupModal();
@@ -2055,13 +2240,16 @@ function simpanPinPetugas(p, diriSendiri) {
 }
 
 async function hapusPinPetugas(p, diriSendiri) {
-  if (!pinLamaSah(p, diriSendiri)) return;
+  if (!await pinLamaSah(p, diriSendiri)) return;
   tutupModal();
   const ya = await konfirmasi('Kosongkan PIN',
     `Setelah dikosongkan, siapa pun bisa masuk memakai nama <b>${aman(p.nama)}</b>
      tanpa ditanya apa pun.`, 'Ya, kosongkan');
   if (!ya) return;
   p.pin = '';
+  p.panjangPin = 0;
+  p.pinBawaan = false;
+  bersihkanGagalPin(p);
   catat('sistem', `Mengosongkan PIN ${p.nama}`);
   simpanData();
   gambarPengaturan();
@@ -2081,7 +2269,10 @@ function petunjukLupaPin() {
         satu pun data penjualan. Caranya tersimpan di berkas
         <b>Cara Reset PIN Kasir.txt</b> di Desktop.</span></p>
       <p class="lemah kecil" style="margin-top:14px">Karena jalan kedua itu ada, PIN ini memang
-        pagar ketertiban, bukan brankas.</p>`,
+        pagar ketertiban, bukan brankas. Yang dijaganya sungguh-sungguh ada dua:
+        menebak-nebak di papan angka &mdash; lima kali salah dan jedanya berlipat dua
+        sampai seperempat jam &mdash; dan mengintip isi penyimpanan browser, sebab
+        angkanya tidak pernah tersimpan di sana.</p>`,
     aksi: [{ label: 'Mengerti', kelas: 'tombol-utama', saatKlik: tutupModal }]
   });
 }
