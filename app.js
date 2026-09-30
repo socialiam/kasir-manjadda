@@ -116,14 +116,12 @@ const KUNCI_SIMPAN = 'kasirToko.v1';
    benar-benar yang terbaru: angkanya terlihat di layar Pengaturan paling bawah.
    Kalau angka di layar tidak sama dengan yang disebutkan, berarti browser masih
    memakai simpanan lama dan perlu dimuat ulang dengan Ctrl+Shift+R. */
-const VERSI_APLIKASI = '30 September 2026 - pembaruan 26 (kasir saja, barang boleh tanpa harga)';
+const VERSI_APLIKASI = '30 September 2026 - pembaruan 27 (tanpa harga borongan)';
 
 /** Isi awal saat aplikasi pertama kali dibuka. Semua bisa diubah dari dalam aplikasi. */
 function dataAwal() {
   const brg = (kode, nama, beli, jual, stok, satuan = 'pcs') =>
     ({ id: idBaru(), kode, nama, satuan, hargaBeli: beli, hargaJual: jual, stok, stokMinimum: 5, gambar: '' });
-  const borong = (barang, isi, satuanBorong, harga) =>
-    Object.assign(barang, { grosirJumlah: isi, grosirSatuan: satuanBorong || 'lusin', grosirHarga: harga });
   return {
     versi: 1,
     toko: {
@@ -167,26 +165,26 @@ function dataAwal() {
        sisanya barang pecah belah yang umum. SEMUA HARGA DI SINI PERKIRAAN
        untuk keperluan uji coba; pemilik membetulkannya lewat Daftar Barang. */
     barang: [
-      borong(brg('B01', 'Lemari pakaian Plastik', 380000, 465000, 4), 0, '', 0),
-      borong(brg('B02', 'Lemari plastik TwinnPan', 420000, 520000, 3), 0, '', 0),
-      borong(brg('B03', 'Lemari Plastik BESTPLAST', 510000, 615000, 2), 0, '', 0),
-      borong(brg('B04', 'Rak piring Aluminium merek Master', 155000, 195000, 6), 0, '', 0),
-      borong(brg('B05', 'Rak susun plastik Panen', 210000, 265000, 5), 0, '', 0),
-      borong(brg('B06', 'Kuali besar', 45000, 65000, 8), 0, '', 0),
-      borong(brg('B07', 'Kompor 2 tungku', 110000, 145000, 4), 0, '', 0),
-      borong(brg('B08', 'Gelas kaca bening', 3500, 5000, 96), 12, 'lusin', 55000),
-      borong(brg('B09', 'Piring makan melamin', 7000, 10000, 60), 12, 'lusin', 110000),
-      borong(brg('B10', 'Mangkuk sayur melamin', 9000, 13000, 36), 12, 'lusin', 144000),
-      borong(brg('B11', 'Sendok makan plastik', 800, 1500, 240), 12, 'lusin', 15000),
-      borong(brg('B12', 'Baskom besar', 12000, 18000, 15), 0, '', 0),
-      borong(brg('B13', 'Baskom kecil', 5000, 8000, 24), 12, 'lusin', 85000),
-      borong(brg('B14', 'Ember 20 liter', 22000, 32000, 18), 0, '', 0),
-      borong(brg('B15', 'Gayung plastik', 4000, 7000, 40), 12, 'lusin', 76000),
-      borong(brg('B16', 'Galon kosong', 45000, 58000, 12), 0, '', 0),
-      borong(brg('B17', 'Sabut cuci piring', 300, 1000, 200), 20, 'kodi', 17000),
-      borong(brg('B18', 'Sikat gosok lantai', 2500, 5000, 35), 0, '', 0),
-      borong(brg('B19', 'Sapu lidi', 3000, 6000, 28), 0, '', 0),
-      borong(brg('B20', 'Toples kue bulat', 11000, 16000, 24), 6, 'pak', 90000)
+      brg('B01', 'Lemari pakaian Plastik', 380000, 465000, 4),
+      brg('B02', 'Lemari plastik TwinnPan', 420000, 520000, 3),
+      brg('B03', 'Lemari Plastik BESTPLAST', 510000, 615000, 2),
+      brg('B04', 'Rak piring Aluminium merek Master', 155000, 195000, 6),
+      brg('B05', 'Rak susun plastik Panen', 210000, 265000, 5),
+      brg('B06', 'Kuali besar', 45000, 65000, 8),
+      brg('B07', 'Kompor 2 tungku', 110000, 145000, 4),
+      brg('B08', 'Gelas kaca bening', 3500, 5000, 96),
+      brg('B09', 'Piring makan melamin', 7000, 10000, 60),
+      brg('B10', 'Mangkuk sayur melamin', 9000, 13000, 36),
+      brg('B11', 'Sendok makan plastik', 800, 1500, 240),
+      brg('B12', 'Baskom besar', 12000, 18000, 15),
+      brg('B13', 'Baskom kecil', 5000, 8000, 24),
+      brg('B14', 'Ember 20 liter', 22000, 32000, 18),
+      brg('B15', 'Gayung plastik', 4000, 7000, 40),
+      brg('B16', 'Galon kosong', 45000, 58000, 12),
+      brg('B17', 'Sabut cuci piring', 300, 1000, 200),
+      brg('B18', 'Sikat gosok lantai', 2500, 5000, 35),
+      brg('B19', 'Sapu lidi', 3000, 6000, 28),
+      brg('B20', 'Toples kue bulat', 11000, 16000, 24)
     ],
     transaksi: [],
     barangMasuk: [],
@@ -239,10 +237,9 @@ function lengkapi(data) {
     b.id ??= idBaru();
     b.satuan ??= 'pcs';
     b.gambar ??= '';   // kosong berarti ikon ditebak dari nama barang
-    // harga borongan; grosirJumlah 0 berarti barang ini hanya dijual satuan
-    b.grosirJumlah = Number(b.grosirJumlah) || 0;
-    b.grosirSatuan = b.grosirSatuan || 'lusin';
-    b.grosirHarga = Number(b.grosirHarga) || 0;
+    // Harga borongan dibuang pada pembaruan 27. Sisa bidangnya di data lama
+    // dibersihkan supaya cadangan tidak membawa yang tidak dipakai lagi.
+    delete b.grosirJumlah; delete b.grosirSatuan; delete b.grosirHarga;
     b.stokMinimum ??= 5;
     b.stok = Number(b.stok) || 0;
     b.hargaBeli = Number(b.hargaBeli) || 0;
@@ -925,10 +922,10 @@ function siarkanSelesai(trx) {
 
 /* ========== 5. LAYAR JUAL ========== */
 
-/* Semua hitungan stok memakai satuan terkecil (biji). Satu lusin di keranjang
-   berarti 12 biji, supaya stok tidak pernah salah hitung. */
-const punyaGrosir = b => b && b.grosirJumlah > 1 && b.grosirHarga > 0;
-
+/* Nota lama boleh membawa pengali dari masa harga borongan masih ada, jadi
+   setiap hitungan stok tetap mengalikannya. Nota baru selalu berpengali 1,
+   tetapi pembacaan ini tidak boleh dicabut: tanpa itu setiap nota lusinan
+   yang sudah pernah terjadi akan salah hitung untuk selamanya. */
 function stokTersedia(barang) {
   const diKeranjang = keranjang
     .filter(i => i.idBarang === barang.id)
@@ -967,71 +964,39 @@ function gambarPilihanBarang() {
       ${ikonBarang(b)}
       <span class="nama">${aman(b.nama)}</span>
       <span class="harga">${rupiah(b.hargaJual)}</span>
-      ${punyaGrosir(b) ? `<span class="harga-grosir">${rupiah(b.grosirHarga)} / ${aman(b.grosirSatuan)}</span>` : ''}
       <span class="stok ${kelas}">${sisa <= 0 ? 'Stok habis' : 'Sisa ' + angka(sisa) + ' ' + aman(b.satuan)}</span>
     </button>`;
   }).join('');
 }
 
-/** Barang yang punya harga lusinan menanyakan dulu: satuan atau lusinan. */
-function tambahKeKeranjang(idBarang, jumlah = 1, cara = null) {
+/** Menambahkan satu barang ke keranjang. Selalu per satuan barang itu. */
+function tambahKeKeranjang(idBarang, jumlah = 1) {
   const barang = cariBarang(idBarang);
   if (!barang) return;
-
-  if (punyaGrosir(barang) && !cara) {
-    bukaModal({
-      judul: barang.nama,
-      isi: `<p class="lemah">Dijual dua cara. Pilih yang diminta pembeli.</p>
-        <div class="pilih-cara">
-          <button data-cara="satuan">
-            <b>Satuan</b>
-            <span class="harga-cara">${rupiah(barang.hargaJual)}</span>
-            <span class="lemah kecil">per ${aman(barang.satuan)}</span>
-          </button>
-          <button data-cara="grosir">
-            <b>Per ${aman(barang.grosirSatuan)}</b>
-            <span class="harga-cara">${rupiah(barang.grosirHarga)}</span>
-            <span class="lemah kecil">isi ${angka(barang.grosirJumlah)} ${aman(barang.satuan)}
-              &middot; ${rupiah(barang.grosirHarga / barang.grosirJumlah)} per ${aman(barang.satuan)}</span>
-          </button>
-        </div>`,
-      aksi: [{ label: 'Batal', kelas: 'tombol-netral', saatKlik: tutupModal }]
-    });
-    $$('#modal-isi [data-cara]').forEach(t => t.onclick = () => {
-      tutupModal();
-      tambahKeKeranjang(idBarang, jumlah, t.dataset.cara);
-    });
-    return;
-  }
 
   /* Penjaga harga. Barang boleh didaftarkan tanpa harga, tetapi tidak boleh
      terjual tanpa harga -- tanpa penjaga ini ia masuk keranjang seharga Rp 0
      dan baru ketahuan sesudah uangnya diterima. */
-  const hargaDipakai = cara === 'grosir' ? barang.grosirHarga : barang.hargaJual;
-  if (!(hargaDipakai > 0)) {
+  if (!(barang.hargaJual > 0)) {
     pesan(`Harga ${barang.nama} belum diisi. Isi dulu lewat Daftar Barang.`, 'peringatan', 5000);
     return;
   }
 
-  const grosir = cara === 'grosir';
-  const pengali = grosir ? barang.grosirJumlah : 1;
-  const butuh = jumlah * pengali;
-  if (stokTersedia(barang) < butuh) {
+  if (stokTersedia(barang) < jumlah) {
     pesan(`Stok ${barang.nama} tinggal ${stokTersedia(barang)} ${barang.satuan}.`, 'peringatan', 4000);
     return;
   }
 
-  const adaDiKeranjang = keranjang.find(i => i.idBarang === idBarang && (i.pengali || 1) === pengali);
+  const adaDiKeranjang = keranjang.find(i => i.idBarang === idBarang);
   if (adaDiKeranjang) {
     adaDiKeranjang.jumlah += jumlah;
     barisTerakhirDitambah = keranjang.indexOf(adaDiKeranjang);
   } else {
     keranjang.push({
       idBarang, kode: barang.kode, nama: barang.nama,
-      satuan: grosir ? barang.grosirSatuan : barang.satuan,
-      pengali,
-      hargaJual: grosir ? barang.grosirHarga : barang.hargaJual,
-      hargaBeli: barang.hargaBeli * pengali,
+      satuan: barang.satuan,
+      hargaJual: barang.hargaJual,
+      hargaBeli: barang.hargaBeli,
       jumlah
     });
     barisTerakhirDitambah = keranjang.length - 1;
@@ -1119,13 +1084,11 @@ let barisTerakhirDitambah = -1;   // untuk sorotan sekejap pada barang yang baru
 function gambarKeranjang() {
   $('#daftar-keranjang').innerHTML = keranjang.map((item, i) => {
     const barang = cariBarang(item.idBarang);
-    const borongan = (item.pengali || 1) > 1;
     return `<div class="baris-keranjang ${i === barisTerakhirDitambah ? 'baru' : ''}">
       ${ikonBarang(barang || { nama: item.nama })}
       <div class="rincian">
         <b>${aman(item.nama)}</b>
-        <small>${angka(item.hargaJual)} per ${aman(item.satuan || 'pcs')}
-          ${borongan ? `<span class="lencana-borong">isi ${angka(item.pengali)}</span>` : ''}</small>
+        <small>${angka(item.hargaJual)} per ${aman(item.satuan || 'pcs')}</small>
       </div>
       <div class="kanan-baris">
         <span class="jumlah-rp">${angka(item.hargaJual * item.jumlah)}</span>
@@ -1416,8 +1379,7 @@ function gambarTabelBarang() {
       <td><span class="sel-nama">${ikonBarang(b, 'ikon-mini')}<b>${aman(b.nama)}</b></span></td>
       <td class="kanan">${angka(b.hargaBeli)}</td>
       <td class="kanan">${b.hargaJual > 0
-        ? `<b>${angka(b.hargaJual)}</b>` + (punyaGrosir(b)
-            ? `<br><small class="lemah">${angka(b.grosirHarga)}/${aman(b.grosirSatuan)}</small>` : '')
+        ? `<b>${angka(b.hargaJual)}</b>`
         : '<span class="lencana lencana-peringatan">belum ada harga</span>'}</td>
       <td class="kanan" style="color:${untung >= 0 ? 'var(--sukses)' : 'var(--bahaya)'}">${b.hargaJual > 0 ? angka(untung) : '&mdash;'}</td>
       <td class="tengah">${angka(b.stok)} ${aman(b.satuan)} ${lencana}</td>
@@ -1454,24 +1416,6 @@ function formBarang(id = null) {
         <label>Ingatkan bila stok tinggal
           <input id="f-minimum" class="input" type="number" min="0" step="1" value="${b ? (b.stokMinimum ?? 5) : 5}"></label>
       </div>
-      <p style="margin-top:16px"><b>Harga borongan</b>
-        <span class="lemah kecil">&mdash; kosongkan kalau barang ini hanya dijual satuan</span></p>
-      <div class="form-grid" style="margin:8px 0 0">
-        <label>Nama borongan
-          <select id="f-grosir-satuan" class="input">
-            ${['lusin', 'kodi', 'pak', 'dus', 'set', 'rim'].map(s =>
-              `<option value="${s}" ${b?.grosirSatuan === s ? 'selected' : ''}>${s}</option>`).join('')}
-          </select></label>
-        <label>Isi per borongan
-          <input id="f-grosir-jumlah" class="input" type="number" min="0" step="1"
-                 value="${b?.grosirJumlah || ''}" placeholder="Contoh: 12"></label>
-        <label class="lebar-penuh">Harga borongan
-          <input id="f-grosir-harga" class="input uang" type="text" inputmode="numeric"
-                 value="${b?.grosirHarga ? angka(b.grosirHarga) : ''}" placeholder="Contoh: 55.000"></label>
-      </div>
-      <p class="lemah kecil" style="margin-top:8px">Contoh: gelas Rp 5.000 satuan, satu lusin isi 12
-        seharga Rp 55.000. Saat menjual, kasir tinggal memilih satuan atau lusin,
-        dan stok berkurang 12 sekaligus.</p>
       <p class="lemah kecil" style="margin-top:12px">Untung per barang dihitung sendiri dari harga jual dikurangi harga beli.</p>
       <p style="margin-top:14px"><b>Gambar barang</b>
         <span class="lemah kecil">&mdash; kalau dibiarkan Otomatis, gambar dipilih sendiri dari nama barang</span></p>
@@ -1504,16 +1448,8 @@ function simpanBarang(id) {
     hargaJual: nilaiAngka($('#f-jual')),
     stok: Math.max(0, parseInt($('#f-stok').value, 10) || 0),
     stokMinimum: Math.max(0, parseInt($('#f-minimum').value, 10) || 0),
-    gambar: $('#f-gambar').value || '',
-    grosirSatuan: $('#f-grosir-satuan').value || 'lusin',
-    grosirJumlah: Math.max(0, parseInt($('#f-grosir-jumlah').value, 10) || 0),
-    grosirHarga: nilaiAngka($('#f-grosir-harga'))
+    gambar: $('#f-gambar').value || ''
   };
-  // harga borongan hanya berlaku kalau isi dan harganya dua-duanya terisi
-  if (isian.grosirJumlah < 2 || isian.grosirHarga <= 0) {
-    isian.grosirJumlah = 0;
-    isian.grosirHarga = 0;
-  }
   /* Harga sengaja TIDAK diwajibkan. Pemilik boleh mendaftarkan ratusan barang
      dengan nama dan kode saja lebih dulu, harganya menyusul. Yang menjaga
      supaya barang tanpa harga tidak terjual gratis ada di tambahKeKeranjang. */
