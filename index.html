@@ -225,12 +225,9 @@
         <div id="info-barang" class="lemah kecil" style="margin-bottom:10px"></div>
         <div class="tabel-bungkus">
           <table class="tabel" id="tabel-barang">
-            <thead><tr>
-              <th>Kode</th><th>Nama Barang</th><th>Merek</th><th>Tipe/Ukuran</th>
-              <th class="kanan">Harga Modal</th>
-              <th class="kanan">Harga Jual</th><th class="kanan">Untung</th>
-              <th class="tengah">Stok</th><th>Supplier</th><th class="tengah">Aksi</th>
-            </tr></thead>
+            <!-- Kepala tabel sengaja kosong: ia dan isinya lahir dari satu
+                 daftar yang sama di app.js, supaya tidak mungkin bergeser. -->
+            <thead><tr id="kepala-barang"></tr></thead>
             <tbody></tbody>
           </table>
         </div>

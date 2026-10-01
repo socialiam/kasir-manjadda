@@ -116,7 +116,7 @@ const KUNCI_SIMPAN = 'kasirToko.v1';
    benar-benar yang terbaru: angkanya terlihat di layar Pengaturan paling bawah.
    Kalau angka di layar tidak sama dengan yang disebutkan, berarti browser masih
    memakai simpanan lama dan perlu dimuat ulang dengan Ctrl+Shift+R. */
-const VERSI_APLIKASI = '1 Oktober 2026 - pembaruan 42 (satuan bawaan mengikuti toko)';
+const VERSI_APLIKASI = '2 Oktober 2026 - pembaruan 43 (tabel menyesuaikan isi toko)';
 
 /** Isi awal saat aplikasi pertama kali dibuka. Semua bisa diubah dari dalam aplikasi. */
 function dataAwal() {
@@ -1743,6 +1743,83 @@ function pembandingBarang(cara, posisi) {
   }
 }
 
+/* ----- susunan kolom daftar barang -----
+   Satu daftar untuk kepala DAN isi, jadi keduanya tidak mungkin bergeser.
+
+   'dipakai' menentukan kolom itu muncul atau tidak. Kolom tanpa 'dipakai'
+   selalu muncul. Yang tidak muncul sel-nya tidak ditulis sama sekali,
+   sehingga kolom lain melebar mengisi tempatnya -- bukan menyisakan ruang
+   kosong. */
+const KOLOM_BARANG = [
+  { judul: 'Kode', kelas: 'lemah',
+    dipakai: d => d.some(b => b.kode),
+    isi: b => aman(b.kode || '-') },
+
+  { judul: 'Nama Barang',
+    isi: b => `<span class="sel-nama">${ikonBarang(b, 'ikon-mini')}<b>${aman(b.nama)}</b></span>` },
+
+  { judul: 'Merek', kelas: 'lemah',
+    dipakai: d => d.some(b => b.merek),
+    isi: b => aman(b.merek || '-') },
+
+  { judul: 'Tipe/Ukuran', kelas: 'lemah',
+    dipakai: d => d.some(b => b.tipe),
+    isi: b => aman(b.tipe || '-') },
+
+  { judul: 'Harga Modal', kelas: 'kanan', isi: b => angka(b.hargaBeli) },
+
+  { judul: 'Harga Jual', kelas: 'kanan',
+    isi: b => (b.hargaJual > 0
+      ? `<b>${angka(b.hargaJual)}</b>`
+      : '<span class="lencana lencana-peringatan">belum ada harga</span>') },
+
+  { judul: 'Untung', kelas: 'kanan',
+    isi: b => {
+      const untung = b.hargaJual - b.hargaBeli;
+      return b.hargaJual > 0
+        ? `<span style="color:${untung >= 0 ? 'var(--sukses)' : 'var(--bahaya)'}">${angka(untung)}</span>`
+        : '&mdash;';
+    } },
+
+  { judul: 'Stok', kelas: 'tengah',
+    isi: b => {
+      const lencana = b.stok <= 0
+        ? '<span class="lencana lencana-bahaya">habis</span>'
+        : (b.stok <= (b.stokMinimum ?? 5) ? '<span class="lencana lencana-peringatan">menipis</span>' : '');
+      return `${angka(b.stok)} ${aman(b.satuan)} ${lencana}`;
+    } },
+
+  { judul: 'Supplier', kelas: 'lemah',
+    /* Muncul juga kalau ada riwayat harga, sebab di situlah tanda "ada yang
+       lebih murah" ditampilkan -- dan tanda itu tidak berguna kalau
+       kolomnya tidak ada. */
+    dipakai: d => d.some(b => b.supplier || (b.riwayatModal || []).length),
+    isi: b => {
+      const termurah = hargaTermurah(b);
+      const murah = (termurah && b.hargaBeli > 0 && termurah.harga < b.hargaBeli) ? termurah : null;
+      return aman(b.supplier || '-') + (murah
+        ? ` <span class="lencana lencana-baik" title="${aman(murah.supplier || 'tempat lain')} ` +
+          `${angka(murah.harga)} pada ${waktuSingkat(murah.tanggal)}">&darr; ${angka(b.hargaBeli - murah.harga)}</span>`
+        : '');
+    } },
+
+  { judul: 'Aksi', kelas: 'tengah', gaya: 'white-space:nowrap',
+    isi: b => (bolehPemilik() ? `
+      <button class="tombol-ikon" data-riwayat-harga="${b.id}" title="Riwayat harga dan pemasok">&#128202;</button>
+      <button class="tombol-ikon" data-ubah-barang="${b.id}" title="Ubah">&#9998;</button>
+      <button class="tombol-ikon" data-hapus-barang="${b.id}" title="Hapus">&#128465;</button>`
+      : '<span class="lemah kecil">&mdash;</span>') }
+];
+
+/** Kolom mana saja yang pantas muncul untuk isi toko ini.
+
+    Diputuskan dari SELURUH barang, bukan dari yang sedang tersaring. Kalau
+    dari yang tersaring, kolomnya akan muncul dan hilang sendiri tiap kali
+    mencari -- dan tabel yang berubah bentuk saat diketik membingungkan. */
+function kolomTerpakai() {
+  return KOLOM_BARANG.filter(k => !k.dipakai || k.dipakai(db.barang));
+}
+
 function gambarTabelBarang() {
   const cari = $('#cari-barang').value.trim().toLowerCase();
   $('#urut-barang').value = db.toko.urutBarang || 'nama-az';
@@ -1765,38 +1842,13 @@ function gambarTabelBarang() {
       (belumBerharga ? ` <span class="lencana lencana-peringatan">${angka(belumBerharga)} belum ada harga</span>` : '')
     : '';
 
-  $('#tabel-barang tbody').innerHTML = daftar.map(b => {
-    const untung = b.hargaJual - b.hargaBeli;
-    /* Tanda diam, bukan jendela yang muncul: ada harga lain yang lebih murah
-       DAN masih cukup baru untuk dipercaya. */
-    const termurah = hargaTermurah(b);
-    const murah = (termurah && b.hargaBeli > 0 && termurah.harga < b.hargaBeli) ? termurah : null;
-    const lencana = b.stok <= 0
-      ? '<span class="lencana lencana-bahaya">habis</span>'
-      : (b.stok <= (b.stokMinimum ?? 5) ? '<span class="lencana lencana-peringatan">menipis</span>' : '');
-    return `<tr>
-      <td class="lemah">${aman(b.kode || '-')}</td>
-      <td><span class="sel-nama">${ikonBarang(b, 'ikon-mini')}<b>${aman(b.nama)}</b></span></td>
-      <td class="lemah">${aman(b.merek || '-')}</td>
-      <td class="lemah">${aman(b.tipe || '-')}</td>
-      <td class="kanan">${angka(b.hargaBeli)}</td>
-      <td class="kanan">${b.hargaJual > 0
-        ? `<b>${angka(b.hargaJual)}</b>`
-        : '<span class="lencana lencana-peringatan">belum ada harga</span>'}</td>
-      <td class="kanan" style="color:${untung >= 0 ? 'var(--sukses)' : 'var(--bahaya)'}">${b.hargaJual > 0 ? angka(untung) : '&mdash;'}</td>
-      <td class="tengah">${angka(b.stok)} ${aman(b.satuan)} ${lencana}</td>
-      <td class="lemah">${aman(b.supplier || '-')}${murah
-        ? ` <span class="lencana lencana-baik" title="${aman(murah.supplier || 'tempat lain')} ` +
-          `${angka(murah.harga)} pada ${waktuSingkat(murah.tanggal)}">&darr; ${angka(b.hargaBeli - murah.harga)}</span>`
-        : ''}</td>
-      <td class="tengah" style="white-space:nowrap">${bolehPemilik() ? `
-        <button class="tombol-ikon" data-riwayat-harga="${b.id}" title="Riwayat harga dan pemasok">&#128202;</button>
-        <button class="tombol-ikon" data-ubah-barang="${b.id}" title="Ubah">&#9998;</button>
-        <button class="tombol-ikon" data-hapus-barang="${b.id}" title="Hapus">&#128465;</button>`
-        : '<span class="lemah kecil">&mdash;</span>'}
-      </td>
-    </tr>`;
-  }).join('');
+  const kolom = kolomTerpakai();
+  $('#kepala-barang').innerHTML = kolom
+    .map(k => `<th${k.kelas ? ` class="${k.kelas}"` : ''}>${k.judul}</th>`).join('');
+
+  $('#tabel-barang tbody').innerHTML = daftar.map(b => '<tr>' + kolom
+    .map(k => `<td${k.kelas ? ` class="${k.kelas}"` : ''}` +
+      `${k.gaya ? ` style="${k.gaya}"` : ''}>${k.isi(b)}</td>`).join('') + '</tr>').join('');
 
   $('#barang-kosong').textContent = daftar.length ? '' :
     (db.barang.length ? 'Tidak ada barang yang cocok dengan pencarian.' : 'Belum ada barang. Klik "Tambah Barang".');
