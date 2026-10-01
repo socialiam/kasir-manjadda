@@ -158,6 +158,17 @@ function awanSatukanKeDb(dariServer) {
   });
   db.barang = awanSatukanDaftar(db.barang, dariServer.barang, true);
 
+  /* Barang contoh yang TIDAK dikenal server dibuang. Perangkat yang baru
+     dibuka selalu lahir dengan dua puluh barang contohnya sendiri; tanpa
+     aturan ini, barang karangan itu ikut disetorkan ke toko yang sudah
+     berisi, dan daftar barang toko bertambah dua puluh tiap kali seseorang
+     membuka kasir di perangkat baru.
+
+     Yang sudah dikenal server tetap tinggal -- berarti toko ini memang
+     memakainya, dan mungkin harganya sudah dibetulkan. */
+  const idDiServer = new Set((dariServer.barang || []).map(b => b.id));
+  db.barang = db.barang.filter(b => !b.contoh || idDiServer.has(b.id));
+
   /* Nisan dari server ikut dipakai di sini, supaya barang yang dibuang di
      perangkat lain ikut hilang dari perangkat ini. */
   db.dihapus = {

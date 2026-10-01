@@ -116,12 +116,22 @@ const KUNCI_SIMPAN = 'kasirToko.v1';
    benar-benar yang terbaru: angkanya terlihat di layar Pengaturan paling bawah.
    Kalau angka di layar tidak sama dengan yang disebutkan, berarti browser masih
    memakai simpanan lama dan perlu dimuat ulang dengan Ctrl+Shift+R. */
-const VERSI_APLIKASI = '1 Oktober 2026 - pembaruan 33 (harga modal & supplier)';
+const VERSI_APLIKASI = '1 Oktober 2026 - pembaruan 34 (barang contoh tidak berlipat)';
 
 /** Isi awal saat aplikasi pertama kali dibuka. Semua bisa diubah dari dalam aplikasi. */
 function dataAwal() {
   const brg = (kode, nama, beli, jual, stok, satuan = 'pcs') =>
-    ({ id: idBaru(), kode, nama, satuan, hargaBeli: beli, hargaJual: jual, stok, stokMinimum: 5, gambar: '' });
+    /* Id-nya TETAP, diturunkan dari kodenya, bukan acak. Kalau acak, tiap
+       perangkat baru melahirkan dua puluh barang contoh dengan id yang
+       berbeda, dan penyatuan antar perangkat menyimpan semuanya -- dua
+       perangkat jadi empat puluh barang. Dengan id yang sama, salinannya
+       bertemu dan menyatu.
+
+       Penandanya dipakai untuk aturan di awan.js: barang contoh buatan
+       perangkat sendiri tidak boleh ikut disetorkan ke toko yang sudah
+       berisi. */
+    ({ id: 'contoh-' + kode, contoh: true, kode, nama, satuan,
+       hargaBeli: beli, hargaJual: jual, stok, stokMinimum: 5, gambar: '' });
   return {
     versi: 1,
     toko: {
