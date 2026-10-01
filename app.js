@@ -116,7 +116,7 @@ const KUNCI_SIMPAN = 'kasirToko.v1';
    benar-benar yang terbaru: angkanya terlihat di layar Pengaturan paling bawah.
    Kalau angka di layar tidak sama dengan yang disebutkan, berarti browser masih
    memakai simpanan lama dan perlu dimuat ulang dengan Ctrl+Shift+R. */
-const VERSI_APLIKASI = '1 Oktober 2026 - pembaruan 38 (kirim hanya yang berubah)';
+const VERSI_APLIKASI = '1 Oktober 2026 - pembaruan 39 (cadangan otomatis harian)';
 
 /** Isi awal saat aplikasi pertama kali dibuka. Semua bisa diubah dari dalam aplikasi. */
 function dataAwal() {
@@ -1057,6 +1057,50 @@ function salamWaktu() {
   if (jam < 15) return 'Selamat siang';
   if (jam < 18) return 'Selamat sore';
   return 'Selamat malam';
+}
+
+/** Menampilkan cadangan harian yang ada di server. Pemiliknya harus bisa
+    MELIHAT SENDIRI bahwa cadangannya ada -- cadangan yang bekerja diam-diam
+    tanpa pernah terlihat tidak menenangkan siapa pun. */
+async function gambarCadanganAwan() {
+  const kartu = $('#kartu-cadangan-awan');
+  if (!kartu) return;
+  const bersama = typeof awan !== 'undefined' && awan.tersedia;
+  kartu.classList.toggle('tersembunyi', !bersama);
+  if (!bersama) return;
+
+  const kotak = $('#daftar-cadangan-awan');
+  kotak.innerHTML = '<p class="lemah">Memeriksa...</p>';
+  const daftar = await awanDaftarCadangan();
+  if (!daftar) { kotak.innerHTML = '<p class="lemah">Belum bisa diperiksa. Coba lagi nanti.</p>'; return; }
+  if (!daftar.length) {
+    kotak.innerHTML = '<p class="lemah">Belum ada cadangan. Yang pertama dibuat begitu ada perubahan hari ini.</p>';
+    return;
+  }
+  kotak.innerHTML = daftar.map((c, i) => `
+    <div class="baris-daftar">
+      <span><b style="text-transform:capitalize">${aman(c.hari)}</b>${i === 0 ? ' <span class="lencana lencana-baik">terbaru</span>' : ''}
+        <br><span class="lemah kecil">${waktuSingkat(c.waktu)} &middot;
+          ${angka(c.jumlahBarang)} barang, ${angka(c.jumlahNota)} nota</span></span>
+      <button class="tombol tombol-netral kecil" data-pulih-awan="${aman(c.hari)}">Pulihkan</button>
+    </div>`).join('');
+}
+
+/** Memulihkan isi toko dari satu cadangan harian. Ditanyakan dua kali,
+    sebab ia mengganti SELURUH data toko di semua perangkat sekaligus. */
+async function pulihkanCadanganAwan(hari) {
+  const ya = await konfirmasi('Pulihkan dari cadangan ' + hari,
+    `Seluruh data toko akan diganti dengan isi cadangan hari <b>${aman(hari)}</b>,
+     <b>di semua perangkat sekaligus</b>.<br><br>
+     Penjualan sesudah cadangan itu dibuat akan hilang. PIN tidak ikut berubah.`,
+    'Ya, pulihkan');
+  if (!ya) return;
+  const galat = await awanPulihkanCadangan(hari);
+  if (galat) { pesan('Gagal memulihkan: ' + (galat.galat || '-'), 'bahaya', 6000); return; }
+  catat('sistem', `Memulihkan seluruh data dari cadangan otomatis hari ${hari}`);
+  simpanData();
+  gambarPengaturan();
+  pesan('Data dipulihkan dari cadangan ' + hari + '.', 'sukses', 6000);
 }
 
 /** Menjelaskan arti penanda keadaan data, dengan kalimat yang bisa dipahami
@@ -2631,6 +2675,7 @@ function gambarPengaturan() {
        <b>Unduh cadangan minimal seminggu sekali</b>, lalu simpan berkasnya di
        flashdisk atau Google Drive.`;
 
+  gambarCadanganAwan();
   $('#versi-aplikasi').textContent = 'Versi aplikasi: ' + VERSI_APLIKASI;
   gambarPenyimpanan();
   gambarPin();
@@ -2849,6 +2894,10 @@ function pasangPendengar() {
      di balik kursor tidak pernah muncul di layar sentuh. Jadi ia harus bisa
      diketuk juga. */
   $('#penanda-awan').onclick = jelaskanKeadaanData;
+  $('#daftar-cadangan-awan').addEventListener('click', e => {
+    const t = e.target.closest('[data-pulih-awan]');
+    if (t) pulihkanCadanganAwan(t.dataset.pulihAwan);
+  });
   $('#jejak-barang').addEventListener('click', e => {
     if (e.target.closest('#btn-jejak-kembali')) kembaliSatuTingkat();
   });

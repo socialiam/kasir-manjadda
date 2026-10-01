@@ -14,6 +14,7 @@
 
 import { getStore } from '@netlify/blobs';
 import crypto from 'node:crypto';
+import zlib from 'node:zlib';
 
 const KUNCI_DATA = 'toko';
 const UMUR_TOKEN_JAM = 12;
@@ -43,6 +44,45 @@ const KEPALA = {
 };
 
 const jawab = (kode, isi) => ({ statusCode: kode, headers: KEPALA, body: JSON.stringify(isi) });
+
+/* ---------- cadangan harian ----------
+   Tujuh kunci tetap, bergilir menurut hari. Jumlahnya tidak pernah
+   bertambah, jadi tidak ada yang perlu dibersihkan. */
+const HARI = ['minggu', 'senin', 'selasa', 'rabu', 'kamis', 'jumat', 'sabtu'];
+
+/** Tanggal menurut waktu Indonesia bagian barat, bukan menurut waktu server.
+    Kalau memakai waktu server, pergantian harinya jatuh pukul tujuh pagi di
+    sini -- dan cadangan subuh akan tertulis sebagai hari kemarin. */
+function hariIniWib() {
+  const w = new Date(Date.now() + 7 * 3600 * 1000);
+  return {
+    tanggal: w.toISOString().slice(0, 10),
+    nama: HARI[w.getUTCDay()]
+  };
+}
+
+const kunciCadangan = nama => 'cadangan-' + nama;
+
+/** Membuat cadangan hari ini kalau belum ada. Dipanggil saat kasir dipakai,
+    bukan oleh penjadwal: hari toko tutup tidak perlu menimpa salinan
+    kemarin dengan isi yang sama saja. */
+async function cadangkanBilaPerlu(toko, data) {
+  const hari = hariIniWib();
+  if (data._cadanganTanggal === hari.tanggal) return null;
+
+  const padat = zlib.gzipSync(Buffer.from(JSON.stringify(data), 'utf8')).toString('base64');
+  await toko.setJSON(kunciCadangan(hari.nama), {
+    tanggal: hari.tanggal,
+    waktu: new Date().toISOString(),
+    jumlahBarang: (data.barang || []).length,
+    jumlahNota: (data.transaksi || []).length,
+    besar: padat.length,
+    padat
+  });
+  data._cadanganTanggal = hari.tanggal;
+  await toko.setJSON(KUNCI_DATA, data);
+  return hari;
+}
 
 /* ---------- sidik PIN ----------
    Bentuknya sengaja sama persis dengan yang dipakai aplikasi:
@@ -463,6 +503,61 @@ export async function tangani(minta) {
         versi, jumlah,
         perubahan: sejak ? perubahanSejak(hasil, sejak) : null,
         penuh: !sejak ? tanpaRahasia(hasil) : null
+      });
+    }
+
+    /* --- membuat cadangan hari ini kalau belum ada --- */
+    if (minta.aksi === 'cadangkanHarian') {
+      const data = await toko.get(KUNCI_DATA, { type: 'json' });
+      if (!data) return jawab(404, { galat: 'Toko ini belum dipasang' });
+      const hari = await cadangkanBilaPerlu(toko, data);
+      return jawab(200, { dibuat: !!hari, hari: hari ? hari.nama : null });
+    }
+
+    /* --- apa saja cadangan yang ada --- */
+    if (minta.aksi === 'daftarCadangan') {
+      const daftar = [];
+      for (const nama of HARI) {
+        const c = await toko.get(kunciCadangan(nama), { type: 'json' });
+        if (c) daftar.push({
+          hari: nama, tanggal: c.tanggal, waktu: c.waktu,
+          jumlahBarang: c.jumlahBarang, jumlahNota: c.jumlahNota, besar: c.besar
+        });
+      }
+      daftar.sort((a, b) => String(b.waktu).localeCompare(String(a.waktu)));
+      return jawab(200, { daftar });
+    }
+
+    /* --- memulihkan dari cadangan --- */
+    if (minta.aksi === 'pulihkanCadangan') {
+      if (giliran.peran !== 'pemilik') return jawab(403, { galat: 'Hanya pemilik' });
+      const c = await toko.get(kunciCadangan(minta.hari), { type: 'json' });
+      if (!c || !c.padat) return jawab(404, { galat: 'Cadangan hari itu tidak ada' });
+
+      const sekarang = await toko.get(KUNCI_DATA, { type: 'json' });
+      let dipulihkan;
+      try {
+        dipulihkan = JSON.parse(zlib.gunzipSync(Buffer.from(c.padat, 'base64')).toString('utf8'));
+      } catch (e) {
+        return jawab(500, { galat: 'Cadangan itu tidak terbaca' });
+      }
+
+      /* PIN yang berlaku SEKARANG dipertahankan, bukan yang ada di cadangan.
+         Cadangan ini soal data toko, bukan soal kunci. Tanpa aturan ini,
+         memulihkan isi minggu lalu akan mengembalikan PIN minggu lalu --
+         dan pemiliknya bisa terkunci di luar tokonya sendiri. */
+      dipulihkan.petugas = sekarang.petugas;
+      dipulihkan.versi = (sekarang.versi || 1) + 1;
+      dipulihkan._cadanganTanggal = sekarang._cadanganTanggal;
+      capSemua(dipulihkan, dipulihkan.versi);
+      dipulihkan.diperbaruiPada = new Date().toISOString();
+      dipulihkan.diperbaruiOleh = giliran.petugasId;
+
+      await toko.setJSON(KUNCI_DATA, dipulihkan);
+      return jawab(200, {
+        versi: dipulihkan.versi,
+        jumlahBarang: (dipulihkan.barang || []).length,
+        jumlahNota: (dipulihkan.transaksi || []).length
       });
     }
 

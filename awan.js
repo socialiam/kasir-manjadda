@@ -478,6 +478,7 @@ async function awanDorongSekarang() {
     awan.terakhirSelaras = awanJam();
     awanSimpanLokalSaja();
     awanGambarUlang();
+    awanCadangkanHarian();     // di belakang, tidak menghalangi apa pun
   } finally {
     awan.sedangDorong = false;
   }
@@ -549,6 +550,38 @@ async function awanGantiPin(petugas, pinLama, sidikBaru, panjangBaru) {
   if (r.kode === 200) { awan.versi = r.isi.versi; return true; }
   if (r.kode === 401 && /giliran/i.test(r.isi.galat || '')) { awanGiliranHabis(); return null; }
   return false;
+}
+
+/* ---------- cadangan harian ----------
+   Dipanggil sekali per giliran, dan server sendiri yang memutuskan perlu
+   atau tidak. Tidak menghalangi apa pun: kalau gagal, kasir tetap jalan
+   dan besok dicoba lagi. */
+async function awanCadangkanHarian() {
+  if (!awan.tersedia || !awan.token || awan.sudahCadangkan) return;
+  awan.sudahCadangkan = true;
+  const r = await awanPanggil({ aksi: 'cadangkanHarian', token: awan.token }, 20000);
+  if (r.kode === 200 && r.isi.dibuat) awan.cadanganHariIni = r.isi.hari;
+}
+
+/** Daftar cadangan yang ada di server, untuk ditampilkan di Pengaturan. */
+async function awanDaftarCadangan() {
+  if (!awan.tersedia || !awan.token) return null;
+  const r = await awanPanggil({ aksi: 'daftarCadangan', token: awan.token });
+  return r.kode === 200 ? r.isi.daftar : null;
+}
+
+/** Memulihkan isi toko dari cadangan satu hari. PIN yang berlaku sekarang
+    dipertahankan server, jadi memulihkan tidak pernah mengunci pemiliknya
+    di luar tokonya sendiri. */
+async function awanPulihkanCadangan(hari) {
+  if (!awan.tersedia || !awan.token) return null;
+  const r = await awanPanggil({ aksi: 'pulihkanCadangan', token: awan.token, hari }, 30000);
+  if (r.kode !== 200) return r.isi;
+  /* Sesudah dipulihkan, perangkat ini harus menarik ULANG dari nol --
+     isinya sudah lain sama sekali, jadi menambal per bagian tidak masuk akal. */
+  awan.versi = 0;
+  await awanTarik();
+  return null;
 }
 
 /* ---------- pengintip berkala ---------- */
