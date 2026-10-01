@@ -116,7 +116,7 @@ const KUNCI_SIMPAN = 'kasirToko.v1';
    benar-benar yang terbaru: angkanya terlihat di layar Pengaturan paling bawah.
    Kalau angka di layar tidak sama dengan yang disebutkan, berarti browser masih
    memakai simpanan lama dan perlu dimuat ulang dengan Ctrl+Shift+R. */
-const VERSI_APLIKASI = '1 Oktober 2026 - pembaruan 40 (jalan kembali)';
+const VERSI_APLIKASI = '1 Oktober 2026 - pembaruan 41 (satuan: set)';
 
 /** Isi awal saat aplikasi pertama kali dibuka. Semua bisa diubah dari dalam aplikasi. */
 function dataAwal() {
@@ -354,7 +354,21 @@ function daftarSaranBarang() {
     <datalist id="daftar-merek">${pilihan(unik(b => b.merek))}</datalist>
     <datalist id="daftar-tipe">${pilihan(unik(b => b.tipe))}</datalist>
     <datalist id="daftar-kode">${pilihan(unik(b => b.kode))}</datalist>
+    <datalist id="daftar-satuan">${pilihan(satuanTersedia())}</datalist>
     ${daftarSaranSupplier()}`;
+}
+
+/* Satuan yang lazim di toko pecah belah. Bukan daftar tertutup -- isian
+   satuan tetap menerima tulisan apa saja, ini cuma supaya yang sering
+   dipakai tidak perlu diketik ulang, dan supaya satu satuan tidak lahir
+   dalam dua ejaan. */
+const SATUAN_LAZIM = ['pcs', 'set', 'lusin', 'pak', 'box', 'unit', 'buah', 'kodi', 'lembar', 'meter', 'kg'];
+
+/** Satuan lazim ditambah satuan yang memang sudah dipakai di toko ini. */
+function satuanTersedia() {
+  const kumpul = new Set(SATUAN_LAZIM);
+  db.barang.forEach(b => { if (b.satuan) kumpul.add(b.satuan); });
+  return [...kumpul];
 }
 
 /** Saran pemasok, dikumpulkan dari barang dan dari riwayat pembeliannya,
@@ -1856,7 +1870,8 @@ function formBarang(id = null) {
           <input id="f-kode" class="input" type="text" value="${aman(b?.kode || '')}"
                  list="daftar-kode"></label>
         <label>Satuan
-          <input id="f-satuan" class="input" type="text" value="${aman(b?.satuan || 'pcs')}" placeholder="pcs / lusin / kg"></label>
+          <input id="f-satuan" class="input" type="text" value="${aman(b?.satuan || 'pcs')}"
+                 list="daftar-satuan" placeholder="pcs / set / lusin"></label>
         <label class="lebar-penuh">Supplier <span class="lemah kecil">(boleh kosong)</span>
           <input id="f-supplier" class="input" type="text" value="${aman(b?.supplier || '')}"
                  list="daftar-supplier" placeholder="Dari mana biasanya dibeli"></label>
