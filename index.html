@@ -26,6 +26,9 @@
       </div>
     </div>
     <div class="bilah-kanan">
+      <!-- Keadaan data: bersama antar perangkat, menunggu sinyal, atau
+           perangkat ini saja. Ketiganya sangat berbeda akibatnya. -->
+      <span id="penanda-awan" class="penanda-awan mati"></span>
       <span id="bilah-tanggal" class="bilah-kecil"></span>
       <button id="btn-ganti-petugas" class="tombol tombol-netral kecil"
               title="Keluar dan kunci kasir. Yang meneruskan giliran mengetik PIN miliknya sendiri.">
@@ -483,6 +486,10 @@
 
 <script src="ikon-barang.js"></script>
 <script src="app.js"></script>
+<!-- Data bersama antar perangkat. Sengaja dimuat PALING AKHIR dan
+     terpisah: kalau berkas ini gagal, kasir tetap bekerja seperti biasa
+     dengan simpanan di perangkat sendiri. -->
+<script src="awan.js"></script>
 <script>
 /* Penyimpan luring: kasir tetap bisa dibuka walau internet mati. */
 if ('serviceWorker' in navigator) {

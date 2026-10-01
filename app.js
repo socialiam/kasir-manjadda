@@ -116,7 +116,7 @@ const KUNCI_SIMPAN = 'kasirToko.v1';
    benar-benar yang terbaru: angkanya terlihat di layar Pengaturan paling bawah.
    Kalau angka di layar tidak sama dengan yang disebutkan, berarti browser masih
    memakai simpanan lama dan perlu dimuat ulang dengan Ctrl+Shift+R. */
-const VERSI_APLIKASI = '1 Oktober 2026 - pembaruan 30 (PIN diperkuat)';
+const VERSI_APLIKASI = '1 Oktober 2026 - pembaruan 31 (data bersama)';
 
 /** Isi awal saat aplikasi pertama kali dibuka. Semua bisa diubah dari dalam aplikasi. */
 function dataAwal() {
@@ -730,11 +730,37 @@ async function cobaBukaKunci() {
 
   sedangMemeriksaPin = true;
   let cocok = false;
-  try { cocok = await pinCocok(); }
-  catch (e) {
-    $('#kunci-pesan').textContent = 'PIN ini dibuat di halaman yang aman. Bukalah lewat alamat https.';
+
+  /* Kalau data toko dipakai bersama, PIN diperiksa di SERVER, sebab di
+     sanalah data yang hendak dibuka berada. Kalau server tidak terjangkau
+     -- sinyal hilang, atau toko ini memang hanya memakai perangkat sendiri
+     -- pemeriksaan jatuh ke perangkat ini. Itu bukan kelonggaran: yang bisa
+     dibuka tanpa server cuma salinan yang sudah ada di perangkat ini juga. */
+  const kataServer = (typeof awanMasuk === 'function')
+    ? await awanMasuk(petugasMenunggu, ketikanPin).catch(() => null)
+    : null;
+
+  if (kataServer && kataServer.terkunci) {
     sedangMemeriksaPin = false;
+    petugasMenunggu.kunciSampai = Date.now() + (kataServer.tungguDetik || 30) * 1000;
+    simpanData();
+    ketikanPin = '';
+    gambarTitikPin();
+    gambarKeadaanKunci();
     return;
+  }
+
+  if (kataServer === true) {
+    cocok = true;
+  } else if (kataServer && kataServer.salah) {
+    cocok = false;
+  } else {
+    try { cocok = await pinCocok(); }
+    catch (e) {
+      $('#kunci-pesan').textContent = 'PIN ini dibuat di halaman yang aman. Bukalah lewat alamat https.';
+      sedangMemeriksaPin = false;
+      return;
+    }
   }
   sedangMemeriksaPin = false;
 
@@ -2216,6 +2242,8 @@ async function pinLamaSah(p, diriSendiri) {
 }
 
 async function simpanPinPetugas(p, diriSendiri) {
+  // Disimpan sebelum isiannya dikosongkan, sebab server menuntut PIN lama.
+  const lamaUntukServer = ($('#pp-lama')?.value || '').replace(/\D/g, '');
   if (!await pinLamaSah(p, diriSendiri)) return;
   const baru = $('#pp-baru').value.replace(/\D/g, '');
   const ulang = $('#pp-ulang').value.replace(/\D/g, '');
@@ -2232,6 +2260,16 @@ async function simpanPinPetugas(p, diriSendiri) {
   p.panjangPin = baru.length;
   p.pinBawaan = false;
   bersihkanGagalPin(p);
+  /* Sidik PIN tidak pernah ikut terkirim lewat penyimpanan biasa -- server
+     selalu mengabaikannya di sana. Jadi penggantian PIN harus lewat pintunya
+     sendiri, kalau tidak PIN baru ini hanya berlaku di perangkat ini. */
+  if (typeof awanGantiPin === 'function') {
+    const hasil = await awanGantiPin(p, lamaUntukServer, p.pin, baru.length);
+    if (hasil === false) {
+      $('#pp-pesan').textContent = 'Server menolak penggantian PIN. Coba lagi.';
+      return;
+    }
+  }
   catat('sistem', `Memberi atau mengganti PIN untuk ${p.nama}`);
   simpanData();
   tutupModal();

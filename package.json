@@ -1,0 +1,12 @@
+{
+  "name": "kasir-manjadda",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Kasir Toko Man Jadda Wajada Kubu. Halamannya sendiri tanpa kerangka kerja dan tanpa proses bangun; berkas ini hanya untuk pintu data di Netlify.",
+  "scripts": {
+    "uji": "node uji/jalankan.js"
+  },
+  "dependencies": {
+    "@netlify/blobs": "^8.1.0"
+  }
+}

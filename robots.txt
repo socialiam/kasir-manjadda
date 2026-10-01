@@ -1,0 +1,3 @@
+# Kasir toko, bukan halaman untuk umum. Jangan diindeks.
+User-agent: *
+Disallow: /

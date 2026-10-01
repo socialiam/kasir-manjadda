@@ -1,0 +1,44 @@
+# Pengaturan penayangan di Netlify.
+#
+# Tidak ada proses bangun sama sekali: berkasnya memang sudah siap pakai,
+# tanpa kerangka kerja dan tanpa pemasangan. Itu disengaja sejak awal, dan
+# di sini gunanya terasa -- menayangkan tidak memakan menit bangun.
+
+[build]
+  publish = "."
+  command = ""
+
+# Pekerja luring harus selalu diambil baru. Kalau ia ikut tersimpan lama,
+# pembaruan dari pemilik bisa tertahan versi kemarin di perangkat kasir,
+# dan itu jenis kesalahan yang paling sulit disadari.
+[[headers]]
+  for = "/sw.js"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
+
+[[headers]]
+  for = "/index.html"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
+
+# Berkas yang isinya jarang berubah boleh disimpan sebentar, tetapi tetap
+# diperiksa, supaya kasir di sinyal lemah terasa seketika tanpa pernah
+# ketinggalan versi.
+[[headers]]
+  for = "/*.js"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
+
+[[headers]]
+  for = "/*.css"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
+
+# Data toko tidak boleh ikut dibaca mesin pencari, dan alamatnya tidak perlu
+# muncul di hasil penelusuran siapa pun.
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Robots-Tag = "noindex, nofollow"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "no-referrer"

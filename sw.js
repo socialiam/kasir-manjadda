@@ -12,12 +12,13 @@
    ============================================================ */
 'use strict';
 
-const VERSI = 'kasir-manjadda-v6';
+const VERSI = 'kasir-manjadda-v7';
 const INTI = [
   './',
   'index.html',
   'style.css',
   'app.js',
+  'awan.js',
   'ikon-barang.js',
   'manifest.json',
   'ikon-192.png',

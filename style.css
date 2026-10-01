@@ -523,6 +523,30 @@ label .input, label select{ margin-top:6px; font-weight:500; color:var(--teks); 
   color:var(--peringatan); font-weight:700; font-size:12px;
 }
 
+/* ---------- penanda keadaan data ----------
+   Tiga keadaan, tiga warna, dan titiknya berdenyut hanya ketika ada yang
+   belum terkirim -- gerakan dipakai untuk satu hal saja, supaya ia berarti. */
+.penanda-awan{
+  display:inline-flex; align-items:center; gap:6px; flex:none;
+  font-size:12px; font-weight:700; padding:5px 10px; border-radius:999px;
+  border:1px solid var(--garis); background:var(--kartu); color:var(--lemah);
+  white-space:nowrap; cursor:default;
+}
+.penanda-awan i{ width:8px; height:8px; border-radius:50%; background:currentColor; flex:none; }
+.penanda-awan.hidup{
+  color:var(--sukses);
+  border-color:color-mix(in srgb, var(--sukses) 45%, var(--garis));
+  background:color-mix(in srgb, var(--sukses) 10%, var(--kartu));
+}
+.penanda-awan.menunggu{
+  color:var(--peringatan);
+  border-color:color-mix(in srgb, var(--peringatan) 45%, var(--garis));
+  background:color-mix(in srgb, var(--peringatan) 12%, var(--kartu));
+}
+.penanda-awan.menunggu i{ animation:denyut-kirim 1.4s ease-out infinite; }
+@keyframes denyut-kirim{ 50%{ opacity:.25; } }
+.penanda-awan.mati{ opacity:.75; }
+
 /* ---------- penelusuran tiga tingkat ----------
    Kartu kelompok harus terlihat sebagai PINTU, bukan sebagai barang.
    Kalau keduanya sama rupa, kasir akan mengira sudah menekan barang

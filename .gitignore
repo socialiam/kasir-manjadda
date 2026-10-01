@@ -4,6 +4,9 @@ desktop.ini
 .DS_Store
 *.log
 
-# Catatan penting:
-# katalog.json SENGAJA tidak diabaikan. Berkas itulah yang membuat halaman
-# katalog pelanggan terisi saat aplikasi dipasang di GitHub Pages.
+
+# Hanya dibutuhkan pintu data di Netlify, bukan halaman kasirnya.
+# Halaman kasir tetap tanpa pemasangan apa pun.
+node_modules/
+.netlify/
+package-lock.json
