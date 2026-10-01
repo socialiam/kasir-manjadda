@@ -116,7 +116,7 @@ const KUNCI_SIMPAN = 'kasirToko.v1';
    benar-benar yang terbaru: angkanya terlihat di layar Pengaturan paling bawah.
    Kalau angka di layar tidak sama dengan yang disebutkan, berarti browser masih
    memakai simpanan lama dan perlu dimuat ulang dengan Ctrl+Shift+R. */
-const VERSI_APLIKASI = '1 Oktober 2026 - pembaruan 36 (ramah pemakai baru)';
+const VERSI_APLIKASI = '1 Oktober 2026 - pembaruan 37 (Isi Cepat: nama saja cukup)';
 
 /** Isi awal saat aplikasi pertama kali dibuka. Semua bisa diubah dari dalam aplikasi. */
 function dataAwal() {
@@ -1885,18 +1885,26 @@ function formImporBarang() {
   if (!bolehPemilik()) { pesan('Hanya pemilik yang boleh mengisi daftar barang.', 'peringatan'); return; }
   bukaModal({
     judul: 'Isi Cepat Banyak Barang',
-    isi: `<p class="lemah">Tulis satu barang per baris dengan urutan:</p>
-      <p style="font-family:monospace;background:var(--sorot);padding:10px;border-radius:8px;font-size:13.5px">
+    isi: `<p><b>Cara paling sederhana: tulis namanya saja, satu baris satu barang.</b></p>
+      <p style="font-family:monospace;background:var(--sorot);padding:10px;border-radius:8px;font-size:13.5px">Baskom Stainless<br>Ember plastik besar<br>Gayung plastik</p>
+      <p class="lemah kecil">Sudah cukup begitu. Tidak perlu titik koma, tidak perlu harga.
+        Harga dan stok bisa diisi menyusul lewat <b>Ubah</b> di Daftar Barang, atau ditempel
+        ulang ke sini nanti.</p>
+
+      <p style="margin-top:16px">Kalau mau sekalian mengisi yang lain, tambahkan di belakangnya
+        dipisah titik koma, dengan urutan ini:</p>
+      <p style="font-family:monospace;background:var(--sorot);padding:10px;border-radius:8px;font-size:13px">
         nama ; merek ; tipe/ukuran ; kode ; harga jual ; harga modal ; stok ; supplier</p>
-      <p class="lemah kecil">Semua kolom sesudah nama boleh dikosongkan &mdash; kosongkan saja
-        tanda titik komanya tetap ada. Harga pun boleh menyusul.
-        Barang dianggap sama kalau <b>nama, merek, dan tipenya</b> sama; yang sudah ada
+      <p class="lemah kecil">Boleh berhenti di tengah &mdash; <span style="font-family:monospace">Gayung plastik ; ; ; ; 7000</span>
+        mengisi harga jualnya saja. Boleh juga dicampur: sebagian baris lengkap, sebagian
+        namanya saja.</p>
+      <p class="lemah kecil">Barang dianggap sama kalau <b>nama, merek, dan tipenya</b> sama; yang sudah ada
         diperbarui, bukan dibuat dua kali. Kolom yang dikosongkan tidak menghapus isi lama.</p>
       <p class="lemah kecil"><b>Dari Excel:</b> sorot kolomnya dengan urutan di atas, salin, lalu tempel
         langsung ke kotak ini. Hasil unduhan daftar barang juga bisa ditempel balik ke sini.</p>
       <textarea id="impor-teks" class="input" spellcheck="false"
-        placeholder="Contoh &mdash; hapus tulisan ini, lalu tulis daftar Bapak sendiri:&#10;Baskom Stainless ; Dalam ; 24 CM ; BSD24 ; 35000 ; 27000 ; 12&#10;Baskom Stainless ; Dalam ; 26 CM ; BSD26 ; 42000 ; 33000 ; 8&#10;Baskom Stainless ; Nomuri ; 24 CM ; ; 38000 ; 30000 ; 6&#10;Lemari pakaian ; TwinnPan ; 4 Pintu ; ; 520000 ; 440000 ; 2&#10;Ember plastik besar ; ; ; ; 35000 ; 27000 ; 12"></textarea>
-      <p class="lemah kecil" style="margin-top:10px"><b>Angka contoh di atas hanya contoh.</b>
+        placeholder="Hapus tulisan ini, lalu tulis daftar Bapak sendiri.&#10;&#10;Cukup nama saja:&#10;Baskom Stainless&#10;Ember plastik besar&#10;&#10;Atau sekalian lengkap:&#10;Baskom Stainless ; Dalam ; 24 CM ; BSD24 ; 35000 ; 27000 ; 12&#10;Gayung plastik ; ; ; ; 7000"></textarea>
+      <p class="lemah kecil" style="margin-top:10px"><b>Angka di contoh itu hanya karangan.</b>
         Isi dengan harga toko Bapak yang sebenarnya.</p>`,
     aksi: [
       { label: 'Batal', kelas: 'tombol-netral', saatKlik: tutupModal },
