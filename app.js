@@ -116,7 +116,7 @@ const KUNCI_SIMPAN = 'kasirToko.v1';
    benar-benar yang terbaru: angkanya terlihat di layar Pengaturan paling bawah.
    Kalau angka di layar tidak sama dengan yang disebutkan, berarti browser masih
    memakai simpanan lama dan perlu dimuat ulang dengan Ctrl+Shift+R. */
-const VERSI_APLIKASI = '1 Oktober 2026 - pembaruan 34 (barang contoh tidak berlipat)';
+const VERSI_APLIKASI = '1 Oktober 2026 - pembaruan 35 (siap memulihkan cadangan)';
 
 /** Isi awal saat aplikasi pertama kali dibuka. Semua bisa diubah dari dalam aplikasi. */
 function dataAwal() {
@@ -1777,6 +1777,11 @@ function simpanBarang(id) {
     if (lama.stok !== isian.stok) ubahan.push(`stok ${angka(lama.stok)} jadi ${angka(isian.stok)}`);
     if (ubahan.length) catat('barang', `Mengubah ${isian.nama}: ` + ubahan.join(', '));
     Object.assign(lama, isian);
+    /* Sekali diubah pemilik, ia bukan barang contoh lagi -- ia barang toko ini.
+       Tanpa baris ini, barang contoh yang harganya sudah dibetulkan tetap
+       dianggap karangan, dan aturan di awan.js akan membuangnya diam-diam
+       saat dipulihkan di perangkat lain. */
+    delete lama.contoh;
   } else {
     db.barang.push({ id: idBaru(), ...isian });
     catat('barang', `Menambah barang baru "${namaLengkap(isian)}", jual ${angka(isian.hargaJual)}, stok awal ${angka(isian.stok)}`);
@@ -2500,6 +2505,21 @@ function gambarPengaturan() {
   $('#set-catatan').value = db.toko.catatanStruk || '';
 
 
+  /* Keterangan ini WAJIB menyesuaikan keadaan. Kalimat lamanya berkata data
+     hanya ada di browser komputer ini -- dan itu berbohong di alamat yang
+     datanya justru dipakai bersama. Keterangan yang salah tentang di mana
+     data berada adalah jenis kesalahan yang baru ketahuan saat data hilang. */
+  const bersama = typeof awan !== 'undefined' && awan.tersedia;
+  $('#catatan-cadangan').innerHTML = bersama
+    ? `Data toko ini tersimpan di internet dan dipakai bersama semua perangkat,
+       jadi ia tidak ikut hilang kalau laptop ini rusak.
+       <b>Cadangan tetap perlu</b> sebagai pegangan kalau suatu saat salah hapus,
+       dan sebagai jalan memindahkan data dari kasir yang lama.`
+    : `Semua data tersimpan di dalam browser komputer ini saja, bukan di internet.
+       Kalau browser dibersihkan atau laptop rusak, data ikut hilang.
+       <b>Unduh cadangan minimal seminggu sekali</b>, lalu simpan berkasnya di
+       flashdisk atau Google Drive.`;
+
   $('#versi-aplikasi').textContent = 'Versi aplikasi: ' + VERSI_APLIKASI;
   gambarPenyimpanan();
   gambarPin();
@@ -2549,6 +2569,10 @@ function bacaCadangan(berkas) {
     if (!ya) return;
 
     db = lengkapi(masuk);
+    /* Apa pun yang ada di cadangan adalah daftar barang toko ini, sebab
+       pemiliknya sendiri yang memilih memulihkannya. Penanda contoh dilepas
+       supaya tidak ada satu pun yang dibuang diam-diam saat diselaraskan. */
+    db.barang.forEach(b => { delete b.contoh; });
     catat('sistem', 'Seluruh data diganti dengan isi berkas cadangan');
     simpanData();
     terapkanTema();
