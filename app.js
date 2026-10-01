@@ -116,7 +116,7 @@ const KUNCI_SIMPAN = 'kasirToko.v1';
    benar-benar yang terbaru: angkanya terlihat di layar Pengaturan paling bawah.
    Kalau angka di layar tidak sama dengan yang disebutkan, berarti browser masih
    memakai simpanan lama dan perlu dimuat ulang dengan Ctrl+Shift+R. */
-const VERSI_APLIKASI = '1 Oktober 2026 - pembaruan 39 (cadangan otomatis harian)';
+const VERSI_APLIKASI = '1 Oktober 2026 - pembaruan 40 (jalan kembali)';
 
 /** Isi awal saat aplikasi pertama kali dibuka. Semua bisa diubah dari dalam aplikasi. */
 function dataAwal() {
@@ -1077,13 +1077,21 @@ async function gambarCadanganAwan() {
     kotak.innerHTML = '<p class="lemah">Belum ada cadangan. Yang pertama dibuat begitu ada perubahan hari ini.</p>';
     return;
   }
-  kotak.innerHTML = daftar.map((c, i) => `
-    <div class="baris-daftar">
-      <span><b style="text-transform:capitalize">${aman(c.hari)}</b>${i === 0 ? ' <span class="lencana lencana-baik">terbaru</span>' : ''}
-        <br><span class="lemah kecil">${waktuSingkat(c.waktu)} &middot;
+  /* Jalan kembali diberi nama yang bisa dimengerti siapa pun, bukan nama
+     kuncinya. Ia pintu darurat, dan pintu darurat harus terbaca sebagai
+     pintu darurat. */
+  const harian = daftar.filter(c => !c.jalanKembali);
+  kotak.innerHTML = daftar.map(c => {
+    const terbaru = !c.jalanKembali && c === harian[0];
+    return `<div class="baris-daftar">
+      <span><b style="text-transform:capitalize">${c.jalanKembali ? 'Sebelum pemulihan terakhir' : aman(c.hari)}</b>` +
+      (terbaru ? ' <span class="lencana lencana-baik">terbaru</span>' : '') +
+      (c.jalanKembali ? ' <span class="lencana lencana-peringatan">jalan kembali</span>' : '') +
+      `<br><span class="lemah kecil">${waktuSingkat(c.waktu)} &middot;
           ${angka(c.jumlahBarang)} barang, ${angka(c.jumlahNota)} nota</span></span>
       <button class="tombol tombol-netral kecil" data-pulih-awan="${aman(c.hari)}">Pulihkan</button>
-    </div>`).join('');
+    </div>`;
+  }).join('');
 }
 
 /** Memulihkan isi toko dari satu cadangan harian. Ditanyakan dua kali,
@@ -2718,12 +2726,26 @@ function bacaCadangan(berkas) {
     catch { pesan('Berkas itu bukan cadangan yang sah.', 'bahaya'); return; }
     if (!masuk || !Array.isArray(masuk.barang)) { pesan('Isi berkas tidak dikenali.', 'bahaya'); return; }
 
+    /* Kalimatnya WAJIB menyesuaikan keadaan. Dulu ia berkata "di laptop ini"
+       padahal di toko yang datanya dipakai bersama, memulihkan mengganti
+       data di SEMUA perangkat sekaligus. Salah kata di saat seperti ini
+       lebih berbahaya daripada di tempat lain mana pun. */
+    const bersama = typeof awan !== 'undefined' && awan.tersedia;
     const ya = await konfirmasi('Pulihkan data',
       `Cadangan ini berisi <b>${masuk.barang.length}</b> barang dan
        <b>${(masuk.transaksi || []).length}</b> transaksi.<br><br>
-       Seluruh data yang sekarang ada di laptop ini akan <b>diganti</b>. Lanjutkan?`,
+       Seluruh data toko akan <b>diganti</b> dengan isi berkas ini` +
+      (bersama
+        ? ', <b>di semua perangkat sekaligus</b>.<br><br>Keadaan sekarang disimpan dulu,'
+          + ' jadi masih bisa dikembalikan lewat <b>Cadangan Otomatis</b> kalau ternyata salah berkas.'
+        : ' di perangkat ini.') + ' Lanjutkan?',
       'Ya, ganti data sekarang');
     if (!ya) return;
+
+    if (!await awanSimpanJalanKembali()) {
+      pesan('Keadaan sekarang belum bisa disimpan sebagai jalan kembali. Coba lagi nanti.', 'bahaya', 6000);
+      return;
+    }
 
     db = lengkapi(masuk);
     /* Apa pun yang ada di cadangan adalah daftar barang toko ini, sebab

@@ -62,6 +62,21 @@ function hariIniWib() {
 }
 
 const kunciCadangan = nama => 'cadangan-' + nama;
+/* Satu tempat tetap untuk keadaan TEPAT SEBELUM dipulihkan. Selalu yang
+   terakhir saja: gunanya satu langkah mundur, bukan riwayat panjang. */
+const KUNCI_SEBELUM = 'cadangan-sebelum-pulih';
+
+/** Menyimpan keadaan sekarang sebagai jalan kembali. */
+async function simpanJalanKembali(toko, data) {
+  const padat = zlib.gzipSync(Buffer.from(JSON.stringify(data), 'utf8')).toString('base64');
+  await toko.setJSON(KUNCI_SEBELUM, {
+    tanggal: hariIniWib().tanggal,
+    waktu: new Date().toISOString(),
+    jumlahBarang: (data.barang || []).length,
+    jumlahNota: (data.transaksi || []).length,
+    besar: padat.length, padat
+  });
+}
 
 /** Membuat cadangan hari ini kalau belum ada. Dipanggil saat kasir dipakai,
     bukan oleh penjadwal: hari toko tutup tidak perlu menimpa salinan
@@ -506,6 +521,15 @@ export async function tangani(minta) {
       });
     }
 
+    /* --- menyimpan keadaan sekarang sebagai jalan kembali ---
+       Dipanggil aplikasi tepat sebelum memulihkan dari berkas unduhan. */
+    if (minta.aksi === 'simpanJalanKembali') {
+      const data = await toko.get(KUNCI_DATA, { type: 'json' });
+      if (!data) return jawab(404, { galat: 'Toko ini belum dipasang' });
+      await simpanJalanKembali(toko, data);
+      return jawab(200, { disimpan: true });
+    }
+
     /* --- membuat cadangan hari ini kalau belum ada --- */
     if (minta.aksi === 'cadangkanHarian') {
       const data = await toko.get(KUNCI_DATA, { type: 'json' });
@@ -517,6 +541,12 @@ export async function tangani(minta) {
     /* --- apa saja cadangan yang ada --- */
     if (minta.aksi === 'daftarCadangan') {
       const daftar = [];
+      const kembali = await toko.get(KUNCI_SEBELUM, { type: 'json' });
+      if (kembali) daftar.push({
+        hari: 'sebelum-pulih', jalanKembali: true, tanggal: kembali.tanggal,
+        waktu: kembali.waktu, jumlahBarang: kembali.jumlahBarang,
+        jumlahNota: kembali.jumlahNota, besar: kembali.besar
+      });
       for (const nama of HARI) {
         const c = await toko.get(kunciCadangan(nama), { type: 'json' });
         if (c) daftar.push({
@@ -524,17 +554,24 @@ export async function tangani(minta) {
           jumlahBarang: c.jumlahBarang, jumlahNota: c.jumlahNota, besar: c.besar
         });
       }
-      daftar.sort((a, b) => String(b.waktu).localeCompare(String(a.waktu)));
-      return jawab(200, { daftar });
+      /* Jalan kembali selalu di atas, berapa pun waktunya: ia bukan salinan
+         harian melainkan pintu darurat, dan harus paling mudah ditemukan. */
+      const harian = daftar.filter(x => !x.jalanKembali)
+        .sort((a, b) => String(b.waktu).localeCompare(String(a.waktu)));
+      return jawab(200, { daftar: [...daftar.filter(x => x.jalanKembali), ...harian] });
     }
 
     /* --- memulihkan dari cadangan --- */
     if (minta.aksi === 'pulihkanCadangan') {
       if (giliran.peran !== 'pemilik') return jawab(403, { galat: 'Hanya pemilik' });
-      const c = await toko.get(kunciCadangan(minta.hari), { type: 'json' });
+      const c = await toko.get(minta.hari === 'sebelum-pulih'
+        ? KUNCI_SEBELUM : kunciCadangan(minta.hari), { type: 'json' });
       if (!c || !c.padat) return jawab(404, { galat: 'Cadangan hari itu tidak ada' });
 
       const sekarang = await toko.get(KUNCI_DATA, { type: 'json' });
+      /* Keadaan sekarang disimpan DULU, sebelum apa pun diganti. Kalau
+         hari yang dipilih ternyata salah, masih ada satu langkah mundur. */
+      await simpanJalanKembali(toko, sekarang);
       let dipulihkan;
       try {
         dipulihkan = JSON.parse(zlib.gunzipSync(Buffer.from(c.padat, 'base64')).toString('utf8'));

@@ -563,6 +563,15 @@ async function awanCadangkanHarian() {
   if (r.kode === 200 && r.isi.dibuat) awan.cadanganHariIni = r.isi.hari;
 }
 
+/** Menyimpan keadaan sekarang sebagai jalan kembali, sebelum apa pun
+    diganti. Sengaja ditunggu sampai selesai: kalau gagal, pemulihannya
+    lebih baik dibatalkan daripada jalan tanpa jaring. */
+async function awanSimpanJalanKembali() {
+  if (!awan.tersedia || !awan.token) return true;     // tanpa server, tidak ada yang bisa disimpan
+  const r = await awanPanggil({ aksi: 'simpanJalanKembali', token: awan.token }, 30000);
+  return r.kode === 200;
+}
+
 /** Daftar cadangan yang ada di server, untuk ditampilkan di Pengaturan. */
 async function awanDaftarCadangan() {
   if (!awan.tersedia || !awan.token) return null;
