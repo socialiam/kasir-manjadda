@@ -116,7 +116,7 @@ const KUNCI_SIMPAN = 'kasirToko.v1';
    benar-benar yang terbaru: angkanya terlihat di layar Pengaturan paling bawah.
    Kalau angka di layar tidak sama dengan yang disebutkan, berarti browser masih
    memakai simpanan lama dan perlu dimuat ulang dengan Ctrl+Shift+R. */
-const VERSI_APLIKASI = '1 Oktober 2026 - pembaruan 35 (siap memulihkan cadangan)';
+const VERSI_APLIKASI = '1 Oktober 2026 - pembaruan 36 (ramah pemakai baru)';
 
 /** Isi awal saat aplikasi pertama kali dibuka. Semua bisa diubah dari dalam aplikasi. */
 function dataAwal() {
@@ -1030,6 +1030,55 @@ function salamWaktu() {
   return 'Selamat malam';
 }
 
+/** Menjelaskan arti penanda keadaan data, dengan kalimat yang bisa dipahami
+    tanpa tahu apa itu server. Yang penting bukan istilahnya, melainkan satu
+    hal: apakah yang saya lihat ini sama dengan yang dilihat perangkat lain. */
+function jelaskanKeadaanData() {
+  const ada = typeof awan !== 'undefined';
+  const bersama = ada && awan.tersedia;
+  const menunggu = ada && awan.adaYangBelumTerkirim;
+  bukaModal({
+    judul: bersama ? 'Data bersama' : 'Perangkat ini saja',
+    isi: bersama
+      ? `<p>Data toko ini <b>satu untuk semua perangkat</b>. Barang yang diubah di sini
+           muncul juga di HP, dan sebaliknya.</p>
+         <p style="margin-top:12px">${menunggu
+           ? '<b>Sekarang sedang menunggu sinyal.</b> Penjualan tetap tersimpan aman di perangkat ini dan akan terkirim sendiri begitu sinyal kembali. Tidak ada yang hilang.'
+           : 'Sekarang semuanya sudah selaras.'}</p>
+         <p class="lemah kecil" style="margin-top:12px">Kasir tetap bisa melayani pembeli walau sinyal hilang.</p>`
+      : `<p>Data toko ini <b>hanya tersimpan di perangkat ini</b>, tidak dibagi ke perangkat lain.
+           Yang diubah di sini tidak akan muncul di HP.</p>
+         <p class="lemah kecil" style="margin-top:12px">Karena itu cadangan penting: kalau browser dibersihkan
+           atau perangkatnya rusak, datanya ikut hilang. Pengaturan &rarr; Unduh Cadangan.</p>`,
+    aksi: [{ label: 'Mengerti', kelas: 'tombol-utama', saatKlik: tutupModal }]
+  });
+}
+
+/** Panduan hari pertama. Hilang sendiri begitu ada satu barang terdaftar,
+    dan tidak pernah muncul lagi. Tanpa ini, Beranda terlihat sama persis
+    entah tokonya kosong entah berisi dua ribu barang -- dan orang yang
+    baru pertama kali tidak punya petunjuk harus mulai dari mana. */
+function gambarLangkahPertama() {
+  const kotak = $('#langkah-pertama');
+  if (!kotak) return;
+  const kosong = !db.barang.length;
+  kotak.classList.toggle('tersembunyi', !kosong);
+  if (!kosong) return;
+  kotak.innerHTML = `<h4>Selamat datang. Tiga langkah untuk mulai.</h4>
+    <ol>
+      <li><b>Isi daftar barang.</b> Cukup namanya dulu; harga bisa menyusul.
+          Kalau barangnya banyak, pakai <b>Isi Cepat</b> &mdash; satu baris satu barang.</li>
+      <li><b>Isi harganya.</b> Barang tanpa harga ditandai kuning dan belum bisa dijual,
+          supaya tidak ada yang terjual nol rupiah karena terlupa.</li>
+      <li><b>Mulai melayani</b> lewat menu Jual Barang.</li>
+    </ol>
+    <div class="baris-alat">
+      <button class="tombol tombol-utama" data-buka="layar-barang">Mulai dari Langkah 1</button>
+      <button class="tombol tombol-netral" id="btn-panduan-beranda">Lihat Panduan</button>
+    </div>`;
+  $('#btn-panduan-beranda').onclick = panduanAwal;
+}
+
 function kabarToko(pemilik, trxHariIni, omzet, menipis) {
   const kabar = [];
   if (!trxHariIni.length) {
@@ -1063,6 +1112,7 @@ function gambarSapaan(pemilik, trxHariIni, omzet, menipis) {
 }
 
 function gambarBeranda() {
+  gambarLangkahPertama();
   const hariIni = kunciTanggal();
   const pemilik = bolehPemilik();
   const trxHariIni = db.transaksi.filter(t => !t.batal && kunciTanggal(t.waktu) === hariIni);
@@ -1235,8 +1285,24 @@ function gambarPilihanBarang() {
   jejak.classList.toggle('tersembunyi', !jalur);
 
   kotak.innerHTML = kartu.length ? kartu.join('')
-    : `<div class="kosong">Barang tidak ditemukan.<br>
-        Tambahkan lewat menu <b>Daftar Barang</b>.</div>`;
+    /* Dua keadaan yang sangat berbeda dan dulu memakai kalimat yang sama:
+       mencari lalu tidak ketemu, dan toko yang memang belum punya barang.
+       Yang kedua butuh jalan ke sana, bukan sekadar disebutkan namanya. */
+    : (db.barang.length
+      ? '<div class="kosong">Barang tidak ditemukan.<br>Coba kata lain, atau daftarkan lewat <b>Daftar Barang</b>.</div>'
+      : '');
+
+  const kosongSekali = !db.barang.length;
+  const ajakan = $('#ajakan-isi-barang');
+  ajakan.classList.toggle('tersembunyi', !kosongSekali);
+  if (kosongSekali) {
+    ajakan.innerHTML = `<h4>Daftar barang masih kosong</h4>
+      <p>Kasir butuh daftar barang dulu sebelum bisa melayani pembeli.
+         Mendaftarkannya cukup dengan <b>namanya saja</b> &mdash; harga dan stok bisa menyusul.</p>
+      <div class="baris-alat">
+        <button class="tombol tombol-utama" data-buka="layar-barang">Isi Daftar Barang</button>
+      </div>`;
+  }
 }
 
 /** Menambahkan satu barang ke keranjang. Selalu per satuan barang itu. */
@@ -2732,6 +2798,11 @@ function pasangPendengar() {
     const bukaMerek = e.target.closest('[data-buka-merek]');
     if (bukaMerek) { pilihMerek = bukaMerek.dataset.bukaMerek; gambarPilihanBarang(); }
   });
+  $('#btn-lupa-pin-kunci').onclick = petunjukLupaPin;
+  /* Penanda keadaan data punya keterangan di balik kursor, dan keterangan
+     di balik kursor tidak pernah muncul di layar sentuh. Jadi ia harus bisa
+     diketuk juga. */
+  $('#penanda-awan').onclick = jelaskanKeadaanData;
   $('#jejak-barang').addEventListener('click', e => {
     if (e.target.closest('#btn-jejak-kembali')) kembaliSatuTingkat();
   });

@@ -49,6 +49,10 @@
         <p id="kunci-pesan" class="kecil pesan-kunci"></p>
         <div class="papan-angka" id="papan-angka"></div>
         <p class="lemah kecil" id="kunci-catatan" style="margin-top:16px"></p>
+        <!-- Satu-satunya jalan keluar kalau PIN terlupa. Keterangan yang sama
+             ada di Pengaturan, tetapi itu baru terbuka SESUDAH masuk -- jadi
+             orang yang lupa PIN tidak akan pernah sampai ke sana. -->
+        <button id="btn-lupa-pin-kunci" class="tombol-teks">Lupa PIN?</button>
 
       </div>
     </section>
@@ -72,6 +76,8 @@
     <section id="layar-beranda" class="layar">
       <div id="sapaan-beranda"></div>
       <div id="ringkas-beranda" class="ringkas-grid"></div>
+      <!-- Hanya muncul di hari pertama, saat toko masih kosong. -->
+      <div id="langkah-pertama" class="ajakan tersembunyi"></div>
       <div class="menu-grid">
         <button class="menu-btn hijau" data-buka="layar-jual">
           <span class="menu-ikon"><svg viewBox="0 0 24 24"><circle cx="9" cy="20" r="1.4"/><circle cx="18" cy="20" r="1.4"/><path d="M2 3h2.5l2.2 11.2a2 2 0 0 0 2 1.6h7.9a2 2 0 0 0 2-1.6L20 7H5.2"/></svg></span>
@@ -128,6 +134,8 @@
           <!-- Jejak langkah penelusuran barang. Kosong dan tersembunyi
                selama kasir masih di tingkat paling atas. -->
           <div id="jejak-barang" class="jejak-barang tersembunyi"></div>
+          <!-- Hanya muncul saat toko benar-benar belum punya barang. -->
+          <div id="ajakan-isi-barang" class="ajakan tersembunyi"></div>
           <div id="grid-barang-jual" class="grid-barang"></div>
         </div>
 

@@ -523,6 +523,29 @@ label .input, label select{ margin-top:6px; font-weight:500; color:var(--teks); 
   color:var(--peringatan); font-weight:700; font-size:12px;
 }
 
+/* ---------- ajakan untuk pemakai baru ----------
+   Hanya muncul saat toko masih kosong, lalu hilang untuk selamanya. Ia
+   harus cukup menonjol untuk dibaca di hari pertama, tetapi tidak boleh
+   meniru nada peringatan -- tidak ada yang salah, cuma belum dimulai. */
+.ajakan{
+  background:var(--sorot); border:1px solid color-mix(in srgb, var(--utama) 35%, var(--garis));
+  border-radius:var(--lengkung); padding:18px 20px; margin-bottom:18px;
+}
+.ajakan h4{ margin:0 0 6px; font-size:16px; color:var(--utama-gelap); }
+[data-tema="gelap"] .ajakan h4{ color:#c7d2fe; }
+.ajakan p{ margin:0 0 12px; color:var(--lemah); font-size:14px; line-height:1.6; }
+.ajakan ol{ margin:0 0 14px; padding-left:20px; color:var(--lemah); font-size:14px; line-height:1.9; }
+.ajakan .baris-alat{ margin:0; }
+
+/* Tombol berupa tulisan saja, untuk pintu bantuan yang tidak boleh
+   bersaing perhatian dengan papan angka di sebelahnya. */
+.tombol-teks{
+  background:none; border:none; padding:6px 4px; margin-top:10px; cursor:pointer;
+  font-family:inherit; font-size:13px; font-weight:700; color:var(--lemah);
+  text-decoration:underline; text-underline-offset:3px;
+}
+.tombol-teks:hover{ color:var(--utama); }
+
 /* ---------- penanda keadaan data ----------
    Tiga keadaan, tiga warna, dan titiknya berdenyut hanya ketika ada yang
    belum terkirim -- gerakan dipakai untuk satu hal saja, supaya ia berarti. */
