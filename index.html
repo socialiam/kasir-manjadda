@@ -219,9 +219,9 @@
           <table class="tabel" id="tabel-barang">
             <thead><tr>
               <th>Kode</th><th>Nama Barang</th><th>Merek</th><th>Tipe/Ukuran</th>
-              <th class="kanan">Harga Beli</th>
+              <th class="kanan">Harga Modal</th>
               <th class="kanan">Harga Jual</th><th class="kanan">Untung</th>
-              <th class="tengah">Stok</th><th class="tengah">Aksi</th>
+              <th class="tengah">Stok</th><th>Supplier</th><th class="tengah">Aksi</th>
             </tr></thead>
             <tbody></tbody>
           </table>
@@ -238,6 +238,10 @@
       </div>
       <div class="kartu">
         <p class="lemah">Pakai layar ini kalau ada kiriman barang baru dari pemasok, supaya stok bertambah dan tercatat.</p>
+        <p class="lemah kecil">Harga modal dihitung <b>rata-rata tertimbang</b>: barang yang sudah di rak
+          tetap dibeli dengan harga lamanya, jadi ia ikut diperhitungkan. Stok 5 seharga 4.000
+          lalu masuk 8 seharga 5.000 memberi modal 4.615, bukan 5.000.</p>
+        <div id="saran-supplier"></div>
         <div class="form-grid">
           <label>Barang
             <select id="masuk-barang" class="input"></select>
@@ -245,8 +249,12 @@
           <label>Jumlah masuk
             <input id="masuk-jumlah" class="input" type="number" min="1" step="1" value="1">
           </label>
-          <label>Harga beli baru <span class="lemah kecil">(kosongkan bila tidak berubah)</span>
+          <label>Harga modal baru <span class="lemah kecil">(kosongkan bila tidak berubah)</span>
             <input id="masuk-harga" class="input uang" type="text" inputmode="numeric" placeholder="0">
+          </label>
+          <label>Supplier <span class="lemah kecil">(boleh dikosongkan)</span>
+            <input id="masuk-supplier" class="input" type="text" list="daftar-supplier"
+                   placeholder="Contoh: Toko Grosir Jaya">
           </label>
           <label>Catatan <span class="lemah kecil">(boleh dikosongkan)</span>
             <input id="masuk-catatan" class="input" type="text" placeholder="Contoh: dari Toko Grosir Jaya">
@@ -258,7 +266,7 @@
         <h3>Riwayat Barang Masuk</h3>
         <div class="tabel-bungkus">
           <table class="tabel" id="tabel-masuk">
-            <thead><tr><th>Waktu</th><th>Barang</th><th class="tengah">Jumlah</th><th class="kanan">Harga Beli</th><th>Catatan</th></tr></thead>
+            <thead><tr><th>Waktu</th><th>Barang</th><th class="tengah">Jumlah</th><th class="kanan">Harga Modal</th><th>Supplier</th><th>Catatan</th></tr></thead>
             <tbody></tbody>
           </table>
         </div>

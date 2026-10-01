@@ -116,7 +116,7 @@ const KUNCI_SIMPAN = 'kasirToko.v1';
    benar-benar yang terbaru: angkanya terlihat di layar Pengaturan paling bawah.
    Kalau angka di layar tidak sama dengan yang disebutkan, berarti browser masih
    memakai simpanan lama dan perlu dimuat ulang dengan Ctrl+Shift+R. */
-const VERSI_APLIKASI = '1 Oktober 2026 - pembaruan 32 (kasir satu orang)';
+const VERSI_APLIKASI = '1 Oktober 2026 - pembaruan 33 (harga modal & supplier)';
 
 /** Isi awal saat aplikasi pertama kali dibuka. Semua bisa diubah dari dalam aplikasi. */
 function dataAwal() {
@@ -235,6 +235,8 @@ function lengkapi(data) {
     // tetap sah: ia jadi barang bertingkat satu.
     b.merek ??= '';
     b.tipe ??= '';
+    b.supplier ??= '';               // dari mana harga modal yang berlaku sekarang
+    b.riwayatModal ??= [];           // { tanggal, supplier, harga, asal }
     b.gambar ??= '';   // kosong berarti ikon ditebak dari nama barang
     // Harga borongan dibuang pada pembaruan 27. Sisa bidangnya di data lama
     // dibersihkan supaya cadangan tidak membawa yang tidak dipakai lagi.
@@ -310,11 +312,76 @@ function daftarSaranBarang() {
   return `<datalist id="daftar-nama">${pilihan(unik(b => b.nama))}</datalist>
     <datalist id="daftar-merek">${pilihan(unik(b => b.merek))}</datalist>
     <datalist id="daftar-tipe">${pilihan(unik(b => b.tipe))}</datalist>
-    <datalist id="daftar-kode">${pilihan(unik(b => b.kode))}</datalist>`;
+    <datalist id="daftar-kode">${pilihan(unik(b => b.kode))}</datalist>
+    ${daftarSaranSupplier()}`;
+}
+
+/** Saran pemasok, dikumpulkan dari barang dan dari riwayat pembeliannya,
+    supaya satu pemasok tidak lahir dalam tiga ejaan. */
+function daftarSaranSupplier() {
+  const kumpul = new Set();
+  db.barang.forEach(b => {
+    if (b.supplier) kumpul.add(b.supplier);
+    (b.riwayatModal || []).forEach(h => { if (h.supplier) kumpul.add(h.supplier); });
+  });
+  (db.barangMasuk || []).forEach(m => { if (m.supplier) kumpul.add(m.supplier); });
+  return `<datalist id="daftar-supplier">${[...kumpul]
+    .sort((a, b) => a.localeCompare(b, 'id'))
+    .map(x => `<option value="${aman(x)}">`).join('')}</datalist>`;
 }
 
 /** Nama utuh satu barang, untuk struk, laporan, dan pencarian. */
 const namaLengkap = b => [b.nama, b.merek, b.tipe].filter(Boolean).join(' ');
+
+/* ========== HARGA MODAL ==========
+   Lihat keterangan panjang di riwayat perubahan. Ringkasnya: modal
+   dihitung rata-rata tertimbang dari pembelian yang benar-benar terjadi,
+   survei hanya untuk dibandingkan, dan angka yang diketik pemilik sendiri
+   selalu menang. */
+
+/** Modal baru sesudah barang masuk. Stok lama ikut diperhitungkan, sebab
+    barang yang sudah di rak tetap dibeli dengan harga lamanya. */
+function modalRataRata(stokLama, modalLama, jumlahMasuk, hargaMasuk) {
+  const total = stokLama + jumlahMasuk;
+  if (total <= 0) return hargaMasuk;
+  // Stok minus atau modal kosong: tidak ada yang bisa dirata-ratakan.
+  if (stokLama <= 0 || !(modalLama > 0)) return hargaMasuk;
+  return Math.round((stokLama * modalLama + jumlahMasuk * hargaMasuk) / total);
+}
+
+/** Mencatat satu harga ke riwayat barang. Yang terbaru di depan. */
+function catatHargaModal(barang, { harga, supplier = '', asal = 'beli' }) {
+  if (!(harga > 0)) return;
+  barang.riwayatModal = barang.riwayatModal || [];
+  barang.riwayatModal.unshift({
+    id: idBaru(), tanggal: new Date().toISOString(),
+    supplier: supplier.trim(), harga, asal
+  });
+  // Lima puluh baris sudah lebih dari cukup untuk membandingkan harga.
+  if (barang.riwayatModal.length > 50) barang.riwayatModal.length = 50;
+}
+
+/** Harga termurah yang masih layak dipercaya. Harga yang terlalu tua bukan
+    lagi bukti bahwa di sana lebih murah hari ini -- harga naik seiring
+    waktu, jadi angka tahun lalu tidak boleh ditampilkan seolah berlaku. */
+const UMUR_HARGA_HARI = 90;
+function hargaTermurah(barang) {
+  const batas = Date.now() - UMUR_HARGA_HARI * 86400000;
+  const layak = (barang.riwayatModal || [])
+    .filter(h => h.harga > 0 && new Date(h.tanggal).getTime() >= batas);
+
+  /* Tiap pemasok diwakili harga TERBARUNYA saja. Tanpa ini, harga lama dari
+     pemasok yang sama masih ikut dibandingkan -- dan aplikasi akan berkata
+     "di Toko Aminah cuma 4.000" padahal pembelian terakhir di sana sudah
+     5.000. Harga yang sudah digantikan bukan lagi tawaran. */
+  const terbaru = new Map();
+  layak.forEach(h => {
+    const kunci = (h.supplier || '').toLowerCase();
+    const ada = terbaru.get(kunci);
+    if (!ada || new Date(h.tanggal) > new Date(ada.tanggal)) terbaru.set(kunci, h);
+  });
+  return [...terbaru.values()].sort((a, b) => a.harga - b.harga)[0] || null;
+}
 
 /** Bagian yang membedakan satu barang dari saudaranya satu merek. */
 const namaPembeda = b => b.tipe || b.merek || b.nama;
@@ -460,7 +527,10 @@ const saatTampil = {
     setTimeout(() => $('#cari-barang-jual').focus(), 80);
   },
   'layar-barang': () => gambarTabelBarang(),
-  'layar-masuk-barang': () => { gambarPilihanMasuk(); gambarRiwayatMasuk(); },
+  'layar-masuk-barang': () => {
+    gambarPilihanMasuk(); gambarRiwayatMasuk();
+    $('#saran-supplier').innerHTML = daftarSaranSupplier();
+  },
   'layar-laporan': () => gambarLaporan(),
   'layar-tutup-kasir': () => gambarTutupKasir(),
   'layar-catatan': () => gambarCatatan(),
@@ -1504,6 +1574,10 @@ function gambarTabelBarang() {
 
   $('#tabel-barang tbody').innerHTML = daftar.map(b => {
     const untung = b.hargaJual - b.hargaBeli;
+    /* Tanda diam, bukan jendela yang muncul: ada harga lain yang lebih murah
+       DAN masih cukup baru untuk dipercaya. */
+    const termurah = hargaTermurah(b);
+    const murah = (termurah && b.hargaBeli > 0 && termurah.harga < b.hargaBeli) ? termurah : null;
     const lencana = b.stok <= 0
       ? '<span class="lencana lencana-bahaya">habis</span>'
       : (b.stok <= (b.stokMinimum ?? 5) ? '<span class="lencana lencana-peringatan">menipis</span>' : '');
@@ -1518,7 +1592,12 @@ function gambarTabelBarang() {
         : '<span class="lencana lencana-peringatan">belum ada harga</span>'}</td>
       <td class="kanan" style="color:${untung >= 0 ? 'var(--sukses)' : 'var(--bahaya)'}">${b.hargaJual > 0 ? angka(untung) : '&mdash;'}</td>
       <td class="tengah">${angka(b.stok)} ${aman(b.satuan)} ${lencana}</td>
+      <td class="lemah">${aman(b.supplier || '-')}${murah
+        ? ` <span class="lencana lencana-baik" title="${aman(murah.supplier || 'tempat lain')} ` +
+          `${angka(murah.harga)} pada ${waktuSingkat(murah.tanggal)}">&darr; ${angka(b.hargaBeli - murah.harga)}</span>`
+        : ''}</td>
       <td class="tengah" style="white-space:nowrap">${bolehPemilik() ? `
+        <button class="tombol-ikon" data-riwayat-harga="${b.id}" title="Riwayat harga dan pemasok">&#128202;</button>
         <button class="tombol-ikon" data-ubah-barang="${b.id}" title="Ubah">&#9998;</button>
         <button class="tombol-ikon" data-hapus-barang="${b.id}" title="Hapus">&#128465;</button>`
         : '<span class="lemah kecil">&mdash;</span>'}
@@ -1529,6 +1608,73 @@ function gambarTabelBarang() {
   $('#barang-kosong').textContent = daftar.length ? '' :
     (db.barang.length ? 'Tidak ada barang yang cocok dengan pencarian.' : 'Belum ada barang. Klik "Tambah Barang".');
   $('#tabel-barang').classList.toggle('tersembunyi', daftar.length === 0);
+}
+
+/* ----- riwayat harga modal -----
+   Satu daftar menampung dua hal yang bentuknya sama: harga berbeda antar
+   pemasok, dan harga yang naik seiring waktu. Karena itu tidak ada "fitur
+   pembanding pemasok" tersendiri di sini -- yang ada cuma riwayat.
+
+   Harga survei TIDAK PERNAH mengubah harga modal. Modal hanya berubah oleh
+   pembelian yang benar-benar terjadi, lewat layar Barang Masuk. Kalau survei
+   ikut menentukan, laporan untung jadi lebih manis daripada kenyataan. */
+function formRiwayatHarga(id) {
+  const b = cariBarang(id);
+  if (!b) return;
+  const daftar = b.riwayatModal || [];
+  const murah = hargaTermurah(b);
+
+  const baris = daftar.length
+    ? daftar.map(h => `<div class="baris-daftar">
+        <span><b>${angka(h.harga)}</b>
+          <span class="lencana ${h.asal === 'survei' ? 'lencana-peringatan' : 'lencana-baik'}">${h.asal === 'survei' ? 'survei' : 'dibeli'}</span>
+          <br><span class="lemah kecil">${aman(h.supplier || 'tanpa nama pemasok')} &middot; ${waktuSingkat(h.tanggal)}</span></span>
+      </div>`).join('')
+    : '<p class="lemah">Belum ada catatan harga. Harga akan tercatat sendiri setiap kali barang masuk.</p>';
+
+  const sorot = (murah && b.hargaBeli > 0 && murah.harga < b.hargaBeli)
+    ? `<p class="lemah kecil" style="margin-top:10px"><b>Ada yang lebih murah:</b>
+        ${aman(murah.supplier || 'tempat lain')} ${angka(murah.harga)},
+        selisih ${angka(b.hargaBeli - murah.harga)} dari modal sekarang.</p>`
+    : '';
+
+  bukaModal({
+    judul: 'Riwayat Harga ' + namaLengkap(b),
+    isi: `<p class="lemah">Harga modal sekarang <b>${angka(b.hargaBeli)}</b>${b.supplier ? ' dari <b>' + aman(b.supplier) + '</b>' : ''}.
+        Dihitung rata-rata tertimbang dari pembelian yang benar-benar terjadi.</p>
+      ${sorot}
+      <div class="daftar-sederhana" style="margin-top:14px">${baris}</div>
+      <div class="form-grid" style="margin:18px 0 0">
+        <label>Harga di tempat lain
+          <input id="rh-harga" class="input uang" type="text" inputmode="numeric" placeholder="0"></label>
+        <label>Nama pemasok
+          <input id="rh-supplier" class="input" type="text" list="daftar-supplier"
+                 placeholder="Contoh: Pasar Senen"></label>
+      </div>
+      <p class="lemah kecil">Ini harga <b>survei</b> &mdash; hasil bertanya atau melihat-lihat, bukan membeli.
+        Ia hanya untuk dibandingkan dan <b>tidak mengubah harga modal</b>. Modal baru berubah kalau
+        barangnya benar-benar dibeli, lewat menu Barang Masuk.</p>
+      ${daftarSaranSupplier()}`,
+    aksi: [
+      { label: 'Tutup', kelas: 'tombol-netral', saatKlik: tutupModal },
+      { label: 'Simpan Harga Survei', kelas: 'tombol-utama', saatKlik: () => simpanHargaSurvei(b.id) }
+    ]
+  });
+}
+
+function simpanHargaSurvei(id) {
+  const b = cariBarang(id);
+  if (!b) return;
+  const harga = nilaiAngka($('#rh-harga'));
+  const pemasok = $('#rh-supplier').value.trim();
+  if (!(harga > 0)) { pesan('Isi dulu harganya.', 'peringatan'); $('#rh-harga').focus(); return; }
+
+  catatHargaModal(b, { harga, supplier: pemasok, asal: 'survei' });
+  catat('barang', `Harga survei ${namaLengkap(b)}: ${angka(harga)}` + (pemasok ? ` di ${pemasok}` : ''));
+  simpanData();
+  tutupModal();
+  gambarTabelBarang();
+  pesan('Harga survei dicatat. Harga modal tidak berubah.', 'sukses', 4500);
 }
 
 function formBarang(id = null) {
@@ -1550,7 +1696,10 @@ function formBarang(id = null) {
                  list="daftar-kode"></label>
         <label>Satuan
           <input id="f-satuan" class="input" type="text" value="${aman(b?.satuan || 'pcs')}" placeholder="pcs / lusin / kg"></label>
-        <label>Harga beli (modal)
+        <label class="lebar-penuh">Supplier <span class="lemah kecil">(boleh kosong)</span>
+          <input id="f-supplier" class="input" type="text" value="${aman(b?.supplier || '')}"
+                 list="daftar-supplier" placeholder="Dari mana biasanya dibeli"></label>
+        <label>Harga modal
           <input id="f-beli" class="input uang" type="text" inputmode="numeric" value="${b ? angka(b.hargaBeli) : ''}"></label>
         <label>Harga jual
           <input id="f-jual" class="input uang" type="text" inputmode="numeric" value="${b ? angka(b.hargaJual) : ''}"></label>
@@ -1591,6 +1740,7 @@ function simpanBarang(id) {
     merek: $('#f-merek').value.trim(),
     tipe: $('#f-tipe').value.trim(),
     kode: $('#f-kode').value.trim(),
+    supplier: $('#f-supplier').value.trim(),
     satuan: $('#f-satuan').value.trim() || 'pcs',
     hargaBeli: nilaiAngka($('#f-beli')),
     hargaJual: nilaiAngka($('#f-jual')),
@@ -1653,7 +1803,7 @@ function formImporBarang() {
     judul: 'Isi Cepat Banyak Barang',
     isi: `<p class="lemah">Tulis satu barang per baris dengan urutan:</p>
       <p style="font-family:monospace;background:var(--sorot);padding:10px;border-radius:8px;font-size:13.5px">
-        nama ; merek ; tipe/ukuran ; kode ; harga jual ; harga beli ; stok</p>
+        nama ; merek ; tipe/ukuran ; kode ; harga jual ; harga modal ; stok ; supplier</p>
       <p class="lemah kecil">Semua kolom sesudah nama boleh dikosongkan &mdash; kosongkan saja
         tanda titik komanya tetap ada. Harga pun boleh menyusul.
         Barang dianggap sama kalau <b>nama, merek, dan tipenya</b> sama; yang sudah ada
@@ -1685,7 +1835,7 @@ async function imporBarang() {
 
   baris.forEach((b, nomorBaris) => {
     if (!b.trim()) return;
-    let [nama, merek, tipe, kode, jual, beli, stok] = belahBaris(b);
+    let [nama, merek, tipe, kode, jual, beli, stok, pemasok] = belahBaris(b);
 
     /* Urutan lama hanya punya empat kolom: nama ; jual ; beli ; stok.
        Kalau ketiga kolom sesudah nama semuanya angka, itu pasti bentuk lama,
@@ -1699,6 +1849,7 @@ async function imporBarang() {
     if (!nama) { lewat.push(`Baris ${nomorBaris + 1}: nama kosong`); return; }
     const isian = {
       nama, merek: merek || '', tipe: tipe || '', kode: kode || '',
+      supplier: pemasok || '',
       hargaJual: keAngka(jual), hargaBeli: keAngka(beli), stok: keAngka(stok)
     };
 
@@ -1726,13 +1877,15 @@ async function imporBarang() {
   if (!ya) return;
 
   tambah.forEach(x => db.barang.push({
-    id: idBaru(), kode: x.kode, nama: x.nama, merek: x.merek, tipe: x.tipe, satuan: 'pcs',
+    id: idBaru(), kode: x.kode, nama: x.nama, merek: x.merek, tipe: x.tipe,
+    supplier: x.supplier, riwayatModal: [], satuan: 'pcs',
     hargaBeli: x.hargaBeli, hargaJual: x.hargaJual, stok: x.stok, stokMinimum: 5
   }));
   // Kolom yang dikosongkan berarti "jangan diubah", bukan "jadikan nol".
   // Sekali saja harga tergantikan nol, angkanya tidak bisa dikembalikan.
   perbarui.forEach(x => Object.assign(x.lama, {
     kode: x.kode || x.lama.kode,
+    supplier: x.supplier || x.lama.supplier,
     hargaJual: x.hargaJual || x.lama.hargaJual,
     hargaBeli: x.hargaBeli || x.lama.hargaBeli,
     stok: x.stok
@@ -1751,13 +1904,13 @@ function unduhDaftarBarang() {
   const sel = n => `"${String(n).replace(/"/g, '""')}"`;
   // Tujuh kolom pertama sengaja persis seurutan dengan Isi Cepat, supaya
   // berkas ini bisa dibetulkan di Excel lalu ditempel balik apa adanya.
-  const baris = [['Nama Barang', 'Merek', 'Tipe/Ukuran', 'Kode', 'Harga Jual', 'Harga Beli', 'Stok',
-    'Satuan', 'Untung', 'Stok Minimum'].map(sel).join(';')];
+  const baris = [['Nama Barang', 'Merek', 'Tipe/Ukuran', 'Kode', 'Harga Jual', 'Harga Modal', 'Stok',
+    'Supplier', 'Satuan', 'Untung', 'Stok Minimum'].map(sel).join(';')];
   db.barang.slice()
     .sort((a, b) => namaLengkap(a).localeCompare(namaLengkap(b), 'id', { numeric: true }))
     .forEach(b => {
       baris.push([b.nama, b.merek || '', b.tipe || '', b.kode || '', b.hargaJual, b.hargaBeli, b.stok,
-        b.satuan, b.hargaJual - b.hargaBeli, b.stokMinimum ?? 5].map(sel).join(';'));
+        b.supplier || '', b.satuan, b.hargaJual - b.hargaBeli, b.stokMinimum ?? 5].map(sel).join(';'));
     });
   unduhBerkas(`daftar-barang-${slugToko()}-${kunciTanggal()}.csv`, 'ï»¿' + baris.join('\r\n'), 'text/csv;charset=utf-8');
   pesan('Daftar barang diunduh. Bisa dibuka dengan Excel.', 'sukses');
@@ -1781,6 +1934,7 @@ function tambahStok() {
   const jumlah = parseInt($('#masuk-jumlah').value, 10) || 0;
   const hargaBaru = nilaiAngka($('#masuk-harga'));
   const catatan = $('#masuk-catatan').value.trim();
+  const pemasok = $('#masuk-supplier').value.trim();
   const barang = cariBarang(id);
 
   if (!barang) { pesan('Pilih barangnya dulu.', 'peringatan'); return; }
@@ -1788,21 +1942,35 @@ function tambahStok() {
 
   const stokLama = barang.stok;
   barang.stok += jumlah;
-  if (hargaBaru > 0 && hargaBaru !== barang.hargaBeli) {
-    catat('barang', `Harga beli ${barang.nama} berubah ${angka(barang.hargaBeli)} jadi ${angka(hargaBaru)} lewat barang masuk`);
-    barang.hargaBeli = hargaBaru;
+
+  if (hargaBaru > 0) {
+    /* Rata-rata tertimbang, bukan harga terakhir. Barang yang sudah di rak
+       tetap dibeli dengan harga lamanya, jadi ia ikut diperhitungkan. */
+    const modalLama = barang.hargaBeli;
+    barang.hargaBeli = modalRataRata(stokLama, modalLama, jumlah, hargaBaru);
+    barang.supplier = pemasok || barang.supplier || '';
+    catatHargaModal(barang, { harga: hargaBaru, supplier: pemasok, asal: 'beli' });
+    if (barang.hargaBeli !== modalLama) {
+      catat('barang', `Harga modal ${barang.nama} jadi ${angka(barang.hargaBeli)} ` +
+        `(rata-rata ${angka(stokLama)} @${angka(modalLama)} dan ${angka(jumlah)} @${angka(hargaBaru)}` +
+        (pemasok ? ` dari ${pemasok}` : '') + ')');
+    }
+  } else if (pemasok) {
+    barang.supplier = pemasok;
   }
   catat('stok', `Barang masuk: ${barang.nama} +${angka(jumlah)}, stok ${angka(stokLama)} jadi ${angka(barang.stok)}` +
     (catatan ? ` (${catatan})` : ''));
   db.barangMasuk.push({
     id: idBaru(), waktu: new Date().toISOString(), idBarang: barang.id, nama: barang.nama,
-    jumlah, hargaBeli: barang.hargaBeli, catatan, petugas: petugasSekarang?.nama || '-'
+    jumlah, hargaBeli: hargaBaru > 0 ? hargaBaru : barang.hargaBeli,
+    supplier: pemasok, catatan, petugas: petugasSekarang?.nama || '-'
   });
   simpanData();
 
   $('#masuk-jumlah').value = 1;
   $('#masuk-harga').value = '';
   $('#masuk-catatan').value = '';
+  $('#masuk-supplier').value = '';
   gambarPilihanMasuk();
   gambarRiwayatMasuk();
   pesan(`${barang.nama} bertambah ${jumlah}. Stok sekarang ${barang.stok}.`, 'sukses', 3500);
@@ -1815,6 +1983,7 @@ function gambarRiwayatMasuk() {
       <td>${aman(m.nama)}</td>
       <td class="tengah"><b>+${angka(m.jumlah)}</b></td>
       <td class="kanan">${angka(m.hargaBeli)}</td>
+      <td class="lemah">${aman(m.supplier || '-')}</td>
       <td class="lemah">${aman(m.catatan || '-')}</td>
     </tr>`).join('');
   $('#masuk-kosong').textContent = daftar.length ? '' : 'Belum ada catatan barang masuk.';
@@ -1984,7 +2153,7 @@ function unduhCsv() {
   const sel = n => `"${String(n).replace(/"/g, '""')}"`;
   const pemilik = bolehPemilik();
   const judul = ['Nomor', 'Waktu', 'Petugas', 'Barang', 'Jumlah', 'Harga Jual'];
-  if (pemilik) judul.push('Harga Beli');
+  if (pemilik) judul.push('Harga Modal');
   judul.push('Subtotal Barang', 'Diskon Nota', 'Total Nota', 'Status');
   const baris = [judul.map(sel).join(';')];
   daftar.forEach(t => t.item.forEach(i => {
@@ -2631,6 +2800,8 @@ function pasangPendengar() {
     gambarTabelBarang();
   });
   $('#tabel-barang').addEventListener('click', e => {
+    const riwayat = e.target.closest('[data-riwayat-harga]');
+    if (riwayat) { formRiwayatHarga(riwayat.dataset.riwayatHarga); return; }
     const ubah = e.target.closest('[data-ubah-barang]');
     const hapus = e.target.closest('[data-hapus-barang]');
     if (ubah) formBarang(ubah.dataset.ubahBarang);
