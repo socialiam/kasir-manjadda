@@ -12,8 +12,8 @@
    ============================================================ */
 'use strict';
 
-const { getStore } = require('@netlify/blobs');
-const crypto = require('crypto');
+import { getStore } from '@netlify/blobs';
+import crypto from 'node:crypto';
 
 const KUNCI_DATA = 'toko';
 const UMUR_TOKEN_JAM = 12;
@@ -36,15 +36,13 @@ const DAFTAR_CATATAN = ['barang', 'petugas'];
 
 const simpanan = () => getStore({ name: 'kasir-manjadda', consistency: 'strong' });
 
-const jawab = (kode, isi) => ({
-  statusCode: kode,
-  headers: {
-    'Content-Type': 'application/json; charset=utf-8',
-    'Cache-Control': 'no-store',
-    'X-Robots-Tag': 'noindex'
-  },
-  body: JSON.stringify(isi)
-});
+const KEPALA = {
+  'Content-Type': 'application/json; charset=utf-8',
+  'Cache-Control': 'no-store',
+  'X-Robots-Tag': 'noindex'
+};
+
+const jawab = (kode, isi) => ({ statusCode: kode, headers: KEPALA, body: JSON.stringify(isi) });
 
 /* ---------- sidik PIN ----------
    Bentuknya sengaja sama persis dengan yang dipakai aplikasi:
@@ -158,13 +156,8 @@ function catatGagal(p) {
 
 /* ============================================================ */
 
-exports.handler = async function (peristiwa) {
-  if (peristiwa.httpMethod !== 'POST') return jawab(405, { galat: 'Hanya POST' });
-
-  let minta;
-  try { minta = JSON.parse(peristiwa.body || '{}'); }
-  catch (e) { return jawab(400, { galat: 'Permintaan tidak terbaca' }); }
-
+/** Inti pintu, terpisah dari bentuk HTTP-nya supaya bisa diuji langsung. */
+export async function tangani(minta) {
   const toko = simpanan();
 
   try {
@@ -300,4 +293,26 @@ exports.handler = async function (peristiwa) {
   } catch (e) {
     return jawab(500, { galat: e.message });
   }
-};
+}
+
+/* ---------- bungkus HTTP ----------
+   Bentuk baru Netlify, yang memang bentuk inilah yang mendapat sambungan
+   ke penyimpanan secara sendirinya. Bentuk lama (exports.handler) berjalan
+   tetapi tidak pernah diberi sambungan itu, dan itulah sebabnya pintu ini
+   semula menjawab "belum dikonfigurasi". */
+export default async function (permintaan) {
+  if (permintaan.method !== 'POST') {
+    return new Response(JSON.stringify({ galat: 'Hanya POST' }), {
+      status: 405, headers: KEPALA
+    });
+  }
+  let minta;
+  try { minta = await permintaan.json(); }
+  catch (e) {
+    return new Response(JSON.stringify({ galat: 'Permintaan tidak terbaca' }), {
+      status: 400, headers: KEPALA
+    });
+  }
+  const hasil = await tangani(minta);
+  return new Response(hasil.body, { status: hasil.statusCode, headers: hasil.headers });
+}
