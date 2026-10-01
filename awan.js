@@ -25,6 +25,54 @@ const AWAN_JEDA_DORONG = 1500;      // menunggu sejenak, supaya ketikan beruntun
 const AWAN_JEDA_TARIK = 12000;      // seberapa sering mengintip perubahan dari perangkat lain
 const AWAN_KUNCI_TOKEN = 'kasirToko.giliran';
 
+/* ---------- menahan panduan awal ----------
+   Berjalan SEKETIKA saat berkas ini dibaca, masih sebelum panduan awal
+   sempat muncul, sebab app.js menjadwalkannya 350 milidetik sesudah muat.
+
+   Kenapa harus ditahan: di perangkat yang baru, panduan itu muncul sebelum
+   data dari server sempat tiba, dan ia menawarkan "pakai 8 barang contoh".
+   Sekali ditekan, delapan barang karangan itu terkirim ke data bersama
+   SELURUH toko. Menutupnya belakangan tidak cukup -- yang sempat terlihat
+   sempat pula ditekan.
+
+   Kalau ternyata toko ini memang belum pernah dipasang di server, atau
+   servernya tidak ada sama sekali, panduannya dipanggil sendiri di bawah.
+   Jadi ini penahanan, bukan penghapusan. */
+let panduanDitahan = false;
+let panduanSempatDiminta = false;
+
+if (typeof perluPanduanAwal !== 'undefined' && perluPanduanAwal) {
+  panduanDitahan = true;
+
+  /* Yang dicegat adalah JENDELANYA, bukan penandanya. app.js sudah
+     menjadwalkan panduan itu di dalam mulai(), yang berjalan sebelum berkas
+     ini dibaca sama sekali -- jadi mematikan perluPanduanAwal sekarang tidak
+     berpengaruh apa pun, dan mengganti panduanAwal pun tidak, sebab
+     setTimeout sudah memegang fungsi yang lama.
+
+     Menutup jendelanya sesudah terlanjur terbuka juga tidak cukup: yang
+     sempat terlihat sempat pula ditekan. */
+  if (typeof bukaModal === 'function') {
+    const bukaAsli = bukaModal;
+    bukaModal = function (pilihan) {
+      if (panduanDitahan && pilihan && pilihan.judul === 'Selamat datang') {
+        panduanSempatDiminta = true;
+        return;
+      }
+      return bukaAsli(pilihan);
+    };
+  }
+}
+
+/** Melepaskan panduan awal yang tadi ditahan, kalau memang masih perlu. */
+function awanLepaskanPanduan() {
+  if (!panduanDitahan) return;
+  panduanDitahan = false;
+  if (!panduanSempatDiminta) return;
+  panduanSempatDiminta = false;
+  try { if (typeof panduanAwal === 'function') panduanAwal(); } catch (e) { /* biarkan */ }
+}
+
 const awan = {
   tersedia: false,      // pintunya menjawab dan tokonya sudah dipasang
   token: null,
@@ -304,11 +352,15 @@ async function awanMulai() {
   const r = await awanPanggil({ aksi: 'keadaan' }, 8000);
   awan.tersedia = r.kode === 200 && r.isi.terpasang === true;
   awanGambarPenanda();
-  if (!awan.tersedia) return;
+  if (!awan.tersedia) { awanLepaskanPanduan(); return; }
 
   // Harus sebelum siapa pun menekan namanya di layar masuk, sebab id dari
   // server itulah yang nanti dipakai memeriksa PIN.
   awanSelaraskanPetugas(r.isi.petugas);
+
+  // Toko ini sudah berdiri, jadi panduan pendiriannya tidak pernah dipanggil
+  // kembali. Lihat keterangan di bagian penahanan di atas.
+  panduanDitahan = false;
 
   // Giliran yang belum habis boleh dipakai lagi, supaya membuka kasir di
   // pagi hari tidak selalu menuntut PIN dua kali.
@@ -330,4 +382,8 @@ async function awanMulai() {
   document.addEventListener('visibilitychange', () => { if (!document.hidden) awanTarik(); });
 }
 
-window.addEventListener('load', () => { awanMulai().catch(() => { /* kasir tetap jalan */ }); });
+window.addEventListener('load', () => {
+  // Panduan yang tadi ditahan WAJIB dilepaskan juga kalau bagian awan gagal,
+  // kalau tidak pemasangan baru yang luring tidak pernah dipandu sama sekali.
+  awanMulai().catch(() => { awanLepaskanPanduan(); });
+});
