@@ -242,12 +242,22 @@ export async function tangani(minta) {
 
       /* Sidik PIN tidak pernah dikirim ke browser, jadi ia juga tidak boleh
          ikut kembali dari browser. Yang di server selalu yang dipakai. */
+      /* Kalau id-nya tidak dikenal, pencocokan jatuh ke NAMA. Ini bukan
+         kelonggaran, justru sebaliknya: memulihkan cadangan membawa daftar
+         petugas dengan id lamanya, dan tanpa pencocokan nama setiap
+         pemulihan melahirkan akun kembar ber-PIN kosong -- yang artinya
+         siapa pun bisa masuk memakai nama pemilik.
+
+         Satu nama hanya boleh dipakai satu kali, supaya dua baris bernama
+         sama tidak sama-sama mewarisi PIN orang yang sama. */
+      const sudahDipakai = new Set();
       const petugasAman = (minta.data.petugas || []).map(baru => {
-        const di = (lama.petugas || []).find(x => x.id === baru.id);
-        return di
-          ? { ...baru, pin: di.pin, panjangPin: di.panjangPin, pinBawaan: di.pinBawaan,
-              gagalPin: di.gagalPin, kunciSampai: di.kunciSampai }
-          : { ...baru, pin: '', panjangPin: 0, pinBawaan: false, gagalPin: 0, kunciSampai: 0 };
+        let di = (lama.petugas || []).find(x => x.id === baru.id);
+        if (!di) di = (lama.petugas || []).find(x => x.nama === baru.nama && !sudahDipakai.has(x.id));
+        if (!di) return { ...baru, pin: '', panjangPin: 0, pinBawaan: false, gagalPin: 0, kunciSampai: 0 };
+        sudahDipakai.add(di.id);
+        return { ...baru, id: di.id, pin: di.pin, panjangPin: di.panjangPin,
+                 pinBawaan: di.pinBawaan, gagalPin: di.gagalPin, kunciSampai: di.kunciSampai };
       });
 
       const gabung = satukan(lama, { ...minta.data, petugas: petugasAman });
