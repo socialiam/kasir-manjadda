@@ -116,7 +116,7 @@ const KUNCI_SIMPAN = 'kasirToko.v1';
    benar-benar yang terbaru: angkanya terlihat di layar Pengaturan paling bawah.
    Kalau angka di layar tidak sama dengan yang disebutkan, berarti browser masih
    memakai simpanan lama dan perlu dimuat ulang dengan Ctrl+Shift+R. */
-const VERSI_APLIKASI = '1 Oktober 2026 - pembaruan 41 (satuan: set)';
+const VERSI_APLIKASI = '1 Oktober 2026 - pembaruan 42 (satuan bawaan mengikuti toko)';
 
 /** Isi awal saat aplikasi pertama kali dibuka. Semua bisa diubah dari dalam aplikasi. */
 function dataAwal() {
@@ -363,6 +363,24 @@ function daftarSaranBarang() {
    dipakai tidak perlu diketik ulang, dan supaya satu satuan tidak lahir
    dalam dua ejaan. */
 const SATUAN_LAZIM = ['pcs', 'set', 'lusin', 'pak', 'box', 'unit', 'buah', 'kodi', 'lembar', 'meter', 'kg'];
+
+/** Satuan bawaan: yang PALING SERING dipakai di toko ini sendiri.
+
+    Dulu selalu 'pcs'. Itu salah untuk toko yang kebanyakan menjual per
+    set: tiap kali mendaftarkan barang, pemiliknya harus membetulkan
+    satuan yang sudah terisi -- pekerjaan kecil yang berulang ratusan kali.
+
+    Tidak perlu diatur siapa pun. Ia mengikuti kebiasaan toko dengan
+    sendirinya, dan berubah sendiri kalau kebiasaannya berubah. */
+function satuanBawaan() {
+  const hitung = new Map();
+  db.barang.forEach(b => {
+    const s = (b.satuan || '').trim();
+    if (s) hitung.set(s, (hitung.get(s) || 0) + 1);
+  });
+  if (!hitung.size) return 'pcs';           // toko baru, belum ada kebiasaan
+  return [...hitung.entries()].sort((a, b) => b[1] - a[1])[0][0];
+}
 
 /** Satuan lazim ditambah satuan yang memang sudah dipakai di toko ini. */
 function satuanTersedia() {
@@ -1870,7 +1888,7 @@ function formBarang(id = null) {
           <input id="f-kode" class="input" type="text" value="${aman(b?.kode || '')}"
                  list="daftar-kode"></label>
         <label>Satuan
-          <input id="f-satuan" class="input" type="text" value="${aman(b?.satuan || 'pcs')}"
+          <input id="f-satuan" class="input" type="text" value="${aman(b?.satuan || satuanBawaan())}"
                  list="daftar-satuan" placeholder="pcs / set / lusin"></label>
         <label class="lebar-penuh">Supplier <span class="lemah kecil">(boleh kosong)</span>
           <input id="f-supplier" class="input" type="text" value="${aman(b?.supplier || '')}"
@@ -1917,7 +1935,7 @@ function simpanBarang(id) {
     tipe: $('#f-tipe').value.trim(),
     kode: $('#f-kode').value.trim(),
     supplier: $('#f-supplier').value.trim(),
-    satuan: $('#f-satuan').value.trim() || 'pcs',
+    satuan: $('#f-satuan').value.trim() || satuanBawaan(),
     hargaBeli: nilaiAngka($('#f-beli')),
     hargaJual: nilaiAngka($('#f-jual')),
     stok: Math.max(0, parseInt($('#f-stok').value, 10) || 0),
@@ -2068,7 +2086,7 @@ async function imporBarang() {
 
   tambah.forEach(x => db.barang.push(tandaiSemua({
     id: idBaru(), kode: x.kode, nama: x.nama, merek: x.merek, tipe: x.tipe,
-    supplier: x.supplier, riwayatModal: [], satuan: 'pcs',
+    supplier: x.supplier, riwayatModal: [], satuan: satuanBawaan(),
     hargaBeli: x.hargaBeli, hargaJual: x.hargaJual, stok: x.stok, stokMinimum: 5
   })));
   // Kolom yang dikosongkan berarti "jangan diubah", bukan "jadikan nol".
