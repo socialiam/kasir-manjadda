@@ -189,8 +189,11 @@ function lengkapi(data) {
      penghapusan itu ikut menular ke perangkat lain. Yang disisakan adalah
      yang PERTAMA, yaitu akun pemilik, bukan yang kebetulan paling akhir. */
   if (hasil.petugas.length > 1) {
-    hasil.petugas.slice(1).forEach(p => { hasil.dihapus.petugas[p.id] = new Date().toISOString(); });
-    hasil.petugas = [hasil.petugas[0]];
+    const pemilik = hasil.petugas.find(p => p.peran === 'pemilik') || hasil.petugas[0];
+    hasil.petugas.forEach(p => {
+      if (p.id !== pemilik.id) hasil.dihapus.petugas[p.id] = new Date().toISOString();
+    });
+    hasil.petugas = [pemilik];
   }
   ['petugas', 'barang', 'transaksi', 'barangMasuk', 'catatan', 'tutupKasir',
     'tertahan'].forEach(k => {

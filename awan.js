@@ -220,6 +220,20 @@ function awanSelaraskanPetugas(dariServer) {
       : { id: ps.id, nama: ps.nama, peran: ps.peran, pin: '', panjangPin: 0,
           pinBawaan: !!ps.pinBawaan, gagalPin: 0, kunciSampai: 0 };
   });
+  /* Aturan "hanya pemilik" juga berlaku pada daftar dari server, bukan cuma
+     pada data perangkat ini. Kalau tidak, karyawan yang masih tersisa di
+     server akan dihidupkan kembali di setiap perangkat baru -- dan karyawan
+     tanpa PIN bisa dimasuki siapa saja yang tahu alamatnya. */
+  if (db.petugas.length > 1) {
+    const pemilik = db.petugas.find(p => p.peran === 'pemilik') || db.petugas[0];
+    db.dihapus = db.dihapus || { barang: {}, petugas: {} };
+    db.petugas.forEach(p => {
+      if (p.id !== pemilik.id) db.dihapus.petugas[p.id] = new Date().toISOString();
+    });
+    db.petugas = [pemilik];
+    awanJadwalkanDorong();      // supaya pembuangannya sampai ke server
+  }
+
   awanSimpanLokalSaja();
 
   /* Papan angka biasanya SUDAH terbuka sebelum daftar ini tiba, memakai
