@@ -40,6 +40,11 @@ const AWAN_KUNCI_TOKEN = 'kasirToko.giliran';
    Jadi ini penahanan, bukan penghapusan. */
 let panduanDitahan = false;
 let panduanSempatDiminta = false;
+/* Sekali toko ini terbukti sudah berdiri di server, panduan pendiriannya
+   padam untuk seterusnya dan TIDAK bisa dinyalakan lagi oleh siapa pun --
+   termasuk oleh penangkap galat di bawah, yang kalau tidak begini akan
+   melepaskannya setiap kali awanMulai tersandung sesudah mengenali toko. */
+let panduanDipadamkan = false;
 
 if (typeof perluPanduanAwal !== 'undefined' && perluPanduanAwal) {
   panduanDitahan = true;
@@ -66,6 +71,7 @@ if (typeof perluPanduanAwal !== 'undefined' && perluPanduanAwal) {
 
 /** Melepaskan panduan awal yang tadi ditahan, kalau memang masih perlu. */
 function awanLepaskanPanduan() {
+  if (panduanDipadamkan) return;
   if (!panduanDitahan) return;
   panduanDitahan = false;
   if (!panduanSempatDiminta) return;
@@ -358,9 +364,15 @@ async function awanMulai() {
   // server itulah yang nanti dipakai memeriksa PIN.
   awanSelaraskanPetugas(r.isi.petugas);
 
-  // Toko ini sudah berdiri, jadi panduan pendiriannya tidak pernah dipanggil
-  // kembali. Lihat keterangan di bagian penahanan di atas.
-  panduanDitahan = false;
+  /* Toko ini sudah berdiri, jadi panduan pendiriannya dipadamkan untuk
+     SETERUSNYA -- penahanannya sengaja TIDAK dilepas.
+
+     Kalau di sini panduanDitahan dijadikan false, pencegatnya ikut terbuka,
+     dan panduan yang dijadwalkan app.js pada 350 milidetik lolos begitu saja
+     setiap kali jawaban server datang lebih cepat dari itu. Di jaringan
+     cepat, itu hampir selalu. */
+  panduanDipadamkan = true;
+  panduanSempatDiminta = false;
 
   // Giliran yang belum habis boleh dipakai lagi, supaya membuka kasir di
   // pagi hari tidak selalu menuntut PIN dua kali.
