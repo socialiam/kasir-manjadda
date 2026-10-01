@@ -111,11 +111,28 @@ function satukanDaftar(diServer = [], dariPengirim = [], pengirimMenang) {
   return [...peta.values()];
 }
 
+/** Nisan dari kedua sisi disatukan, lalu dipakai membuang. */
+function satukanNisan(lama = {}, baru = {}) {
+  return {
+    barang: { ...(lama.barang || {}), ...(baru.barang || {}) },
+    petugas: { ...(lama.petugas || {}), ...(baru.petugas || {}) }
+  };
+}
+
 function satukan(lama, baru) {
   if (!lama) return baru;
   const hasil = { ...lama, ...baru };
   DAFTAR_TAMBAH.forEach(k => { hasil[k] = satukanDaftar(lama[k], baru[k], false); });
   DAFTAR_CATATAN.forEach(k => { hasil[k] = satukanDaftar(lama[k], baru[k], true); });
+
+  /* Yang sudah dinisankan dibuang SESUDAH penyatuan. Urutannya penting:
+     kalau dibuang lebih dulu, salinan dari perangkat yang belum tahu
+     penghapusannya akan memasukkannya kembali. */
+  hasil.dihapus = satukanNisan(lama.dihapus, baru.dihapus);
+  DAFTAR_CATATAN.forEach(k => {
+    const nisan = hasil.dihapus[k] || {};
+    hasil[k] = (hasil[k] || []).filter(x => !nisan[x.id]);
+  });
   hasil.arsip = { ...(lama.arsip || {}), ...(baru.arsip || {}) };
   // Nomor nota tidak boleh mundur, kalau tidak dua nota bisa bernomor sama.
   hasil.nomorTerakhir = Math.max(Number(lama.nomorTerakhir) || 0, Number(baru.nomorTerakhir) || 0);

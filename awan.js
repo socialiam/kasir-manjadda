@@ -158,13 +158,22 @@ function awanSatukanKeDb(dariServer) {
   });
   db.barang = awanSatukanDaftar(db.barang, dariServer.barang, true);
 
+  /* Nisan dari server ikut dipakai di sini, supaya barang yang dibuang di
+     perangkat lain ikut hilang dari perangkat ini. */
+  db.dihapus = {
+    barang: { ...((db.dihapus || {}).barang || {}), ...((dariServer.dihapus || {}).barang || {}) },
+    petugas: { ...((db.dihapus || {}).petugas || {}), ...((dariServer.dihapus || {}).petugas || {}) }
+  };
+  db.barang = db.barang.filter(b => !db.dihapus.barang[b.id]);
+
   /* Petugas butuh perlakuan khusus: server tidak pernah mengirimkan sidik
      PIN, jadi yang ada di perangkat ini harus dipertahankan. Tanpa ini,
      satu kali tarik akan mengosongkan semua PIN dan membuat kasir bisa
      dibuka siapa saja. */
   const petugasServer = dariServer.petugas || [];
   const peta = new Map((db.petugas || []).map(p => [p.id, p]));
-  db.petugas = petugasServer.map(ps => {
+  const petugasHidup = petugasServer.filter(ps => !(db.dihapus || { petugas: {} }).petugas[ps.id]);
+  db.petugas = petugasHidup.map(ps => {
     const lokal = peta.get(ps.id);
     return lokal
       ? { ...lokal, nama: ps.nama, peran: ps.peran,
@@ -212,6 +221,17 @@ function awanSelaraskanPetugas(dariServer) {
           pinBawaan: !!ps.pinBawaan, gagalPin: 0, kunciSampai: 0 };
   });
   awanSimpanLokalSaja();
+
+  /* Papan angka biasanya SUDAH terbuka sebelum daftar ini tiba, memakai
+     catatan petugas buatan perangkat ini sendiri. Kalau tidak diarahkan
+     ulang ke catatan dari server, id yang dikirim saat memasukkan PIN tidak
+     dikenali server, dan pemeriksaan diam-diam jatuh ke perangkat sendiri --
+     seolah berhasil, padahal tidak pernah tersambung. */
+  if (petugasMenunggu) {
+    const diServer = db.petugas.find(x => x.nama === petugasMenunggu.nama) || db.petugas[0];
+    if (diServer) { petugasMenunggu = diServer; gambarLayarKunci(); gambarKeadaanKunci(); }
+  }
+
   try { if (typeof gambarLayarMasuk === 'function') gambarLayarMasuk(); } catch (e) { /* layar belum siap */ }
 }
 

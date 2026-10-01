@@ -31,8 +31,8 @@
       <span id="penanda-awan" class="penanda-awan mati"></span>
       <span id="bilah-tanggal" class="bilah-kecil"></span>
       <button id="btn-ganti-petugas" class="tombol tombol-netral kecil"
-              title="Keluar dan kunci kasir. Yang meneruskan giliran mengetik PIN miliknya sendiri.">
-        &#128274; Ganti Petugas</button>
+              title="Kunci kasir. Membukanya kembali menuntut PIN.">
+        &#128274; Kunci Kasir</button>
     </div>
   </header>
 
@@ -49,8 +49,7 @@
         <p id="kunci-pesan" class="kecil pesan-kunci"></p>
         <div class="papan-angka" id="papan-angka"></div>
         <p class="lemah kecil" id="kunci-catatan" style="margin-top:16px"></p>
-        <button id="btn-batal-pin" class="tombol tombol-netral kecil" style="margin-top:14px">
-          &larr; Pilih petugas lain</button>
+
       </div>
     </section>
 
@@ -60,12 +59,12 @@
         <div class="logo" id="logo-toko">TM</div>
         <h1 id="judul-masuk">Toko Man Jadda Wajada Kubu</h1>
         <p id="judul-jenis" class="lemah"></p>
+        <!-- Layar ini tidak dipakai lagi dalam pemakaian biasa: membuka kasir
+             langsung ke papan angka. Ia disisakan sebagai jaring pengaman untuk
+             keadaan yang seharusnya tidak pernah terjadi -- data tanpa satu pun
+             orang di dalamnya. -->
         <p class="lemah" style="margin-top:6px">Siapa yang jaga toko hari ini?</p>
         <div id="pilihan-petugas" class="pilihan-petugas"></div>
-        <p class="lemah kecil" style="margin-top:22px">
-          Belum ada nama Bapak/Ibu di daftar? Pilih siapa saja dulu,
-          lalu tambah orang baru lewat menu <b>Pengaturan</b>.
-        </p>
       </div>
     </section>
 
@@ -259,7 +258,7 @@
         <h3>Riwayat Barang Masuk</h3>
         <div class="tabel-bungkus">
           <table class="tabel" id="tabel-masuk">
-            <thead><tr><th>Waktu</th><th>Barang</th><th class="tengah">Jumlah</th><th class="kanan">Harga Beli</th><th>Catatan</th><th>Petugas</th></tr></thead>
+            <thead><tr><th>Waktu</th><th>Barang</th><th class="tengah">Jumlah</th><th class="kanan">Harga Beli</th><th>Catatan</th></tr></thead>
             <tbody></tbody>
           </table>
         </div>
@@ -421,25 +420,16 @@
 
       <div class="kartu">
         <h3>PIN Petugas</h3>
-        <p class="lemah">Tiap orang punya PIN sendiri, dan pemilik yang memberikannya.
-          Karena angkanya berbeda-beda, karyawan tidak bisa masuk memakai nama pemilik
-          untuk melihat laporan untung atau membuka Pengaturan.</p>
+        <p class="lemah">PIN adalah satu-satunya yang menjaga data toko ini. Karena datanya
+          bisa dibuka dari mana saja, siapa pun yang tahu alamatnya tetap tidak bisa melihat
+          apa pun tanpa PIN yang benar.</p>
         <p class="lemah kecil"><b>Ingat baik-baik:</b> kalau PIN pemilik lupa, jalan masuk kembali
           hanya lewat pemulihan cadangan, atau bantuan yang memasang aplikasi ini.</p>
         <div id="ringkas-pin" class="lemah kecil" style="margin:12px 0"></div>
         <div class="baris-alat">
+          <button id="btn-ganti-pin" class="tombol tombol-utama">&#128273; Ganti PIN</button>
           <button id="btn-lupa-pin" class="tombol tombol-netral kecil">Lupa PIN?</button>
         </div>
-      </div>
-
-      <div class="kartu">
-        <h3>Petugas</h3>
-        <p class="lemah">Siapa saja yang boleh membuka kasir. Tambah karyawan sebanyak yang
-          diperlukan &mdash; tidak ada batasnya. Tiap nota, barang masuk, dan tutup kasir
-          tercatat atas nama orang yang sedang bertugas.</p>
-        <div id="info-petugas" class="lemah kecil" style="margin-bottom:10px"></div>
-        <div id="daftar-petugas" class="daftar-sederhana"></div>
-        <button id="btn-tambah-petugas" class="tombol tombol-utama">&#65291; Tambah Karyawan</button>
       </div>
 
       <div class="kartu">

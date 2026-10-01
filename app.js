@@ -116,7 +116,7 @@ const KUNCI_SIMPAN = 'kasirToko.v1';
    benar-benar yang terbaru: angkanya terlihat di layar Pengaturan paling bawah.
    Kalau angka di layar tidak sama dengan yang disebutkan, berarti browser masih
    memakai simpanan lama dan perlu dimuat ulang dengan Ctrl+Shift+R. */
-const VERSI_APLIKASI = '1 Oktober 2026 - pembaruan 31 (data bersama)';
+const VERSI_APLIKASI = '1 Oktober 2026 - pembaruan 32 (kasir satu orang)';
 
 /** Isi awal saat aplikasi pertama kali dibuka. Semua bisa diubah dari dalam aplikasi. */
 function dataAwal() {
@@ -130,18 +130,15 @@ function dataAwal() {
       catatanStruk: 'Terima kasih sudah berbelanja', tema: 'terang',
       urutBarang: 'nama-az'
     },
-    /* Cukup dua orang untuk memulai: pemilik dan satu karyawan. Pemilik
-       menambah sendiri sebanyak yang diperlukan lewat Pengaturan, tanpa
-       batas jumlah. Daftar panjang sejak awal hanya menyulitkan.
+    /* Satu orang saja: pemiliknya. Karyawan sengaja tidak ada, supaya
+       dasarnya mudah dipahami lebih dulu; menambahkannya nanti jauh lebih
+       mudah daripada membongkar yang sudah terlanjur rumit.
 
-       PIN melekat pada orangnya, bukan pada toko. Dengan begitu karyawan
-       yang tahu PIN-nya sendiri tetap tidak bisa masuk memakai nama
-       pemilik. PIN karyawan diberikan oleh pemilik lewat Pengaturan. */
+       PIN tetap ada, dan di sinilah gunanya: data toko bisa dibuka dari
+       mana saja, jadi PIN adalah satu-satunya yang menjaganya. */
     petugas: [
       { id: idBaru(), nama: 'Bpk Kamal', peran: 'pemilik', pin: acakPin('123456'),
-        panjangPin: 6, pinBawaan: true, gagalPin: 0, kunciSampai: 0 },
-      { id: idBaru(), nama: 'Vidal', peran: 'karyawan', pin: '',
-        panjangPin: 0, pinBawaan: false, gagalPin: 0, kunciSampai: 0 }
+        panjangPin: 6, pinBawaan: true, gagalPin: 0, kunciSampai: 0 }
     ],
     /* Daftar awal: lima barang pertama diambil dari daftar WhatsApp toko,
        sisanya barang pecah belah yang umum. SEMUA HARGA DI SINI PERKIRAAN
@@ -184,6 +181,17 @@ function lengkapi(data) {
   const awal = dataAwal();
   const hasil = Object.assign({}, awal, data);
   hasil.toko = Object.assign({}, awal.toko, data.toko || {});
+  /* Nisan: id yang sengaja dibuang, beserta waktunya. Tanpa ini,
+     penghapusan tidak pernah menular ke perangkat lain. */
+  hasil.dihapus = { barang: {}, petugas: {}, ...(data.dihapus || {}) };
+
+  /* Karyawan dibuang sekali jalan, dan nisannya ditinggalkan supaya
+     penghapusan itu ikut menular ke perangkat lain. Yang disisakan adalah
+     yang PERTAMA, yaitu akun pemilik, bukan yang kebetulan paling akhir. */
+  if (hasil.petugas.length > 1) {
+    hasil.petugas.slice(1).forEach(p => { hasil.dihapus.petugas[p.id] = new Date().toISOString(); });
+    hasil.petugas = [hasil.petugas[0]];
+  }
   ['petugas', 'barang', 'transaksi', 'barangMasuk', 'catatan', 'tutupKasir',
     'tertahan'].forEach(k => {
     if (!Array.isArray(hasil[k])) hasil[k] = [];
@@ -198,11 +206,8 @@ function lengkapi(data) {
     'slogan', 'bukaJam', 'tutupJam', 'hariLibur', 'jamBuka', 'promo',
     'petaTautan', 'sejakTahun'].forEach(mati => { delete hasil.toko[mati]; });
   delete hasil.pelanggan;
-  // Peran disimpan sebagai dua nilai tetap. Data lama memakai tulisan bebas,
-  // jadi apa pun yang bukan "pemilik" dianggap karyawan.
   hasil.petugas.forEach(p => {
     p.id ??= idBaru();
-    p.peran = String(p.peran || '').toLowerCase().includes('pemilik') ? 'pemilik' : 'karyawan';
     p.pin = p.pin || '';
     p.gagalPin ??= 0;
     p.kunciSampai ??= 0;
@@ -210,6 +215,7 @@ function lengkapi(data) {
     /* Catatan lama tidak punya penanda ini, jadi dihitung sekali saja dari
        sidik lamanya -- sesudah itu ia berdiri sendiri. */
     if (p.pinBawaan === undefined) p.pinBawaan = !!p.pin && p.pin === acakPin('123456');
+    p.peran = 'pemilik';     // hanya ada satu peran sekarang
   });
   /* Dulu PIN hanya satu untuk seluruh toko. Sekarang melekat pada orangnya,
      jadi PIN lama itu dipindahkan ke akun pemilik, sekali saja. */
@@ -272,6 +278,14 @@ function simpanData(data = db) {
 }
 
 const cariBarang = id => db.barang.find(b => b.id === id);
+
+/** Menandai satu id sebagai sengaja dibuang, supaya ia tidak hidup lagi
+    saat data perangkat ini disatukan dengan data perangkat lain. */
+function tandaiDihapus(jenis, id) {
+  db.dihapus = db.dihapus || { barang: {}, petugas: {} };
+  db.dihapus[jenis] = db.dihapus[jenis] || {};
+  db.dihapus[jenis][id] = new Date().toISOString();
+}
 
 /* ========== TIGA TINGKAT PENGENALAN BARANG ==========
    Berkas induk toko mengenali barang dari tiga kolom, bukan satu nama:
@@ -410,9 +424,10 @@ function periksaPenyimpanan() {
 }
 
 /* ----- peran ----- */
-const labelPeran = p => (p?.peran === 'pemilik' ? 'Pemilik' : 'Karyawan');
-const bolehPemilik = () => petugasSekarang?.peran === 'pemilik';
-const jumlahPemilik = () => db.petugas.filter(p => p.peran === 'pemilik').length;
+const labelPeran = () => 'Pemilik';   // hanya ada satu peran sekarang
+/* Dulu ini membedakan pemilik dari karyawan. Sekarang yang memakai kasir
+   hanya pemilik, jadi yang ditanyakan tinggal: sudah masuk atau belum. */
+const bolehPemilik = () => !!petugasSekarang;
 
 /** Layar yang hanya boleh dibuka pemilik. */
 const LAYAR_PEMILIK = ['layar-pengaturan', 'layar-catatan'];
@@ -471,6 +486,19 @@ function gantiLayar(idLayar) {
 function inisial(nama) {
   const kata = String(nama || '?').trim().split(/\s+/);
   return ((kata[0]?.[0] || '') + (kata[1]?.[0] || '')).toUpperCase() || '?';
+}
+
+/** Pemilik toko: satu-satunya orang di aplikasi ini sekarang. */
+const pemilikToko = () => db.petugas[0] || null;
+
+/** Mengunci kasir. Karena hanya ada satu orang, tidak ada lagi yang perlu
+    dipilih -- langsung ke papan angka. Kalau PIN-nya kosong, langsung
+    masuk, sebab tidak ada yang perlu ditanyakan. */
+function kunciKasir() {
+  const p = pemilikToko();
+  if (!p) { gantiLayar('layar-masuk'); return; }
+  if (p.pin) mintaPinPetugas(p);
+  else lanjutkanMasuk(p);
 }
 
 function gambarLayarMasuk() {
@@ -657,10 +685,9 @@ function gambarKeadaanKunci() {
   }
 }
 
-/* ----- layar PIN milik tiap petugas -----
-   PIN melekat pada orangnya, bukan pada toko. Karyawan yang tahu PIN-nya
-   sendiri tetap tidak bisa masuk memakai nama pemilik, karena angkanya
-   berbeda. */
+/* ----- layar PIN -----
+   Satu PIN untuk satu pemilik. Diperiksa di server kalau ada sinyal,
+   di perangkat sendiri kalau tidak -- lihat keterangan di cobaBukaKunci. */
 
 let ketikanPin = '';
 let petugasMenunggu = null;       // orang yang sedang diminta PIN-nya
@@ -797,27 +824,17 @@ function bukaKunci() {
   lanjutkanMasuk(p);
 }
 
-function batalPin() {
-  hentikanPencacahKunci();
-  petugasMenunggu = null;
-  ketikanPin = '';
-  gambarLayarMasuk();
-  gantiLayar('layar-masuk');
-}
-
-/* ----- keluar dari giliran -----
-   Menekan Ganti Petugas berarti meninggalkan meja kasir. Karena tiap orang
-   punya PIN sendiri, keluar sama dengan mengunci kasir: yang meneruskan
-   harus mengetik PIN miliknya. Tiga hal wajib ikut dibersihkan, kalau tidak
-   sisa giliran sebelumnya terbawa ke giliran berikutnya. */
+/* ----- mengunci kasir -----
+   Menekan Kunci Kasir berarti meninggalkan meja. Membukanya kembali
+   menuntut PIN. Tiga hal wajib ikut dibersihkan, kalau tidak sisa giliran
+   sebelumnya terbawa ke giliran berikutnya. */
 function keluarDariGiliran() {
   hentikanPencacahKunci();
   petugasSekarang = null;
   petugasMenunggu = null;
   kosongkanKeranjang();          // ikut mengosongkan diskon dan bayar
-  gambarLayarMasuk();
-  gantiLayar('layar-masuk');
-  pesan('Kasir dikunci. Pilih nama untuk melanjutkan.', 'info', 4000);
+  kunciKasir();
+  pesan('Kasir dikunci. Masukkan PIN untuk melanjutkan.', 'info', 4000);
 }
 
 function gantiPetugas() {
@@ -965,9 +982,7 @@ function gambarSapaan(pemilik, trxHariIni, omzet, menipis) {
 function gambarBeranda() {
   const hariIni = kunciTanggal();
   const pemilik = bolehPemilik();
-  let trxHariIni = db.transaksi.filter(t => !t.batal && kunciTanggal(t.waktu) === hariIni);
-  // Karyawan hanya melihat hasil kerjanya sendiri, bukan omzet seluruh toko.
-  if (!pemilik) trxHariIni = trxHariIni.filter(t => t.petugas === petugasSekarang?.nama);
+  const trxHariIni = db.transaksi.filter(t => !t.batal && kunciTanggal(t.waktu) === hariIni);
 
   const omzet = trxHariIni.reduce((j, t) => j + t.total, 0);
   const laba = trxHariIni.reduce((j, t) => j + labaTransaksi(t), 0);
@@ -1619,6 +1634,7 @@ async function hapusBarang(id) {
     'Ya, hapus');
   if (!ya) return;
   db.barang = db.barang.filter(x => x.id !== id);
+  tandaiDihapus('barang', id);
   keranjang = keranjang.filter(i => i.idBarang !== id);
   catat('barang', `Menghapus barang "${b.nama}" (stok terakhir ${angka(b.stok)})`);
   simpanData();
@@ -1800,7 +1816,6 @@ function gambarRiwayatMasuk() {
       <td class="tengah"><b>+${angka(m.jumlah)}</b></td>
       <td class="kanan">${angka(m.hargaBeli)}</td>
       <td class="lemah">${aman(m.catatan || '-')}</td>
-      <td class="lemah">${aman(m.petugas)}</td>
     </tr>`).join('');
   $('#masuk-kosong').textContent = daftar.length ? '' : 'Belum ada catatan barang masuk.';
   $('#tabel-masuk').classList.toggle('tersembunyi', daftar.length === 0);
@@ -1833,8 +1848,6 @@ function transaksiTerpilih() {
   const b = new Date(sampai + 'T23:59:59.999').getTime();
   return db.transaksi
     .filter(t => { const w = new Date(t.waktu).getTime(); return w >= a && w <= b; })
-    // Karyawan hanya melihat notanya sendiri; stok tetap satu untuk seluruh toko.
-    .filter(t => bolehPemilik() || t.petugas === petugasSekarang?.nama)
     .sort((x, y) => new Date(y.waktu) - new Date(x.waktu));
 }
 
@@ -1947,15 +1960,6 @@ function detailTransaksi(id) {
 async function batalkanTransaksi(id) {
   const t = db.transaksi.find(x => x.id === id);
   if (!t || t.batal) return;
-  // Karyawan hanya boleh membatalkan notanya sendiri, dan hanya hari itu juga.
-  if (!bolehPemilik()) {
-    if (t.petugas !== petugasSekarang?.nama) {
-      pesan('Nota milik petugas lain hanya bisa dibatalkan pemilik.', 'peringatan', 4000); return;
-    }
-    if (kunciTanggal(t.waktu) !== kunciTanggal()) {
-      pesan('Nota hari sebelumnya hanya bisa dibatalkan pemilik.', 'peringatan', 4000); return;
-    }
-  }
   const ya = await konfirmasi('Batalkan transaksi',
     `Batalkan <b>${aman(t.nomor)}</b> senilai ${rupiah(t.total)}?<br>
      Stok barangnya akan dikembalikan, dan nota ini tidak lagi dihitung dalam laporan.`,
@@ -1978,7 +1982,7 @@ function unduhCsv() {
   const daftar = transaksiTerpilih();
   if (!daftar.length) { pesan('Tidak ada transaksi untuk diunduh.', 'peringatan'); return; }
   const sel = n => `"${String(n).replace(/"/g, '""')}"`;
-  const pemilik = bolehPemilik();   // harga beli adalah rahasia modal, bukan urusan karyawan
+  const pemilik = bolehPemilik();
   const judul = ['Nomor', 'Waktu', 'Petugas', 'Barang', 'Jumlah', 'Harga Jual'];
   if (pemilik) judul.push('Harga Beli');
   judul.push('Subtotal Barang', 'Diskon Nota', 'Total Nota', 'Status');
@@ -2136,29 +2140,20 @@ const PIN_MUDAH_DITEBAK = ['123456', '1234', '000000', '0000', '111111', '1111',
   '123123', '654321', '4321', '121212'];
 
 function gambarPin() {
-  const tanpaPin = db.petugas.filter(p => !p.pin);
-  const pemilikTanpaPin = tanpaPin.filter(p => p.peran === 'pemilik');
-  const bawaan = db.petugas.filter(p => pinBawaanMasih(p));
-  const karyawanTanpaPin = tanpaPin.filter(p => p.peran !== 'pemilik');
-  const baris = [];
-
-  if (pemilikTanpaPin.length) {
-    baris.push(`<span class="lencana lencana-bahaya">Perlu diisi</span>
-      Akun pemilik <b>${pemilikTanpaPin.map(p => aman(p.nama)).join(', ')}</b> belum punya PIN,
-      jadi siapa pun bisa membukanya dan melihat laporan untung.`);
+  const p = pemilikToko();
+  let teks;
+  if (!p || !p.pin) {
+    teks = `<span class="lencana lencana-bahaya">Perlu diisi</span>
+      Kasir ini <b>belum punya PIN</b>. Karena datanya bisa dibuka dari mana saja,
+      siapa pun yang tahu alamatnya bisa melihat seluruh penjualan toko.`;
+  } else if (pinBawaanMasih(p)) {
+    teks = `<span class="lencana lencana-peringatan">Masih bawaan</span>
+      PIN masih angka bawaan pabrik, yang paling mudah ditebak di dunia.
+      Gantilah dengan angka Bapak sendiri.`;
+  } else {
+    teks = 'PIN sudah diganti dengan angka sendiri.';
   }
-  if (bawaan.length) {
-    baris.push(`<span class="lencana lencana-peringatan">Masih bawaan</span>
-      PIN <b>${bawaan.map(p => aman(p.nama)).join(', ')}</b> masih 123456,
-      angka yang paling mudah ditebak di dunia.`);
-  }
-  if (karyawanTanpaPin.length) {
-    baris.push(`Karyawan tanpa PIN: <b>${karyawanTanpaPin.map(p => aman(p.nama)).join(', ')}</b>
-      — siapa pun bisa masuk memakai nama mereka.`);
-  }
-  if (!baris.length) baris.push('Semua petugas sudah punya PIN sendiri.');
-
-  $('#ringkas-pin').innerHTML = baris.join('<br><br>');
+  $('#ringkas-pin').innerHTML = teks;
 }
 
 /** Pemilik memberikan atau mengganti PIN seorang petugas. Mengganti PIN diri
@@ -2322,24 +2317,6 @@ function gambarPengaturan() {
   $('#set-alamat').value = db.toko.alamat || '';
   $('#set-catatan').value = db.toko.catatanStruk || '';
 
-  const jumlahKaryawan = db.petugas.filter(p => p.peran !== 'pemilik').length;
-  $('#info-petugas').innerHTML =
-    `<b>${angka(jumlahPemilik())}</b> pemilik dan <b>${angka(jumlahKaryawan)}</b> karyawan terdaftar.`;
-
-  $('#daftar-petugas').innerHTML = db.petugas.map(p => `
-    <div class="baris-daftar">
-      <span><b>${aman(p.nama)}</b>
-        <span class="lencana ${p.peran === 'pemilik' ? 'lencana-baik' : 'lencana-peringatan'}">${labelPeran(p)}</span>
-        <br><span class="lemah kecil">${p.pin
-          ? (pinBawaanMasih(p) ? 'PIN masih bawaan 123456' : 'PIN sudah diberikan')
-          : 'Tanpa PIN, siapa pun bisa masuk memakai namanya'}</span></span>
-      <span style="white-space:nowrap">
-        <button class="tombol-ikon" data-pin-petugas="${p.id}"
-                title="${p.pin ? 'Ganti PIN' : 'Beri PIN'}">&#128273;</button>
-        <button class="tombol-ikon" data-ubah-petugas="${p.id}" title="Ubah nama">&#9998;</button>
-        <button class="tombol-ikon" data-hapus-petugas="${p.id}" title="Hapus">&#128465;</button>
-      </span>
-    </div>`).join('');
 
   $('#versi-aplikasi').textContent = 'Versi aplikasi: ' + VERSI_APLIKASI;
   gambarPenyimpanan();
@@ -2363,75 +2340,7 @@ function simpanToko() {
   pesan('Pengaturan toko disimpan.', 'sukses');
 }
 
-function formPetugas(id = null) {
-  const p = id ? db.petugas.find(x => x.id === id) : null;
-  bukaModal({
-    judul: p ? 'Ubah Petugas' : 'Tambah Karyawan',
-    isi: `<div class="form-grid" style="margin:0">
-        <label class="lebar-penuh">Nama
-          <input id="p-nama" class="input" type="text" value="${aman(p?.nama || '')}" placeholder="Contoh: Mr Kamal"></label>
-        <label class="lebar-penuh">Peran
-          <select id="p-peran" class="input">
-            <option value="karyawan" ${p?.peran === 'pemilik' ? '' : 'selected'}>Karyawan</option>
-            <option value="pemilik" ${p?.peran === 'pemilik' ? 'selected' : ''}>Pemilik</option>
-          </select></label>
-      </div>
-      <p class="lemah kecil" style="margin-top:12px">
-        <b>Karyawan</b> boleh menjual, melihat daftar barang, mencatat barang masuk, menutup kasir,
-        dan melihat penjualannya sendiri.<br>
-        <b>Pemilik</b> juga boleh mengubah harga, membuka Pengaturan, Buku Catatan, dan laporan seluruh toko.
-        ${p ? '<br><br>Mengganti nama tidak mengubah nota lama: nota tetap memakai nama saat transaksi itu terjadi.' : ''}
-      </p>`,
-    aksi: [
-      { label: 'Batal', kelas: 'tombol-netral', saatKlik: tutupModal },
-      {
-        label: p ? 'Simpan Perubahan' : 'Tambahkan', kelas: 'tombol-utama', saatKlik: () => {
-          const nama = $('#p-nama').value.trim();
-          if (!nama) { pesan('Nama belum diisi.', 'peringatan'); $('#p-nama').focus(); return; }
-          const peran = $('#p-peran').value === 'pemilik' ? 'pemilik' : 'karyawan';
-          if (p) {
-            // Toko harus selalu punya minimal satu pemilik, kalau tidak
-            // Pengaturan tidak bisa dibuka siapa pun lagi.
-            if (p.peran === 'pemilik' && peran !== 'pemilik' && jumlahPemilik() <= 1) {
-              pesan('Harus ada minimal satu Pemilik.', 'peringatan'); return;
-            }
-            const ubahan = [];
-            if (p.nama !== nama) ubahan.push(`nama "${p.nama}" jadi "${nama}"`);
-            if (p.peran !== peran) ubahan.push(`peran jadi ${peran}`);
-            p.nama = nama; p.peran = peran;
-            if (petugasSekarang && petugasSekarang.id === p.id) {
-              $('#bilah-petugas').textContent = nama + ' - ' + labelPeran(p);
-              terapkanHakAkses();
-            }
-            if (ubahan.length) catat('sistem', 'Mengubah petugas: ' + ubahan.join(', '));
-          } else {
-            db.petugas.push({ id: idBaru(), nama, peran });
-            catat('sistem', `Menambah petugas "${nama}" sebagai ${peran}`);
-          }
-          simpanData(); tutupModal(); gambarPengaturan(); gambarLayarMasuk();
-          pesan(p ? 'Data petugas diperbarui.' : 'Karyawan ditambahkan. Namanya langsung muncul di halaman depan.', 'sukses');
-        }
-      }
-    ]
-  });
-}
 
-async function hapusPetugas(id) {
-  const p = db.petugas.find(x => x.id === id);
-  if (!p) return;
-  if (db.petugas.length <= 1) { pesan('Minimal satu petugas harus ada.', 'peringatan'); return; }
-  if (petugasSekarang && petugasSekarang.id === id) { pesan('Petugas yang sedang bertugas tidak bisa dihapus.', 'peringatan'); return; }
-  if (p.peran === 'pemilik' && jumlahPemilik() <= 1) { pesan('Harus ada minimal satu Pemilik.', 'peringatan'); return; }
-  const ya = await konfirmasi('Hapus petugas',
-    `Hapus <b>${aman(p.nama)}</b> dari daftar?<br>
-     Namanya hilang dari halaman depan, tetapi <b>seluruh nota, barang masuk, tutup kasir dan buku catatan
-     atas namanya tetap tersimpan</b>.`, 'Ya, hapus');
-  if (!ya) return;
-  db.petugas = db.petugas.filter(x => x.id !== id);
-  catat('sistem', `Menghapus petugas "${p.nama}" dari daftar (riwayat kerjanya tetap tersimpan)`);
-  simpanData(); gambarPengaturan(); gambarLayarMasuk();
-  pesan('Petugas dihapus, riwayatnya tetap ada.', 'sukses', 4000);
-}
 
 function unduhCadangan(diam = false) {
   db.terakhirCadangan = new Date().toISOString();
@@ -2463,7 +2372,7 @@ function bacaCadangan(berkas) {
     terapkanTema();
     gambarLayarMasuk();
     petugasSekarang = null;
-    gantiLayar('layar-masuk');
+    kunciKasir();
     pesan('Data berhasil dipulihkan.', 'sukses', 4000);
   };
   pembaca.readAsText(berkas);
@@ -2531,9 +2440,9 @@ function simpanPanduanAwal() {
   $('#bilah-nama-toko').textContent = namaToko;
   petugasSekarang = null;
   gambarLayarMasuk();
-  gantiLayar('layar-masuk');
+  kunciKasir();
   tutupModal();
-  pesan('Siap! Tambah karyawan lain lewat Pengaturan.', 'sukses', 4500);
+  pesan('Siap! Daftar barang bisa diisi lewat menu Daftar Barang.', 'sukses', 4500);
 }
 
 async function kosongkanDaftarBarang() {
@@ -2586,13 +2495,11 @@ function pasangPendengar() {
       gambarTitikPin();
     } else if (t.dataset.pinBuka !== undefined) cobaBukaKunci();
   });
-  $('#btn-batal-pin').onclick = batalPin;
   document.addEventListener('keydown', e => {
     if (!$('#layar-kunci').classList.contains('aktif')) return;
     if (/^[0-9]$/.test(e.key)) { ketikPin(e.key); e.preventDefault(); }
     else if (e.key === 'Backspace') { ketikanPin = ketikanPin.slice(0, -1); gambarTitikPin(); e.preventDefault(); }
     else if (e.key === 'Enter') { cobaBukaKunci(); e.preventDefault(); }
-    else if (e.key === 'Escape') { batalPin(); e.preventDefault(); }
   });
 
   /* --- kotak isian uang: titik ribuan otomatis --- */
@@ -2771,15 +2678,11 @@ function pasangPendengar() {
     db.toko.tema = db.toko.tema === 'gelap' ? 'terang' : 'gelap';
     simpanData(); terapkanTema();
   };
-  $('#btn-tambah-petugas').onclick = formPetugas;
-  $('#daftar-petugas').addEventListener('click', e => {
-    const ubah = e.target.closest('[data-ubah-petugas]');
-    const hapus = e.target.closest('[data-hapus-petugas]');
-    const kunci = e.target.closest('[data-pin-petugas]');
-    if (kunci) formPinPetugas(kunci.dataset.pinPetugas);
-    if (ubah) formPetugas(ubah.dataset.ubahPetugas);
-    if (hapus) hapusPetugas(hapus.dataset.hapusPetugas);
-  });
+  // Satu tombol untuk satu PIN: tidak ada lagi daftar orang yang dipilih.
+  $('#btn-ganti-pin').onclick = () => {
+    const p = pemilikToko();
+    if (p) formPinPetugas(p.id);
+  };
   $('#btn-kosongkan-barang').onclick = kosongkanDaftarBarang;
   $('#btn-panduan').onclick = panduanAwal;
 
@@ -2833,7 +2736,7 @@ function mulai() {
   terapkanHakAkses();   // menu pemilik tersembunyi selama belum ada yang masuk
   pasangPendengar();
   setRentang('hari-ini');
-  gantiLayar('layar-masuk');
+  kunciKasir();
   if (perluPanduanAwal) setTimeout(panduanAwal, 350);
 }
 
