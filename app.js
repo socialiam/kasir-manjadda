@@ -116,7 +116,7 @@ const KUNCI_SIMPAN = 'kasirToko.v1';
    benar-benar yang terbaru: angkanya terlihat di layar Pengaturan paling bawah.
    Kalau angka di layar tidak sama dengan yang disebutkan, berarti browser masih
    memakai simpanan lama dan perlu dimuat ulang dengan Ctrl+Shift+R. */
-const VERSI_APLIKASI = '1 Oktober 2026 - pembaruan 37 (Isi Cepat: nama saja cukup)';
+const VERSI_APLIKASI = '1 Oktober 2026 - pembaruan 38 (kirim hanya yang berubah)';
 
 /** Isi awal saat aplikasi pertama kali dibuka. Semua bisa diubah dari dalam aplikasi. */
 function dataAwal() {
@@ -294,6 +294,34 @@ function simpanData(data = db) {
 
 const cariBarang = id => db.barang.find(b => b.id === id);
 
+/* ========== MENANDAI PERUBAHAN ==========
+   Dipakai lapisan data bersama untuk menyusun kiriman: hanya yang bertanda
+   yang dikirim, dan untuk barang hanya KOLOM yang bertanda.
+
+   Kalau aplikasi dipakai tanpa data bersama, tanda ini cuma menumpang di
+   dalam data dan tidak melakukan apa-apa. */
+
+/** Menandai kolom mana saja dari satu barang yang baru saja berubah. */
+function tandaiUbah(barang, ...kolom) {
+  if (!barang) return;
+  barang._ubah = barang._ubah || {};
+  kolom.forEach(k => { barang._ubah[k] = 1; });
+}
+
+/** Menandai satu catatan baru pada daftar yang hanya pernah bertambah. */
+const tandaiBaru = x => { if (x) x._baru = 1; return x; };
+
+/** Barang yang baru lahir: seluruh kolomnya dianggap berubah, sebab server
+    belum mengenal satu pun di antaranya. */
+function tandaiSemua(barang) {
+  barang._ubah = {};
+  Object.keys(barang).forEach(k => { if (k !== 'id' && k[0] !== '_') barang._ubah[k] = 1; });
+  return barang;
+}
+
+/** Menandai bahwa pengaturan toko atau nomor nota berubah. */
+function tandaiMeta() { db._metaBerubah = 1; }
+
 /** Menandai satu id sebagai sengaja dibuang, supaya ia tidak hidup lagi
     saat data perangkat ini disatukan dengan data perangkat lain. */
 function tandaiDihapus(jenis, id) {
@@ -372,6 +400,7 @@ function catatHargaModal(barang, { harga, supplier = '', asal = 'beli' }) {
   });
   // Lima puluh baris sudah lebih dari cukup untuk membandingkan harga.
   if (barang.riwayatModal.length > 50) barang.riwayatModal.length = 50;
+  tandaiUbah(barang, 'riwayatModal');
 }
 
 /** Harga termurah yang masih layak dipercaya. Harga yang terlalu tua bukan
@@ -519,13 +548,13 @@ const LAYAR_PEMILIK = ['layar-pengaturan', 'layar-catatan'];
 const BATAS_CATATAN = 3000;
 
 function catat(jenis, teks) {
-  db.catatan.push({
+  db.catatan.push(tandaiBaru({
     id: idBaru(),
     waktu: new Date().toISOString(),
     petugas: petugasSekarang?.nama || 'Sistem',
     peran: petugasSekarang ? labelPeran(petugasSekarang) : '-',
     jenis, teks
-  });
+  }));
   if (db.catatan.length > BATAS_CATATAN) db.catatan.splice(0, db.catatan.length - BATAS_CATATAN);
 }
 
@@ -1450,12 +1479,12 @@ function gambarTertahan() {
 function tahanTransaksi() {
   if (!keranjang.length) { pesan('Keranjang masih kosong.', 'peringatan'); return; }
   db.tertahan = db.tertahan || [];
-  db.tertahan.push({
+  db.tertahan.push(tandaiBaru({
     id: idBaru(), waktu: new Date().toISOString(),
     petugas: petugasSekarang?.nama || '-',
     item: keranjang.map(i => ({ ...i })),
     diskon: $('#diskon').value, modeDiskon
-  });
+  }));
   simpanData();
   kosongkanKeranjang();
   gambarTertahan();
@@ -1543,9 +1572,10 @@ function selesaikanTransaksi() {
 
   keranjang.forEach(i => {
     const b = cariBarang(i.idBarang);
-    if (b) b.stok -= i.jumlah * (i.pengali || 1);
+    if (b) { b.stok -= i.jumlah * (i.pengali || 1); tandaiUbah(b, 'stok'); }
   });
-  db.transaksi.push(trx);
+  db.transaksi.push(tandaiBaru(trx));
+  tandaiMeta();   // nomor nota ikut maju
   simpanData();
 
   kosongkanKeranjang();
@@ -1843,13 +1873,14 @@ function simpanBarang(id) {
     if (lama.stok !== isian.stok) ubahan.push(`stok ${angka(lama.stok)} jadi ${angka(isian.stok)}`);
     if (ubahan.length) catat('barang', `Mengubah ${isian.nama}: ` + ubahan.join(', '));
     Object.assign(lama, isian);
+    tandaiUbah(lama, ...Object.keys(isian));
     /* Sekali diubah pemilik, ia bukan barang contoh lagi -- ia barang toko ini.
        Tanpa baris ini, barang contoh yang harganya sudah dibetulkan tetap
        dianggap karangan, dan aturan di awan.js akan membuangnya diam-diam
        saat dipulihkan di perangkat lain. */
     delete lama.contoh;
   } else {
-    db.barang.push({ id: idBaru(), ...isian });
+    db.barang.push(tandaiSemua({ id: idBaru(), ...isian }));
     catat('barang', `Menambah barang baru "${namaLengkap(isian)}", jual ${angka(isian.hargaJual)}, stok awal ${angka(isian.stok)}`);
   }
 
@@ -1968,20 +1999,23 @@ async function imporBarang() {
     'Ya, masukkan', false);
   if (!ya) return;
 
-  tambah.forEach(x => db.barang.push({
+  tambah.forEach(x => db.barang.push(tandaiSemua({
     id: idBaru(), kode: x.kode, nama: x.nama, merek: x.merek, tipe: x.tipe,
     supplier: x.supplier, riwayatModal: [], satuan: 'pcs',
     hargaBeli: x.hargaBeli, hargaJual: x.hargaJual, stok: x.stok, stokMinimum: 5
-  }));
+  })));
   // Kolom yang dikosongkan berarti "jangan diubah", bukan "jadikan nol".
   // Sekali saja harga tergantikan nol, angkanya tidak bisa dikembalikan.
-  perbarui.forEach(x => Object.assign(x.lama, {
-    kode: x.kode || x.lama.kode,
-    supplier: x.supplier || x.lama.supplier,
-    hargaJual: x.hargaJual || x.lama.hargaJual,
-    hargaBeli: x.hargaBeli || x.lama.hargaBeli,
-    stok: x.stok
-  }));
+  perbarui.forEach(x => {
+    Object.assign(x.lama, {
+      kode: x.kode || x.lama.kode,
+      supplier: x.supplier || x.lama.supplier,
+      hargaJual: x.hargaJual || x.lama.hargaJual,
+      hargaBeli: x.hargaBeli || x.lama.hargaBeli,
+      stok: x.stok
+    });
+    tandaiUbah(x.lama, 'kode', 'supplier', 'hargaJual', 'hargaBeli', 'stok');
+  });
 
   catat('barang', `Isi cepat daftar barang: ${tambah.length} barang baru, ${perbarui.length} diperbarui` +
     (lewat.length ? `, ${lewat.length} baris dilewati` : ''));
@@ -2034,6 +2068,7 @@ function tambahStok() {
 
   const stokLama = barang.stok;
   barang.stok += jumlah;
+  tandaiUbah(barang, 'stok');
 
   if (hargaBaru > 0) {
     /* Rata-rata tertimbang, bukan harga terakhir. Barang yang sudah di rak
@@ -2041,6 +2076,7 @@ function tambahStok() {
     const modalLama = barang.hargaBeli;
     barang.hargaBeli = modalRataRata(stokLama, modalLama, jumlah, hargaBaru);
     barang.supplier = pemasok || barang.supplier || '';
+    tandaiUbah(barang, 'hargaBeli', 'supplier');
     catatHargaModal(barang, { harga: hargaBaru, supplier: pemasok, asal: 'beli' });
     if (barang.hargaBeli !== modalLama) {
       catat('barang', `Harga modal ${barang.nama} jadi ${angka(barang.hargaBeli)} ` +
@@ -2049,14 +2085,15 @@ function tambahStok() {
     }
   } else if (pemasok) {
     barang.supplier = pemasok;
+    tandaiUbah(barang, 'supplier');
   }
   catat('stok', `Barang masuk: ${barang.nama} +${angka(jumlah)}, stok ${angka(stokLama)} jadi ${angka(barang.stok)}` +
     (catatan ? ` (${catatan})` : ''));
-  db.barangMasuk.push({
+  db.barangMasuk.push(tandaiBaru({
     id: idBaru(), waktu: new Date().toISOString(), idBarang: barang.id, nama: barang.nama,
     jumlah, hargaBeli: hargaBaru > 0 ? hargaBaru : barang.hargaBeli,
     supplier: pemasok, catatan, petugas: petugasSekarang?.nama || '-'
-  });
+  }));
   simpanData();
 
   $('#masuk-jumlah').value = 1;
@@ -2228,7 +2265,7 @@ async function batalkanTransaksi(id) {
   if (!ya) return;
   t.item.forEach(i => {
     const b = cariBarang(i.idBarang);
-    if (b) b.stok += i.jumlah * (i.pengali || 1);
+    if (b) { b.stok += i.jumlah * (i.pengali || 1); tandaiUbah(b, 'stok'); }
   });
   t.batal = true;
   t.waktuBatal = new Date().toISOString();
@@ -2322,11 +2359,11 @@ async function simpanTutupKasir() {
   if (!ya) return;
 
   const keterangan = $('#tutup-catatan').value.trim();
-  db.tutupKasir.push({
+  db.tutupKasir.push(tandaiBaru({
     id: idBaru(), waktu: new Date().toISOString(), petugas: petugasSekarang?.nama || '-',
     mulai: mulaiGiliran(), jumlahNota: trx.length, totalSistem: total,
     modalAwal: modal, uangDihitung: uang, selisih, catatan: keterangan
-  });
+  }));
   catat('kasir', `Tutup kasir: sistem ${angka(total)} dari ${trx.length} nota, laci ${angka(uang)}, hasil ${kata}` +
     (keterangan ? ` (${keterangan})` : ''));
   simpanData();
@@ -2608,6 +2645,7 @@ function simpanToko() {
   db.toko.telepon = $('#set-telepon').value.trim();
   db.toko.alamat = $('#set-alamat').value.trim();
   db.toko.catatanStruk = $('#set-catatan').value.trim();
+  tandaiMeta();
   catat('sistem', `Mengubah identitas toko (nama toko sekarang "${db.toko.nama}")`);
   simpanData();
   $('#bilah-nama-toko').textContent = db.toko.nama;

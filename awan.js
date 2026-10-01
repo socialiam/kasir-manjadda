@@ -260,16 +260,66 @@ function awanSelaraskanPetugas(dariServer) {
   try { if (typeof gambarLayarMasuk === 'function') gambarLayarMasuk(); } catch (e) { /* layar belum siap */ }
 }
 
+/** Menerapkan perubahan yang datang dari server. Bedanya dengan menyatukan
+    seluruh data: yang datang di sini HANYA catatan yang berubah, jadi yang
+    tidak disebut sengaja dibiarkan apa adanya. */
+function awanTerapkanPerubahan(p) {
+  if (!p) return;
+  DAFTAR_TAMBAH_AWAN.forEach(k => {
+    if (p[k] && p[k].length) db[k] = awanSatukanDaftar(db[k], p[k], true);
+  });
+
+  if (p.barang && p.barang.length) {
+    const peta = new Map((db.barang || []).map(b => [b.id, b]));
+    p.barang.forEach(masuk => {
+      const lokal = peta.get(masuk.id);
+      /* Tanda yang belum terkirim dipertahankan, kalau tidak perubahan yang
+         masih mengantre di perangkat ini akan terlupakan diam-diam. */
+      peta.set(masuk.id, lokal
+        ? { ...lokal, ...masuk, _ubah: lokal._ubah, _riwayatTerkirim: lokal._riwayatTerkirim }
+        : masuk);
+    });
+    db.barang = [...peta.values()];
+  }
+
+  if (p.petugas) awanSelaraskanPetugas(p.petugas);
+  if (p.toko) db.toko = { ...db.toko, ...p.toko };
+  if (p.arsip) db.arsip = { ...(db.arsip || {}), ...p.arsip };
+  if (p.nomorTerakhir !== undefined) {
+    db.nomorTerakhir = Math.max(Number(db.nomorTerakhir) || 0, Number(p.nomorTerakhir) || 0);
+  }
+
+  if (p.dihapus) {
+    db.dihapus = {
+      barang: { ...((db.dihapus || {}).barang || {}), ...(p.dihapus.barang || {}) },
+      petugas: { ...((db.dihapus || {}).petugas || {}), ...(p.dihapus.petugas || {}) }
+    };
+    db.barang = (db.barang || []).filter(b => !db.dihapus.barang[b.id]);
+  }
+
+  awan.terakhirSelaras = awanJam();
+  awanSimpanLokalSaja();
+  awanGambarUlang();
+}
+
 /* ---------- menarik perubahan dari perangkat lain ---------- */
 async function awanTarik(diam = true) {
   if (!awan.tersedia || !awan.token) return;
-  const r = await awanPanggil({ aksi: 'ambil', token: awan.token });
+  const r = await awanPanggil({ aksi: 'tarikPerubahan', token: awan.token, dariVersi: awan.versi || 0 });
   if (r.kode === 401) { awanGiliranHabis(); return; }
   if (r.kode !== 200) return;                       // diam saja; nanti dicoba lagi
-  if (r.isi.versi === awan.versi) { awan.terakhirSelaras = awanJam(); awanGambarPenanda(); return; }
 
-  awanSatukanKeDb(r.isi.data);
-  awan.versi = r.isi.versi;
+  if (r.isi.penuh) {
+    /* Jaring pengaman: perangkat yang belum pernah menyelaraskan, atau yang
+       versinya tidak dikenal server lagi, menarik semuanya sekali. */
+    awanSatukanKeDb(r.isi.data);
+    awan.versi = r.isi.versi;
+  } else {
+    const p = r.isi.perubahan;
+    if (p.versi === awan.versi) { awan.terakhirSelaras = awanJam(); awanGambarPenanda(); return; }
+    awanTerapkanPerubahan(p);
+    awan.versi = p.versi;
+  }
   awan.terakhirSelaras = awanJam();
   awanSimpanLokalSaja();
   awanGambarUlang();
@@ -278,12 +328,122 @@ async function awanTarik(diam = true) {
 
 const awanJam = () => new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
 
+/* ---------- menyusun kiriman ----------
+   Hanya yang bertanda yang ikut, dan untuk barang hanya KOLOM yang
+   bertanda. Dari situlah dua hal sekaligus didapat: kiriman jadi ringan,
+   dan dua perangkat yang mengubah kolom berbeda pada barang yang sama bisa
+   menang dua-duanya. */
+const DAFTAR_TAMBAH_AWAN = ['transaksi', 'barangMasuk', 'catatan', 'tutupKasir', 'tertahan'];
+
+function susunPerubahan() {
+  const p = {};
+  let ada = false;
+
+  DAFTAR_TAMBAH_AWAN.forEach(k => {
+    const baru = (db[k] || []).filter(x => x && x._baru);
+    if (baru.length) { p[k] = baru.map(bersihkanTanda); ada = true; }
+  });
+
+  const barang = (db.barang || []).filter(b => b && b._ubah && Object.keys(b._ubah).length);
+  if (barang.length) {
+    p.barang = barang.map(b => {
+      const kolom = Object.keys(b._ubah);
+      const t = { id: b.id, _ubah: kolom };
+      kolom.forEach(k => { t[k] = k === 'riwayatModal' ? barisRiwayatBaru(b) : b[k]; });
+      return t;
+    });
+    ada = true;
+  }
+
+  if (db.dihapus && (Object.keys(db.dihapus.barang || {}).length
+      || Object.keys(db.dihapus.petugas || {}).length)) {
+    p.dihapus = db.dihapus; ada = true;
+  }
+
+  if (db._metaBerubah) {
+    p.toko = db.toko;
+    p.arsip = db.arsip;
+    p.nomorTerakhir = db.nomorTerakhir;
+    ada = true;
+  }
+  return ada ? p : null;
+}
+
+/** Riwayat harga hanya pernah bertambah, jadi yang dikirim cukup baris yang
+    belum pernah dikirim -- bukan seluruh daftarnya. */
+function barisRiwayatBaru(barang) {
+  const dikirim = barang._riwayatTerkirim || 0;
+  return (barang.riwayatModal || []).slice(0, Math.max(1, (barang.riwayatModal || []).length - dikirim));
+}
+
+/** Sidik angka daftar barang: murah, dan cukup untuk menyadari ada nilai
+    yang berbeda antara perangkat dan server. Dijumlahkan, jadi urutan
+    daftarnya tidak berpengaruh. */
+function sidikBarang(daftar) {
+  let n = 0;
+  (daftar || []).forEach(b => {
+    n = (n + (Number(b.stok) || 0) * 31 + (Number(b.hargaJual) || 0) * 7
+         + (Number(b.hargaBeli) || 0) * 13 + String(b.nama || '').length * 3
+         + String(b.supplier || '').length) % 2147483647;
+  });
+  return n;
+}
+
+/** Benarkah perangkat ini memegang catatan yang belum sampai ke server?
+    Dibandingkan jumlahnya saja -- murah, dan cukup untuk menyadari adanya
+    yang tertinggal. Server yang punya LEBIH banyak itu wajar: perangkat
+    lain baru menambah. */
+function adaYangTertinggal(jumlahServer) {
+  if ((db.barang || []).length > (jumlahServer.barang ?? Infinity)) return true;
+  if (DAFTAR_TAMBAH_AWAN.some(k => (db[k] || []).length > (jumlahServer[k] ?? Infinity))) return true;
+  /* Jumlah yang sama belum berarti isinya sama. Sidik ini menangkap NILAI
+     yang berbeda -- harga atau stok yang berubah tanpa tertandai, yang tidak
+     akan pernah terlihat kalau cuma menghitung banyaknya. */
+  if (jumlahServer.sidikBarang !== undefined
+      && sidikBarang(db.barang) !== jumlahServer.sidikBarang) return true;
+  return false;
+}
+
+/** Menyalin catatan tanpa tanda pembukuan: tanda itu urusan perangkat ini,
+    bukan urusan toko. */
+function bersihkanTanda(x) {
+  const salinan = { ...x };
+  delete salinan._baru;
+  delete salinan._ubah;
+  return salinan;
+}
+
+/** Menghapus tanda sesudah kirimannya benar-benar berhasil. Dipanggil HANYA
+    setelah server menjawab baik; kalau gagal, tandanya sengaja dibiarkan
+    supaya perubahannya ikut pada percobaan berikutnya. */
+function bersihkanSemuaTanda() {
+  DAFTAR_TAMBAH_AWAN.forEach(k => (db[k] || []).forEach(x => { delete x._baru; }));
+  (db.barang || []).forEach(b => {
+    if (b._ubah) {
+      if (b._ubah.riwayatModal) b._riwayatTerkirim = (b.riwayatModal || []).length;
+      delete b._ubah;
+    }
+  });
+  delete db._metaBerubah;
+}
+
 /* ---------- mengirim perubahan ---------- */
 async function awanDorongSekarang() {
   if (!awan.tersedia || !awan.token || awan.sedangDorong) return;
   awan.sedangDorong = true;
   try {
-    const r = await awanPanggil({ aksi: 'simpan', token: awan.token, data: db });
+    /* Jalan ringan kalau perangkat ini tahu versi server; jalan penuh
+       kalau belum, sebab server tidak punya acuan untuk menambal. */
+    const perubahan = awan.versi ? susunPerubahan() : null;
+
+    /* Kalau tidak ada yang bertanda padahal penyimpanan memang terjadi,
+       kiriman penuhlah yang dipakai. Ini jaring pengamannya: satu tempat
+       yang terlewat ditandai hanya membuat kiriman jadi berat, TIDAK
+       membuat perubahannya hilang diam-diam. Hilang diam-diam adalah
+       kesalahan yang baru ketahuan berbulan-bulan kemudian. */
+    const r = (awan.versi && perubahan)
+      ? await awanPanggil({ aksi: 'kirimPerubahan', token: awan.token, dariVersi: awan.versi, perubahan })
+      : await awanPanggil({ aksi: 'simpan', token: awan.token, data: db });
     if (r.kode === 401) { awanGiliranHabis(); return; }
     if (r.kode !== 200) {
       // Gagal bukan berarti hilang: datanya sudah aman di perangkat ini,
@@ -292,9 +452,29 @@ async function awanDorongSekarang() {
       awanGambarPenanda();
       return;
     }
-    awanSatukanKeDb(r.isi.data);     // hasil gabungan dengan perangkat lain
+    /* Tandanya dibersihkan SESUDAH server menjawab baik. Kalau gagal,
+       tandanya sengaja tinggal supaya perubahannya ikut pada percobaan
+       berikutnya -- gagal kirim berarti mengantre, bukan hilang. */
+    bersihkanSemuaTanda();
+    if (r.isi.data) awanSatukanKeDb(r.isi.data);              // jawaban jalan penuh
+    else if (r.isi.perubahan) awanTerapkanPerubahan(r.isi.perubahan);
     awan.versi = r.isi.versi;
     awan.adaYangBelumTerkirim = false;
+
+    /* Kalau perangkat ini memegang lebih banyak daripada server, berarti ada
+       yang tidak tertandai dan karena itu tidak terkirim. Sekali kiriman
+       penuh membereskannya.
+
+       Tanpa pemeriksaan ini, satu tempat yang terlewat ditandai akan membuat
+       perubahan hilang DIAM-DIAM -- dan hilang diam-diam adalah kesalahan
+       yang baru ketahuan berbulan-bulan kemudian, saat tidak ada lagi yang
+       bisa dilakukan. */
+    if (r.isi.jumlah && adaYangTertinggal(r.isi.jumlah)) {
+      awan.adaYangBelumTerkirim = true;
+      awan.sedangDorong = false;
+      await awanPanggil({ aksi: 'simpan', token: awan.token, data: db })
+        .then(j => { if (j.kode === 200) { awan.versi = j.isi.versi; awan.adaYangBelumTerkirim = false; } });
+    }
     awan.terakhirSelaras = awanJam();
     awanSimpanLokalSaja();
     awanGambarUlang();

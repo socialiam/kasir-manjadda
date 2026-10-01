@@ -139,6 +139,81 @@ function satukan(lama, baru) {
   return hasil;
 }
 
+/* ---------- cap versi ----------
+   _v  : versi saat catatan ini terakhir berubah
+   _vk : versi tiap KOLOM, khusus barang
+
+   Keduanya diawali garis bawah supaya jelas ia bukan isi toko, melainkan
+   pembukuan penyelarasan. */
+
+/** Membubuhkan cap pada seluruh data. Dipakai saat perangkat mengirim
+    semuanya sekaligus -- pemulihan cadangan, atau penyelarasan pertama. */
+function capSemua(data, versi) {
+  DAFTAR_TAMBAH.forEach(k => {
+    (data[k] || []).forEach(x => { if (!x._v) x._v = versi; });
+  });
+  (data.barang || []).forEach(b => { b._v = versi; b._vk = b._vk || {}; });
+  (data.petugas || []).forEach(p => { p._v = versi; });
+  data._vMeta = versi;
+  return data;
+}
+
+/** Menerapkan tambalan satu barang: HANYA kolom yang disebut, bukan
+    seluruh catatannya. Inilah yang membuat dua perangkat bisa menang
+    dua-duanya selama yang mereka ubah berbeda kolom. */
+function terapkanTambalanBarang(lama, tambalan, versi) {
+  const hasil = lama ? { ...lama } : { id: tambalan.id };
+  hasil._vk = { ...((lama && lama._vk) || {}) };
+
+  const kolom = Array.isArray(tambalan._ubah)
+    ? tambalan._ubah
+    : Object.keys(tambalan).filter(k => k !== 'id' && k !== '_ubah' && k[0] !== '_');
+
+  kolom.forEach(k => {
+    if (k === 'riwayatModal') {
+      /* Riwayat harga hanya pernah BERTAMBAH, jadi ia disatukan, bukan
+         ditimpa. Tanpa ini, harga survei yang dicatat di HP akan hilang
+         begitu laptop menyimpan barang yang sama. */
+      hasil.riwayatModal = satukanDaftar(hasil.riwayatModal, tambalan.riwayatModal, false);
+    } else if (k in tambalan) {
+      hasil[k] = tambalan[k];
+    }
+    hasil._vk[k] = versi;
+  });
+  hasil._v = versi;
+  return hasil;
+}
+
+/** Apa saja yang berubah sesudah versi tertentu. Inilah yang membuat
+    kiriman balik ikut ringan. */
+function perubahanSejak(data, sejak) {
+  const hasil = { versi: data.versi, petugas: tanpaRahasia(data).petugas };
+  DAFTAR_TAMBAH.forEach(k => {
+    hasil[k] = (data[k] || []).filter(x => (x._v || 0) > sejak);
+  });
+  hasil.barang = (data.barang || []).filter(b => (b._v || 0) > sejak);
+  hasil.dihapus = data.dihapus || { barang: {}, petugas: {} };
+  if ((data._vMeta || 0) > sejak) {
+    hasil.toko = data.toko;
+    hasil.arsip = data.arsip;
+    hasil.nomorTerakhir = data.nomorTerakhir;
+  }
+  return hasil;
+}
+
+/** Sidik angka daftar barang: murah, dan cukup untuk menyadari ada nilai
+    yang berbeda antara perangkat dan server. Dijumlahkan, jadi urutan
+    daftarnya tidak berpengaruh. */
+function sidikBarang(daftar) {
+  let n = 0;
+  (daftar || []).forEach(b => {
+    n = (n + (Number(b.stok) || 0) * 31 + (Number(b.hargaJual) || 0) * 7
+         + (Number(b.hargaBeli) || 0) * 13 + String(b.nama || '').length * 3
+         + String(b.supplier || '').length) % 2147483647;
+  });
+  return n;
+}
+
 /* ---------- muatan yang boleh keluar ----------
    Sidik PIN, hitungan gagal, dan gembok tidak pernah dikirim ke browser.
    Browser tidak membutuhkannya: pemeriksaan PIN terjadi di sini. */
@@ -279,6 +354,10 @@ export async function tangani(minta) {
 
       const gabung = satukan(lama, { ...minta.data, petugas: petugasAman });
       gabung.versi = (lama.versi || 1) + 1;
+      /* Penyimpanan penuh membubuhkan cap pada apa pun yang belum punya.
+         Tanpa ini, catatan lama tidak akan pernah terbawa saat perangkat
+         bertanya "apa yang berubah sesudah versi sekian". */
+      capSemua(gabung, gabung.versi);
       gabung.diperbaruiPada = new Date().toISOString();
       gabung.diperbaruiOleh = giliran.petugasId;
       await toko.setJSON(KUNCI_DATA, gabung);
@@ -314,6 +393,77 @@ export async function tangani(minta) {
       data.versi = (data.versi || 1) + 1;
       await toko.setJSON(KUNCI_DATA, data);
       return jawab(200, { versi: data.versi });
+    }
+
+    /* --- menarik HANYA yang berubah --- */
+    if (minta.aksi === 'tarikPerubahan') {
+      const data = await toko.get(KUNCI_DATA, { type: 'json' });
+      if (!data) return jawab(404, { galat: 'Toko ini belum dipasang' });
+      const sejak = Number(minta.dariVersi) || 0;
+
+      /* Perangkat yang belum pernah menyelaraskan, atau yang versinya lebih
+         tinggi daripada server (datanya pernah diganti), harus menarik
+         semuanya sekali. Inilah jaring pengamannya: selisih tidak bisa
+         menumpuk diam-diam, sebab perangkat selalu bisa tahu ia ketinggalan. */
+      if (!sejak || sejak > (data.versi || 1)) {
+        return jawab(200, { penuh: true, versi: data.versi || 1, data: tanpaRahasia(data) });
+      }
+      return jawab(200, { penuh: false, perubahan: perubahanSejak(data, sejak) });
+    }
+
+    /* --- mengirim HANYA yang berubah --- */
+    if (minta.aksi === 'kirimPerubahan') {
+      const lama = await toko.get(KUNCI_DATA, { type: 'json' });
+      if (!lama) return jawab(404, { galat: 'Toko ini belum dipasang' });
+      const p = minta.perubahan || {};
+      const versi = (lama.versi || 1) + 1;
+      const hasil = { ...lama, versi };
+
+      // Daftar yang hanya bertambah: disatukan, tidak pernah menimpa.
+      DAFTAR_TAMBAH.forEach(k => {
+        const masuk = (p[k] || []).map(x => ({ ...x, _v: versi }));
+        hasil[k] = satukanDaftar(lama[k], masuk, false);
+      });
+
+      // Barang: ditambal per kolom, bukan ditimpa utuh.
+      const petaBarang = new Map((lama.barang || []).map(b => [b.id, b]));
+      (p.barang || []).forEach(t => {
+        if (!t || !t.id) return;
+        petaBarang.set(t.id, terapkanTambalanBarang(petaBarang.get(t.id), t, versi));
+      });
+      hasil.barang = [...petaBarang.values()];
+
+      // Nisan, lalu membuang yang sudah dinisankan.
+      hasil.dihapus = satukanNisan(lama.dihapus, p.dihapus);
+      hasil.barang = hasil.barang.filter(b => !hasil.dihapus.barang[b.id]);
+      hasil.petugas = (lama.petugas || []).filter(x => !hasil.dihapus.petugas[x.id]);
+
+      if (p.toko) { hasil.toko = { ...lama.toko, ...p.toko }; hasil._vMeta = versi; }
+      if (p.arsip) { hasil.arsip = { ...(lama.arsip || {}), ...p.arsip }; hasil._vMeta = versi; }
+      if (p.nomorTerakhir !== undefined) {
+        hasil.nomorTerakhir = Math.max(Number(lama.nomorTerakhir) || 0, Number(p.nomorTerakhir) || 0);
+        hasil._vMeta = versi;
+      }
+
+      hasil.diperbaruiPada = new Date().toISOString();
+      hasil.diperbaruiOleh = giliran.petugasId;
+      await toko.setJSON(KUNCI_DATA, hasil);
+
+      /* Dijawab dengan apa yang berubah sejak versi yang dipegang pengirim,
+         supaya ia langsung memegang gabungan dengan perangkat lain tanpa
+         menunggu tarikan berikutnya. */
+      const sejak = Number(minta.dariVersi) || 0;
+      /* Jumlah tiap daftar ikut dikirim balik. Dari situ perangkat bisa tahu
+         kalau ia ternyata memegang lebih banyak daripada server -- pertanda
+         ada perubahan yang tidak tertandai dan karena itu tidak terkirim.
+         Murah: beberapa angka saja. */
+      const jumlah = { barang: hasil.barang.length, sidikBarang: sidikBarang(hasil.barang) };
+      DAFTAR_TAMBAH.forEach(k => { jumlah[k] = (hasil[k] || []).length; });
+      return jawab(200, {
+        versi, jumlah,
+        perubahan: sejak ? perubahanSejak(hasil, sejak) : null,
+        penuh: !sejak ? tanpaRahasia(hasil) : null
+      });
     }
 
     return jawab(400, { galat: 'Perintah tidak dikenal' });
